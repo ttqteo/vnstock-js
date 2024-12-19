@@ -40,10 +40,16 @@ describe("TCBS", () => {
   });
 });
 
-describe("Gold", () => {
+describe("Commodity", () => {
   test("Gold Price", async () => {
     const { commodity } = new Vnstock();
     const result = await commodity.goldPrice();
+    expect(result).not.toBeNull();
+  });
+
+  test("VCB Exchange Rates", async () => {
+    const { commodity } = new Vnstock();
+    const result = await commodity.exchangeRates();
     expect(result).not.toBeNull();
   });
 });

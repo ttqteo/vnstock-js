@@ -9,10 +9,10 @@
     "README.md"
   ],
   "scripts": {
+    "prepare": "husky install",
     "clean": "rimraf dist",
     "build": "npm run clean && tsc",
-    "test": "jest",
-    "prepare": "husky install"
+    "test": "jest"
   },
   "keywords": [
     "vnstock"
@@ -32,6 +32,7 @@
   "dependencies": {
     "axios": "^1.7.7",
     "date-fns": "^4.1.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "xlsx": "^0.18.5"
   }
 }
