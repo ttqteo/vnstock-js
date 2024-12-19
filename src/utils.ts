@@ -6,10 +6,12 @@
  * @throws Will throw an error if the date format is invalid.
  */
 
-export const validateDateFormat = (date: string): boolean => {
+export const validateDateFormat = (dateList: string[]): boolean => {
   const regex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!regex.test(date)) {
-    throw new Error("Invalid date format. Please use YYYY-MM-DD format.");
-  }
+  dateList.forEach((date) => {
+    if (!regex.test(date)) {
+      throw new Error("Invalid date format. Please use YYYY-MM-DD format.");
+    }
+  });
   return true;
 };

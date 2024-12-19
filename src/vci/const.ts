@@ -1,7 +1,7 @@
-export const BASE_URL = "https://mt.vietcap.com.vn/api/";
-export const TRADING_URL = "https://trading.vietcap.com.vn/api/";
-export const CHART_URL = TRADING_URL + "chart/OHLCChart/gap";
+export const BASE_URL = "https://trading.vietcap.com.vn";
+export const CHART_URL = BASE_URL + "/api/chart/OHLCChart/gap";
 export const ALL_SYMBOLS_URL = "https://ai.vietcap.com.vn/api/get_all_tickers";
+export const GRAPHQL_URL = BASE_URL + "/data-mt/graphql";
 
 export const INTERVAL_MAP = {
   "1m": "ONE_MINUTE",

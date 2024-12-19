@@ -36,7 +36,7 @@ export default class Commodity {
 
   async exchangeRates(date?: string) {
     if (date) {
-      validateDateFormat(date);
+      validateDateFormat([date]);
     } else {
       date = format(new Date(), "yyyy-MM-dd");
     }

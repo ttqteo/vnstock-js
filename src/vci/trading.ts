@@ -1,5 +1,5 @@
 import axios from "axios";
-import { TRADING_URL } from "./const";
+import { BASE_URL } from "./const";
 import { IPriceBoard } from "./model";
 
 export default class Trading {
@@ -18,7 +18,7 @@ export default class Trading {
     }
 
     const payload = { symbols };
-    const url = `${TRADING_URL}price/symbols/getList`;
+    const url = BASE_URL + "/api/price/symbols/getList";
 
     try {
       const response = await axios.post(url, payload);
