@@ -1,4 +1,7 @@
 import axios from "axios";
+import { format } from "date-fns";
+import * as xlsx from "xlsx";
+import utils from "../utils";
 import { IGoldPrice } from "./model";
 
 export default class Commodity {
@@ -10,7 +13,7 @@ export default class Commodity {
    * @returns A Promise resolving to an array of IGoldPrice objects.
    * @throws Error if the request fails or the response is invalid.
    */
-  public async goldPrice(): Promise<IGoldPrice[]> {
+  async goldPrice(): Promise<IGoldPrice[]> {
     const url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
 
     try {
@@ -28,6 +31,42 @@ export default class Commodity {
       return data;
     } catch (error: any) {
       throw new Error(`An error occurred while fetching price board data: ${error.message}`);
+    }
+  }
+
+  async exchangeRates(date?: string) {
+    if (date) {
+      utils.validateDateFormat([date]);
+    } else {
+      date = format(new Date(), "yyyy-MM-dd");
+    }
+    const url = `https://www.vietcombank.com.vn/api/exchangerates/exportexcel?date=${date}`;
+
+    try {
+      const response = await axios.get(url);
+      const { FileName, Data: base64Data } = response.data;
+
+      const decodedData = Buffer.from(base64Data, "base64");
+      const workbook = xlsx.read(decodedData, { type: "buffer" });
+      const sheetName = "ExchangeRate";
+      const sheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+      const columns = ["CurrencyCode", "CurrencyName", "Buy Cash", "Buy Transfer", "Sell"];
+
+      const dataWithColumns = jsonData
+        .slice(1)
+        .map((row: any) => {
+          const rowObject = {} as any;
+          columns.forEach((col, index) => {
+            rowObject[col] = row[index] || null;
+          });
+          return rowObject;
+        })
+        .filter((row: any) => row.CurrencyName !== null);
+
+      return dataWithColumns;
+    } catch (error: any) {
+      throw new Error(`An error occurred while fetching VCB exchange rates data: ${error.message}`);
     }
   }
 }
