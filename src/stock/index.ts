@@ -3,7 +3,7 @@ import Listing from "./listing";
 import Quote from "./quote";
 import Trading from "./trading";
 
-export default class TCBS {
+export default class Stock {
   trading: Trading;
   quote: Quote;
   listing: Listing;
