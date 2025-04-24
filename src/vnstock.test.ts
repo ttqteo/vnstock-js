@@ -64,24 +64,6 @@ describe("VCI", () => {
   });
 });
 
-describe("TCBS", () => {
-  test("TCBS Trading", async () => {
-    const { stock } = new Vnstock("TCBS");
-    const result = await stock.trading.priceBoard(symbols);
-    expect(result).toHaveLength(symbols.length);
-  });
-
-  test("TCBS Quote history not implemented", async () => {
-    const { stock } = new Vnstock("TCBS");
-    await expect(stock.quote.history({ start: "2024-12-01", symbols })).rejects.toThrow(Error);
-  });
-
-  test("TCBS Listing all symbols not implemented", async () => {
-    const { stock } = new Vnstock("TCBS");
-    await expect(stock.listing.allSymbols()).rejects.toThrow(Error);
-  });
-});
-
 describe("Commodity", () => {
   test("Gold Price", async () => {
     const { commodity } = new Vnstock();

@@ -1,5 +1,9 @@
 # Changelog
 
+## vnstock-js 0.3.0 release
+* Remove support **TCBS**
+* Refactor
+
 ## vnstock-js 0.2.0 release
 Release with the following improvements:
 

@@ -10,7 +10,8 @@
     "declaration": true,
     "esModuleInterop": true,
     "strict": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+    "noImplicitAny": true
 },
   "exclude": ["examples", "node_modules", "dist"],
   "include": ["src/**/*"]

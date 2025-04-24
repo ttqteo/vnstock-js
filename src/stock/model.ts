@@ -83,6 +83,7 @@ export interface IPriceBoard {
     totalRoom: number;
     totalAccumulatedValue: number;
     totalAccumulatedVolume: number;
+    referencePrice: number;
   };
 }
 
