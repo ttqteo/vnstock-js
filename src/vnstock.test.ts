@@ -71,6 +71,12 @@ describe("Commodity", () => {
     expect(result).not.toBeNull();
   });
 
+  test("Gold Price V2", async () => {
+    const { commodity } = new Vnstock();
+    const result = await commodity.goldPriceV2();
+    expect(result).not.toBeNull();
+  });
+
   test("VCB Exchange Rates", async () => {
     const { commodity } = new Vnstock();
     const result = await commodity.exchangeRates();

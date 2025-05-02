@@ -2,7 +2,7 @@ import axios from "axios";
 import { format } from "date-fns";
 import * as xlsx from "xlsx";
 import utils from "../utils";
-import { IGoldPrice } from "./model";
+import { IGoldPrice, IGoldPriceV2 } from "./model";
 
 export default class Commodity {
   constructor() {}
@@ -15,7 +15,6 @@ export default class Commodity {
    */
   async goldPrice(): Promise<IGoldPrice[]> {
     const url = "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v";
-
     try {
       const response = await axios.get(url);
       const data = response.data.DataList.Data.map((item: any, idx: number) => ({
@@ -28,6 +27,19 @@ export default class Commodity {
         updatedAt: item[`@d_${idx + 1}`],
       })) as IGoldPrice[];
 
+      return data;
+    } catch (error: any) {
+      throw new Error(`An error occurred while fetching price board data: ${error.message}`);
+    }
+  }
+
+  async goldPriceV2(): Promise<IGoldPriceV2[]> {
+    const url =
+      "https://api2.giavang.net/v1/gold/last-price?codes[]=XAUUSD&codes[]=USDX&codes[]=SJL1L10&codes[]=DOHNL&codes[]=DOHCML&codes[]=BTSJC&codes[]=PQHNVM&codes[]=VNGSJC&codes[]=VIETTINMSJC&codes[]=VNGN&codes[]=BT9999NTT&codes[]=PQHN24NTT&codes[]=DOJINHTV&codes[]=SJ9999";
+
+    try {
+      const response = await axios.get(url);
+      const data = response.data.data as IGoldPriceV2[];
       return data;
     } catch (error: any) {
       throw new Error(`An error occurred while fetching price board data: ${error.message}`);

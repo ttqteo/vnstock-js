@@ -1,5 +1,9 @@
 # Changelog
 
+## vnstock-js 0.3.1 release
+* Add Gold Price V2
+* Export Model
+
 ## vnstock-js 0.3.0 release
 * Remove support **TCBS**
 * Refactor
