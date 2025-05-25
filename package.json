@@ -1,6 +1,6 @@
 {
   "name": "vnstock-js",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -12,7 +12,7 @@
     "prepare": "husky install",
     "clean": "rimraf dist",
     "build": "npm run clean && tsc",
-    "test": "jest"
+    "test": "jest __tests__"
   },
   "keywords": [
     "vnstock"

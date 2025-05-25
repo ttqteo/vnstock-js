@@ -1,2 +1,2 @@
-export * from "./vnstock";
+export * from "./runtime";
 export * from "./models";

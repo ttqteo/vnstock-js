@@ -1,6 +1,6 @@
 import axios from "axios";
-import { GRAPHQL_URL, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES, UNIT_MAP } from "./const";
-import { IFinancialRatio } from "./model";
+import { GRAPHQL_URL, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES, UNIT_MAP } from "../../shared/const";
+import { FinancialRatio } from "@/models/stock/FinancialRatio";
 
 export default class Financials {
   constructor() {}
@@ -111,8 +111,8 @@ export default class Financials {
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
-      const { data } = response.data as { data: { ListFinancialRatio: IFinancialRatio[] } };
-      const result = data.ListFinancialRatio.reduce<{ type: string; fields: IFinancialRatio[] }[]>((acc, item) => {
+      const { data } = response.data as { data: { ListFinancialRatio: FinancialRatio[] } };
+      const result = data.ListFinancialRatio.reduce<{ type: string; fields: FinancialRatio[] }[]>((acc, item) => {
         let group = acc.find((g) => g.type === item.type);
         if (!group) {
           group = { type: item.type, fields: [] };

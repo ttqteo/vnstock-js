@@ -2,3 +2,5 @@
 examples
 src
 docs
+__tests__
+test-outputs

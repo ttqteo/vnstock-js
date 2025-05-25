@@ -1,7 +1,7 @@
 import axios from "axios";
 import { addDays, parse } from "date-fns";
-import { CHART_URL, INTERVAL_MAP } from "./const";
-import { IChartData } from "./model";
+import { CHART_URL, INTERVAL_MAP } from "@/shared/const";
+import { ChartData } from "@/models/stock/ChartData";
 
 export default class Quote {
   constructor() {}
@@ -31,7 +31,7 @@ export default class Quote {
     end?: string;
     timeFrame?: string;
     countBack?: number;
-  }): Promise<IChartData[]> {
+  }): Promise<ChartData[]> {
     this.inputValidation(timeFrame);
     timeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
 
@@ -57,7 +57,7 @@ export default class Quote {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
 
-      const { data } = response as { data: IChartData[] };
+      const { data } = response as { data: ChartData[] };
 
       return data;
     } catch (error: any) {

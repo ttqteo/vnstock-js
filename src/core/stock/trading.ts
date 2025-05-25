@@ -1,6 +1,6 @@
 import axios from "axios";
-import { BASE_URL } from "./const";
-import { IPriceBoard } from "./model";
+import { BASE_URL } from "../../shared/const";
+import { PriceBoard } from "@/models/stock";
 
 export default class Trading {
   constructor() {}
@@ -12,7 +12,7 @@ export default class Trading {
    * @returns A Promise resolving to an array of PriceBoard objects.
    * @throws Error if the request fails or the response is invalid.
    */
-  async priceBoard(symbols: string[]): Promise<IPriceBoard[]> {
+  async priceBoard(symbols: string[]): Promise<PriceBoard[]> {
     if (!Array.isArray(symbols) || symbols.length === 0) {
       throw new Error("Symbols array cannot be empty or invalid.");
     }
@@ -27,7 +27,7 @@ export default class Trading {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
 
-      const { data } = response as { data: IPriceBoard[] };
+      const { data } = response as { data: PriceBoard[] };
 
       return data;
     } catch (error: any) {

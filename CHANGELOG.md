@@ -1,7 +1,11 @@
 # Changelog
 
+## vnstock-js 0.4.0 release
+* Add Gold Price SJC
+* Re-organize codebase
+
 ## vnstock-js 0.3.1 release
-* Add Gold Price V2
+* Add Gold Price V2 (giavang.net)
 * Export Model
 
 ## vnstock-js 0.3.0 release

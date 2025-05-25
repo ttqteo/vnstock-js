@@ -1,6 +1,6 @@
 import axios from "axios";
-import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE } from "./const";
-import { IIcb, ISymbol, ITicker, ITickerInfo } from "./model";
+import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE } from "../../shared/const";
+import { Symbol, Ticker } from "@/models/stock";
 
 export default class Listing {
   constructor() {}
@@ -23,7 +23,7 @@ export default class Listing {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
 
-      const { data } = response as { data: { record_count: number; ticker_info: ITicker[] } };
+      const { data } = response as { data: { record_count: number; ticker_info: Ticker[] } };
 
       return data;
     } catch (error: any) {
@@ -44,7 +44,7 @@ export default class Listing {
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
-      const { data } = response as { data: ISymbol[] };
+      const { data } = response as { data: Symbol[] };
       return data;
     } catch (error: any) {
       throw new Error(`An error occurred while fetching symbols by exchange data: ${error.message}`);
@@ -71,8 +71,19 @@ export default class Listing {
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
-      const { data } = response as { data: { CompaniesListingInfo: ITickerInfo[] } };
-      return { data: data.CompaniesListingInfo };
+
+      let parsedData;
+      if (typeof response.data === "string") {
+        parsedData = JSON.parse(response.data);
+      } else {
+        parsedData = response.data;
+      }
+
+      if (!parsedData.data || !parsedData.data.CompaniesListingInfo) {
+        throw new Error("Invalid response structure: missing CompaniesListingInfo");
+      }
+
+      return { data: parsedData.data.CompaniesListingInfo };
     } catch (error: any) {
       throw new Error(`An error occurred while fetching symbols by industries data: ${error.message}`);
     }
@@ -98,8 +109,19 @@ export default class Listing {
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
-      const { data } = response as { data: { ListIcbCode: IIcb[] } };
-      return { data: data.ListIcbCode };
+
+      let parsedData;
+      if (typeof response.data === "string") {
+        parsedData = JSON.parse(response.data);
+      } else {
+        parsedData = response.data;
+      }
+
+      if (!parsedData.data || !parsedData.data.ListIcbCode) {
+        throw new Error("Invalid response structure: missing ListIcbCode");
+      }
+
+      return { data: parsedData.data.ListIcbCode };
     } catch (error: any) {
       throw new Error(`An error occurred while fetching industries icb data: ${error.message}`);
     }
@@ -127,11 +149,9 @@ export default class Listing {
    * @param {string} [group] The group to validate.
    * @private
    */
-  private inputValidation(group?: string) {
-    if (group) {
-      if (!GROUP_CODE.includes(group)) {
-        throw new Error(`Invalid group ${group}, it should be one of ${GROUP_CODE.join(", ")}`);
-      }
+  private inputValidation(group: string) {
+    if (!GROUP_CODE.includes(group)) {
+      throw new Error(`Invalid group code: ${group}. Must be one of: ${GROUP_CODE.join(", ")}`);
     }
   }
 }

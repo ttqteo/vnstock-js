@@ -11,8 +11,12 @@
     "esModuleInterop": true,
     "strict": true,
     "downlevelIteration": true,
-    "noImplicitAny": true
-},
+    "noImplicitAny": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
   "exclude": ["examples", "node_modules", "dist"],
   "include": ["src/**/*"]
 }

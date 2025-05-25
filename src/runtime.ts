@@ -1,5 +1,5 @@
-import Commodity from "./commodity";
-import Stock from "./stock";
+import Commodity from "./core/commodity";
+import Stock from "./core/stock";
 
 export class Vnstock {
   stock: Stock;

@@ -1,14 +1,4 @@
-export interface IGoldPrice {
-  name: string;
-  kara: string;
-  vol: string;
-  buy: string;
-  sell: string;
-  world: string;
-  updatedAt: string;
-}
-
-export interface IGoldPriceV2 {
+export interface GoldPriceV2 {
   alter_buy: number;
   alter_sell: number;
   buy: number;
@@ -20,7 +10,7 @@ export interface IGoldPriceV2 {
   create_day: number;
   create_month: number;
   create_year: number;
-  histories: IGoldPriceV2[];
+  histories: GoldPriceV2[];
   id: number;
   open_buy: number;
   open_sell: number;
@@ -33,12 +23,4 @@ export interface IGoldPriceV2 {
   update_time: number;
   yesterday_buy: number;
   yesterday_sell: number | null;
-}
-
-export interface IExchangRate {
-  CurrencyCode: string;
-  CurrencyName: string;
-  "Buy Cash": string;
-  "Buy Transfer": string;
-  Sell: string;
 }

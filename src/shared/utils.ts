@@ -16,8 +16,4 @@ const validateDateFormat = (dateList: string[]): boolean => {
   return true;
 };
 
-const utils = {
-  validateDateFormat,
-};
-
-export default utils;
+export { validateDateFormat };
