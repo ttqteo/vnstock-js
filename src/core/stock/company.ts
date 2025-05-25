@@ -1,5 +1,5 @@
 import axios from "axios";
-import { GRAPHQL_URL } from "@/shared/const";
+import { GRAPHQL_URL } from "@/shared/constants";
 import { CompanyOverview } from "@/models";
 
 export default class Company {
@@ -19,6 +19,12 @@ export default class Company {
     }
   }
 
+  /**
+   * Fetches comprehensive company overview data from the GraphQL API.
+   * Caches the result for subsequent calls.
+   * Lấy dữ liệu tổng quan toàn diện của công ty từ GraphQL API.
+   * Lưu cache kết quả cho các lần gọi tiếp theo.
+   */
   private async fetchOverview(): Promise<CompanyOverview> {
     if (this.overviewData) {
       return this.overviewData;
@@ -55,10 +61,18 @@ export default class Company {
     }
   }
 
+  /**
+   * Retrieves the complete company overview data.
+   * Lấy toàn bộ dữ liệu tổng quan của công ty.
+   */
   async overview(): Promise<CompanyOverview> {
     return this.fetchOverview();
   }
 
+  /**
+   * Retrieves the company's profile information including history and industry classification.
+   * Lấy thông tin hồ sơ công ty bao gồm lịch sử và phân loại ngành.
+   */
   async profile() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -66,6 +80,10 @@ export default class Company {
     return this.overviewData!.CompanyListingInfo;
   }
 
+  /**
+   * Retrieves information about the company's shareholders.
+   * Lấy thông tin về các cổ đông của công ty.
+   */
   async shareholders() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -73,6 +91,10 @@ export default class Company {
     return this.overviewData!.OrganizationShareHolders;
   }
 
+  /**
+   * Retrieves insider trading events for the company.
+   * Lấy các sự kiện giao dịch nội bộ của công ty.
+   */
   async insider_deals() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -82,6 +104,10 @@ export default class Company {
     );
   }
 
+  /**
+   * Retrieves information about the company's subsidiaries.
+   * Lấy thông tin về các công ty con của công ty.
+   */
   async subsidiaries() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -89,6 +115,10 @@ export default class Company {
     return this.overviewData!.Subsidiary;
   }
 
+  /**
+   * Retrieves information about the company's management team.
+   * Lấy thông tin về đội ngũ quản lý của công ty.
+   */
   async officers() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -96,6 +126,10 @@ export default class Company {
     return this.overviewData!.OrganizationManagers;
   }
 
+  /**
+   * Retrieves all company events and announcements.
+   * Lấy tất cả các sự kiện và thông báo của công ty.
+   */
   async events() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -103,6 +137,10 @@ export default class Company {
     return this.overviewData!.OrganizationEvents;
   }
 
+  /**
+   * Retrieves news articles related to the company.
+   * Lấy các bài báo liên quan đến công ty.
+   */
   async news() {
     if (!this.overviewData) {
       await this.fetchOverview();
@@ -110,6 +148,10 @@ export default class Company {
     return this.overviewData!.News;
   }
 
+  /**
+   * Retrieves dividend-related events for the company.
+   * Lấy các sự kiện liên quan đến cổ tức của công ty.
+   */
   async dividends() {
     if (!this.overviewData) {
       await this.fetchOverview();

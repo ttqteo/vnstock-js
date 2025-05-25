@@ -12,29 +12,23 @@ export default class Commodity {
 
   /**
    * Fetches the latest gold price from BTMC API.
-   *
-   * @returns A Promise resolving to an array of GoldPriceV1 objects.
-   * @throws Error if the request fails or the response is invalid.
+   * Lấy giá vàng mới nhất từ API BTMC.
    */
-  async goldPrice() {
-    return this.goldService.goldPrice();
+  async goldPriceBTMC() {
+    return this.goldService.goldPriceBTMC();
   }
 
   /**
    * Fetches the latest gold price from giavang.net API.
-   *
-   * @returns A Promise resolving to an array of GoldPriceV2 objects.
-   * @throws Error if the request fails or the response is invalid.
+   * Lấy giá vàng mới nhất từ API giavang.net.
    */
-  async goldPriceV2() {
-    return this.goldService.goldPriceV2();
+  async goldPriceGiaVangNet() {
+    return this.goldService.goldPriceGiaVangNet();
   }
 
   /**
    * Fetches the latest gold price from SJC API.
-   *
-   * @returns A Promise resolving to an array of IGoldPriceSJC objects.
-   * @throws Error if the request fails or the response is invalid.
+   * Lấy giá vàng mới nhất từ API SJC.
    */
   async goldPriceSJC() {
     return this.goldService.goldPriceSJC();
@@ -42,10 +36,7 @@ export default class Commodity {
 
   /**
    * Fetches exchange rates from VCB.
-   *
-   * @param date Optional date string in YYYY-MM-DD format
-   * @returns A Promise resolving to an array of ExchangeRateVCB objects.
-   * @throws Error if the request fails or the response is invalid.
+   * Lấy tỷ giá từ VCB.
    */
   async exchangeRates(date?: string) {
     return this.exchangeService.exchangeRates(date);

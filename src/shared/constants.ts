@@ -130,3 +130,5 @@ export const ICB4_COMTYPE_CODE_MAP = {
   "Đồ gia dụng một lần": "CT",
   "Đồ uống & giải khát": "CT",
 };
+
+export const INDEX_SYMBOLS = ["VNINDEX", "VN30", "VN100", "HNXIndex", "HNX30", "HNXUpcomIndex"];

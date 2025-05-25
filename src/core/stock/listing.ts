@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE } from "../../shared/const";
+import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE } from "../../shared/constants";
 import { Symbol, Ticker } from "@/models/stock";
 
 export default class Listing {
@@ -7,11 +7,7 @@ export default class Listing {
 
   /**
    * Fetches all available stock symbols from VCI.
-   *
-   * @returns A Promise resolving to an object with a `record_count` property
-   *          indicating the number of records in the response, and a `ticker_info`
-   *          property containing an array of `ITicker` objects.
-   * @throws {Error} If the request fails or the response is invalid.
+   * Lấy tất cả các mã chứng khoán từ VCI.
    */
   async allSymbols() {
     const url = ALL_SYMBOLS_URL;
@@ -33,9 +29,7 @@ export default class Listing {
 
   /**
    * Fetches all available stock symbols from VCI, grouped by exchange.
-   *
-   * @returns A Promise resolving to an array of `ISymbol` objects.
-   * @throws {Error} If the request fails or the response is invalid.
+   * Lấy tất cả các mã chứng khoán từ VCI, nhóm theo sàn giao dịch.
    */
   async symbolsByExchange() {
     const url = BASE_URL + "/api/price/symbols/getAll";
@@ -53,11 +47,7 @@ export default class Listing {
 
   /**
    * Fetches all available stock symbols from VCI, grouped by industries.
-   *
-   * @returns A Promise resolving to an object containing a `data` property,
-   *          which is an array of `ITickerInfo` objects with detailed company
-   *          listing information.
-   * @throws {Error} If the request fails or the response is invalid.
+   * Lấy tất cả các mã chứng khoán từ VCI, nhóm theo ngành.
    */
   async symbolsByIndustries() {
     const url = GRAPHQL_URL;
@@ -91,11 +81,7 @@ export default class Listing {
 
   /**
    * Fetches all available industry codes from VCI.
-   *
-   * @returns A Promise resolving to an object containing a `data` property,
-   *          which is an array of `IIcb` objects with detailed industry code
-   *          information.
-   * @throws {Error} If the request fails or the response is invalid.
+   * Lấy tất cả các mã ngành từ VCI.
    */
   async industriesIcb() {
     const url = GRAPHQL_URL;
@@ -127,6 +113,10 @@ export default class Listing {
     }
   }
 
+  /**
+   * Fetches all available stock symbols from VCI, grouped by group.
+   * Lấy tất cả các mã chứng khoán từ VCI, nhóm theo nhóm.
+   */
   async symbolsByGroup({ group = "VN30" }: { group?: string }) {
     this.inputValidation(group);
     const url = "https://mt.vietcap.com.vn/api/price/symbols/getByGroup";
@@ -145,9 +135,8 @@ export default class Listing {
   /**
    * Validates the input group against the available groups.
    * If the group is not provided, it will be ignored.
-   * @throws {Error} If the group is invalid.
-   * @param {string} [group] The group to validate.
-   * @private
+   * Kiểm tra tính hợp lệ của nhóm.
+   * Nếu nhóm không được cung cấp, nó sẽ bị bỏ qua.
    */
   private inputValidation(group: string) {
     if (!GROUP_CODE.includes(group)) {

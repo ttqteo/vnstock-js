@@ -1,4 +1,4 @@
 export * from "./GoldPriceSJC";
-export * from "./GoldPriceV1";
-export * from "./GoldPriceV2";
+export * from "./GoldPriceBTMC";
+export * from "./GoldPriceGiaVangNet";
 export * from "./ExchangeRateVCB";

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BASE_URL } from "../../shared/const";
+import { BASE_URL } from "../../shared/constants";
 import { PriceBoard } from "@/models/stock";
 
 export default class Trading {
@@ -7,10 +7,7 @@ export default class Trading {
 
   /**
    * Fetches price board data for the given list of symbols.
-   *
-   * @param symbols - An array of trading symbols to query.
-   * @returns A Promise resolving to an array of PriceBoard objects.
-   * @throws Error if the request fails or the response is invalid.
+   * Lấy dữ liệu bảng giá cho danh sách các mã chứng khoán được cung cấp.
    */
   async priceBoard(symbols: string[]): Promise<PriceBoard[]> {
     if (!Array.isArray(symbols) || symbols.length === 0) {

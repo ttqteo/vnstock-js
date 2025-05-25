@@ -2,7 +2,7 @@ import Company from "../src/core/stock/company";
 import { Vnstock } from "../src/runtime";
 import { saveTestOutputTicker } from "./utils/testOutput";
 
-const testTickers = ["VCI", "MBB", "TCH"];
+const testTickers = ["VCI", "VCB", "TCB"];
 
 describe("Company Data", () => {
   testTickers.forEach((ticker) => {

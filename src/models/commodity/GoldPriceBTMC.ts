@@ -1,4 +1,4 @@
-export interface GoldPriceV1 {
+export interface GoldPriceBTMC {
   name: string;
   kara: string;
   vol: string;

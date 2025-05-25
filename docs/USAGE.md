@@ -1,20 +1,35 @@
-# Usage
+# Quick Usage
+1. Using the default instance (simplest approach):
+```ts
+import { stock, commodity } from 'vnstock-js';
 
+// Stock market data
+const prices = await stock.price('VNM', '2024-01-01');
+const goldPrices = await commodity.gold.price();
 ```
-import { GoldService } from '@/commodity/gold';
-import { ExchangeService } from '@/commodity/exchange';
 
-// Create instances of the services
-const goldService = new GoldService();
-const exchangeService = new ExchangeService();
+2. Creating your own instance (more control):
+```ts
+import { Vnstock, createStockAPI, createCommodityAPI } from 'vnstock-js';
 
-// Get gold prices
-const goldPrices = await goldService.goldPrice();
-const goldPricesV2 = await goldService.goldPriceV2();
-const sjcGoldPrices = await goldService.goldPriceSJC();
+// Create your own instance
+const vnstock = new Vnstock();
+const stock = createStockAPI(vnstock);
+const commodity = createCommodityAPI(vnstock);
 
-// Get exchange rates
-const exchangeRates = await exchangeService.exchangeRates();
-// Or with a specific date
-const exchangeRatesWithDate = await exchangeService.exchangeRates('2024-03-20');
+// Use the APIs
+const prices = await stock.price('VNM', '2024-01-01');
+const goldPrices = await commodity.gold.price();
+```
+
+3. Using the full API (most control):
+```ts
+import vnstock from 'vnstock-js';
+
+// Access everything directly
+const prices = await vnstock.stock.quote.history({
+  symbols: ['VNM'],
+  start: '2024-01-01',
+  timeFrame: '1D'
+});
 ```

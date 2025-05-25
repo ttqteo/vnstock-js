@@ -1,59 +1,36 @@
 import axios from "axios";
-import { GRAPHQL_URL, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES, UNIT_MAP } from "../../shared/const";
+import { GRAPHQL_URL, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES, UNIT_MAP } from "../../shared/constants";
 import { FinancialRatio } from "@/models/stock/FinancialRatio";
 
 export default class Financials {
   constructor() {}
 
   /**
-   * @function balanceSheet
-   * @description Fetches the financial report of balance sheet of a given stock symbol.
-   * @param {Object} options - The options object.
-   * @param {string} options.symbol - The stock symbol.
-   * @param {string} [options.period=quarter] - The period of the report. Supports "year" or "quarter".
-   * @param {string} [options.lang=en] - The language of the report. Supports "vi" or "en".
-   * @returns {Promise<IFinancialRatio>} - The balance sheet report data.
+   * Fetches the financial report of balance sheet of a given stock symbol.
+   * Lấy báo cáo tài sản của công ty từ VCI.
    */
   async balanceSheet({ symbol, period = "quarter", lang = "en" }: { symbol: string; period?: string; lang?: string }) {
     return this.processReport({ reportKey: "Chỉ tiêu cân đối kế toán", symbol, period, lang });
   }
 
   /**
-   * @function incomeStatement
-   * @description Fetches the financial report of income statement of a given stock symbol.
-   * @param {Object} options - The options object.
-   * @param {string} options.symbol - The stock symbol.
-   * @param {string} [options.period=quarter] - The period of the report. Supports "year" or "quarter".
-   * @param {string} [options.lang=en] - The language of the report. Supports "vi" or "en".
-   * @returns {Promise<IFinancialRatio>} - The income statement report data.
+   * Fetches the financial report of income statement of a given stock symbol.
+   * Lấy báo cáo kết quả kinh doanh của công ty từ VCI.
    */
   async incomeStatement({ symbol, period = "quarter", lang = "en" }: { symbol: string; period?: string; lang?: string }) {
     return this.processReport({ reportKey: "Chỉ tiêu kết quả kinh doanh", symbol, period, lang });
   }
 
   /**
-   * @function cashFlow
-   * @description Fetches the financial report of cash flow statement of a given stock symbol.
-   * @param {Object} options - The options object.
-   * @param {string} options.symbol - The stock symbol.
-   * @param {string} [options.period=quarter] - The period of the report. Supports "year" or "quarter".
-   * @param {string} [options.lang=en] - The language of the report. Supports "vi" or "en".
-   * @returns {Promise<IFinancialRatio>} - The cash flow statement report data.
+   * Fetches the financial report of cash flow statement of a given stock symbol.
+   * Lấy báo cáo lưu chuyển tiền tệ của công ty từ VCI.
    */
   async cashFlow({ symbol, period = "quarter", lang = "en" }: { symbol: string; period?: string; lang?: string }) {
     return this.processReport({ reportKey: "Chỉ tiêu lưu chuyển tiền tệ", symbol, period, lang });
   }
 
   /**
-   * @function processReport
-   * @description Processes the report data from VCI.
-   * @param {Object} options - The options object.
-   * @param {string} options.reportKey - The key of the report.
-   * @param {string} options.symbol - The stock symbol.
-   * @param {string} [options.period=quarter] - The period of the report. Supports "year" or "quarter".
-   * @param {string} [options.lang=en] - The language of the report. Supports "vi" or "en".
-   * @returns {Promise<IFinancialRatio>} - The processed report data.
-   * @private
+   * Processes the report data from VCI.
    */
   private async processReport({ reportKey, symbol, period = "quarter", lang = "en" }: { reportKey: string; symbol: string; period?: string; lang: string }) {
     this.inputValidation({ reportKey, period, lang });
@@ -62,16 +39,7 @@ export default class Financials {
 
   /**
    * Fetches the financial report data using a GraphQL query for a given stock symbol.
-   *
-   * @param {Object} options - The options object.
-   * @param {string} options.reportKey - The key of the report to fetch.
-   * @param {string} options.symbol - The stock symbol.
-   * @param {string} [options.period=quarter] - The period of the report. Supports "year" or "quarter".
-   * @param {string} [options.lang=en] - The language of the report. Supports "vi" or "en".
-   * @returns {Promise<Object>} - A promise that resolves to an object containing the financial ratio data
-   *                              and its corresponding mapping.
-   * @throws {Error} - Throws an error if fetching the report data fails.
-   * @private
+   * Lấy dữ liệu báo cáo tài chính từ VCI.
    */
   private async getReport({ reportKey, symbol, period = "quarter", lang = "en" }: { reportKey: string; symbol: string; period?: string; lang?: string }) {
     const url = GRAPHQL_URL;
@@ -95,9 +63,7 @@ export default class Financials {
 
   /**
    * Fetches the mapping of financial ratios
-   *
-   * @returns an array of objects, each containing the type of the ratio and an array of fields for that type
-   * @throws an error if the request fails or if there's an issue with the response
+   * Lấy bảng mapping các chỉ tiêu tài chính từ VCI.
    */
   private async getRatioMapping() {
     const url = GRAPHQL_URL;
@@ -129,11 +95,7 @@ export default class Financials {
 
   /**
    * Validates the input parameters.
-   * @throws an error if the reportKey is invalid
-   * @throws an error if the period is invalid
-   * @throws an error if the language is invalid
-   * @param {{ reportKey: string, period?: string, lang?: string }} input - the input object
-   * @private
+   * Kiểm tra tính hợp lệ của các tham số đầu vào.
    */
   private inputValidation({ reportKey, period, lang }: { reportKey: string; period?: string; lang?: string }) {
     if (!REPORT_NAME.includes(reportKey)) {

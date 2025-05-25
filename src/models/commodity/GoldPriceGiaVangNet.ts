@@ -1,4 +1,4 @@
-export interface GoldPriceV2 {
+export interface GoldPriceGiaVangNet {
   alter_buy: number;
   alter_sell: number;
   buy: number;
@@ -10,7 +10,7 @@ export interface GoldPriceV2 {
   create_day: number;
   create_month: number;
   create_year: number;
-  histories: GoldPriceV2[];
+  histories: GoldPriceGiaVangNet[];
   id: number;
   open_buy: number;
   open_sell: number;

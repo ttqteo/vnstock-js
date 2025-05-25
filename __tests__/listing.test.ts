@@ -1,8 +1,6 @@
 import { Vnstock } from "../src/runtime";
 import { saveTestOutput } from "./utils/testOutput";
 
-const symbols = ["MBB", "TCH"];
-
 describe("Stock Listing Data", () => {
   let vnstock: Vnstock;
 
