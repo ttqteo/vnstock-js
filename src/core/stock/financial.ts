@@ -1,6 +1,6 @@
 import axios from "axios";
 import { GRAPHQL_URL, headers, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES, UNIT_MAP } from "../../shared/constants";
-import { FinancialRatio } from "@/models/stock/FinancialRatio";
+import { FinancialRatio } from "../../models/stock/FinancialRatio";
 
 export default class Financials {
   constructor() {}

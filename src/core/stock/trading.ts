@@ -1,6 +1,6 @@
 import axios from "axios";
 import { BASE_URL, headers } from "../../shared/constants";
-import { PriceBoard } from "@/models/stock";
+import { PriceBoard } from "../../models/stock";
 
 export default class Trading {
   constructor() {}

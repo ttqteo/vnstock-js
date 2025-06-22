@@ -13,9 +13,6 @@
     "downlevelIteration": true,
     "noImplicitAny": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
   },
   "exclude": ["examples", "node_modules", "dist"],
   "include": ["src/**/*"]

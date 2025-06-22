@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE, headers } from "../../shared/constants";
-import { Symbol, Ticker } from "@/models/stock";
+import { Symbol, Ticker } from "../../models/stock";
 
 export default class Listing {
   constructor() {}

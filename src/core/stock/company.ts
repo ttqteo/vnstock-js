@@ -1,6 +1,6 @@
 import axios from "axios";
-import { GRAPHQL_URL, headers } from "@/shared/constants";
-import { CompanyOverview } from "@/models";
+import { GRAPHQL_URL, headers } from "../../shared/constants";
+import { CompanyOverview } from "../../models";
 
 export default class Company {
   private ticker: string;

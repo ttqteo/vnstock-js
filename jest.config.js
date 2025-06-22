@@ -13,9 +13,6 @@ module.exports = {
       moduleDirectories: ["<rootDir>/src/", "node_modules"],
       moduleFileExtensions: ["ts", "js"],
       resetMocks: true,
-      moduleNameMapper: {
-        "^@/(.*)$": "<rootDir>/src/$1",
-      },
       // setupFiles: ["dotenv/config"],
       // setupFilesAfterEnv: ["jest-expect-message", "jest-extended"],
       testRegex: ".*\\.(test|spec)\\.(ts)$",

@@ -1,5 +1,5 @@
-import { Vnstock } from "@/runtime";
-import { INDEX_SYMBOLS } from "@/shared/constants";
+import { Vnstock } from "./runtime";
+import { INDEX_SYMBOLS } from "./shared/constants";
 
 export const createStockAPI = (vnstock: Vnstock) => ({
   price: (symbol: string, start: string, end?: string) => vnstock.stock.quote.history({ symbols: [symbol], start, end, timeFrame: "1D" }),

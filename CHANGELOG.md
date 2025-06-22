@@ -1,10 +1,15 @@
 # Changelog
 
+## vnstock-js 0.4.2 release
+* Hotfix @ alias
+
 ## vnstock-js 0.4.1 release
+Note: got issues, should update to latest
 * Fix README
 * Change export
 
 ## vnstock-js 0.4.0 release
+Note: got issues, should update to latest
 * Add Gold Price SJC
 * Re-organize codebase
 * Hotfix error call to VCI avoid bot

@@ -1,4 +1,4 @@
-import { GoldPriceBTMC, GoldPriceGiaVangNet, GoldPriceSJC } from "@/models/commodity";
+import { GoldPriceBTMC, GoldPriceGiaVangNet, GoldPriceSJC } from "../../models/commodity";
 import axios from "axios";
 
 export class GoldService {

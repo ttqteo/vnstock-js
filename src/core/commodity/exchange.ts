@@ -1,8 +1,8 @@
 import axios from "axios";
 import { format } from "date-fns";
 import * as xlsx from "xlsx";
-import { validateDateFormat } from "@/shared/utils";
-import { ExchangeRateVCB } from "@/models/commodity";
+import { validateDateFormat } from "../../shared/utils";
+import { ExchangeRateVCB } from "../../models/commodity";
 
 export class ExchangeService {
   constructor() {}

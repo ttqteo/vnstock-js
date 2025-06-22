@@ -1,7 +1,7 @@
 import axios from "axios";
 import { addDays, parse } from "date-fns";
-import { CHART_URL, headers, INTERVAL_MAP } from "@/shared/constants";
-import { ChartData } from "@/models/stock/ChartData";
+import { CHART_URL, headers, INTERVAL_MAP } from "../../shared/constants";
+import { ChartData } from "../../models/stock/ChartData";
 
 export default class Quote {
   constructor() {}
