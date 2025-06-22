@@ -12,8 +12,6 @@ pnpm test
 ### Run Specific Test File
 ```bash
 pnpm test src/company.test.ts
-# or
-pnpm test src/vnstock.test.ts
 ```
 
 ### Run Specific Test Suite

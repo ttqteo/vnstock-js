@@ -1,5 +1,9 @@
 # Changelog
 
+## vnstock-js 0.4.1 release
+* Fix README
+* Change export
+
 ## vnstock-js 0.4.0 release
 * Add Gold Price SJC
 * Re-organize codebase

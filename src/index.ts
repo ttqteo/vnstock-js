@@ -7,4 +7,4 @@ const stock = createStockAPI(vnstock);
 const commodity = createCommodityAPI(vnstock);
 
 export default vnstock;
-export { types, Vnstock, stock, commodity, createStockAPI, createCommodityAPI };
+export { types, stock, commodity };
