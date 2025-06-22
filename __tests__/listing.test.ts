@@ -57,7 +57,7 @@ describe("Stock Listing Data", () => {
   });
 
   test("should fetch symbols by group (default VN30)", async () => {
-    const result = await vnstock.stock.listing.symbolsByGroup({});
+    const result = await vnstock.stock.listing.symbolsByGroup({ group: "VN30" });
     saveTestOutput("symbols-by-group", result);
     expect(Array.isArray(result)).toBe(true);
     expect(result.length).toBeGreaterThan(0);

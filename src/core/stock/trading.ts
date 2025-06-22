@@ -1,5 +1,5 @@
 import axios from "axios";
-import { BASE_URL } from "../../shared/constants";
+import { BASE_URL, headers } from "../../shared/constants";
 import { PriceBoard } from "@/models/stock";
 
 export default class Trading {
@@ -18,7 +18,9 @@ export default class Trading {
     const url = BASE_URL + "/api/price/symbols/getList";
 
     try {
-      const response = await axios.post(url, payload);
+      const response = await axios.post(url, payload, {
+        headers: headers,
+      });
 
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);

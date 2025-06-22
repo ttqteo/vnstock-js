@@ -1,6 +1,6 @@
 import axios from "axios";
 import { addDays, parse } from "date-fns";
-import { CHART_URL, INTERVAL_MAP } from "@/shared/constants";
+import { CHART_URL, headers, INTERVAL_MAP } from "@/shared/constants";
 import { ChartData } from "@/models/stock/ChartData";
 
 export default class Quote {
@@ -42,7 +42,9 @@ export default class Quote {
     };
 
     try {
-      const response = await axios.post(url, payload);
+      const response = await axios.post(url, payload, {
+        headers: headers,
+      });
 
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);

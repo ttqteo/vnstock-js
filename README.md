@@ -32,4 +32,4 @@ await stock.listing.allSymbols();
 [vnstock-js-docs.vercel.app](https://vnstock-js-docs.vercel.app/)
 
 ## License
-[Apache 2.0 License](LICENSE) Ⓒ ttqteo 2024
+[Apache 2.0 License](LICENSE) Ⓒ ttqteo 2025

@@ -1,5 +1,9 @@
+export const headers = {
+  Referer: "https://trading.vietcap.com.vn/price-board?filter-group=WL&filter-value=DEFAULT&view-type=FLAT",
+};
+
 export const BASE_URL = "https://trading.vietcap.com.vn";
-export const CHART_URL = BASE_URL + "/api/chart/OHLCChart/gap";
+export const CHART_URL = BASE_URL + "/api/chart/OHLCChart/gap-chart";
 export const ALL_SYMBOLS_URL = "https://ai.vietcap.com.vn/api/get_all_tickers";
 export const GRAPHQL_URL = BASE_URL + "/data-mt/graphql";
 

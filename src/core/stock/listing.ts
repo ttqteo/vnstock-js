@@ -1,5 +1,5 @@
 import axios from "axios";
-import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE } from "../../shared/constants";
+import { ALL_SYMBOLS_URL, BASE_URL, GRAPHQL_URL, GROUP_CODE, headers } from "../../shared/constants";
 import { Symbol, Ticker } from "@/models/stock";
 
 export default class Listing {
@@ -13,7 +13,9 @@ export default class Listing {
     const url = ALL_SYMBOLS_URL;
 
     try {
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        headers: headers,
+      });
 
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
@@ -34,7 +36,9 @@ export default class Listing {
   async symbolsByExchange() {
     const url = BASE_URL + "/api/price/symbols/getAll";
     try {
-      const response = await axios.get(url);
+      const response = await axios.get(url, {
+        headers: headers,
+      });
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
@@ -57,7 +61,9 @@ export default class Listing {
         "{\n  CompaniesListingInfo {\n    ticker\n    organName\n    enOrganName\n    icbName3\n    enIcbName3\n    icbName2\n    enIcbName2\n    icbName4\n    enIcbName4\n    comTypeCode\n    icbCode1\n    icbCode2\n    icbCode3\n    icbCode4\n    __typename\n  }\n}\n",
     };
     try {
-      const response = await axios.post(url, payload);
+      const response = await axios.post(url, payload, {
+        headers: headers,
+      });
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
@@ -91,7 +97,9 @@ export default class Listing {
       query: "query Query {\n  ListIcbCode {\n    icbCode\n    level\n    icbName\n    enIcbName\n    __typename\n  }\n}\n",
     };
     try {
-      const response = await axios.post(url, payload);
+      const response = await axios.post(url, payload, {
+        headers: headers,
+      });
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }
@@ -121,7 +129,7 @@ export default class Listing {
     this.inputValidation(group);
     const url = "https://mt.vietcap.com.vn/api/price/symbols/getByGroup";
     try {
-      const response = await axios.get(url, { params: { group } });
+      const response = await axios.get(url, { params: { group }, headers: headers });
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { GRAPHQL_URL } from "@/shared/constants";
+import { GRAPHQL_URL, headers } from "@/shared/constants";
 import { CompanyOverview } from "@/models";
 
 export default class Company {
@@ -38,7 +38,9 @@ export default class Company {
     };
 
     try {
-      const response = await axios.post(url, payload);
+      const response = await axios.post(url, payload, {
+        headers: headers,
+      });
       if (response.status !== 200) {
         throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
       }

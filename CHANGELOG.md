@@ -3,6 +3,7 @@
 ## vnstock-js 0.4.0 release
 * Add Gold Price SJC
 * Re-organize codebase
+* Hotfix error call to VCI avoid bot
 
 ## vnstock-js 0.3.1 release
 * Add Gold Price V2 (giavang.net)

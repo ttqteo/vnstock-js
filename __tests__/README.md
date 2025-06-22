@@ -6,33 +6,33 @@ This document provides instructions for running tests in the vnstock-js project.
 
 ### Run All Tests
 ```bash
-npm test
+pnpm test
 ```
 
 ### Run Specific Test File
 ```bash
-npm test src/company.test.ts
+pnpm test src/company.test.ts
 # or
-npm test src/vnstock.test.ts
+pnpm test src/vnstock.test.ts
 ```
 
 ### Run Specific Test Suite
 ```bash
-npm test -t "Company Data"
+pnpm test -t "Company Data"
 # or
-npm test -t "VCI Stock Market Data"
+pnpm test -t "VCI Stock Market Data"
 ```
 
 ### Run Specific Test
 ```bash
-npm test -t "should fetch company overview"
+pnpm test -t "should fetch company overview"
 # or
-npm test -t "should fetch price board data for given symbols"
+pnpm test -t "should fetch price board data for given symbols"
 ```
 
 ### Run Tests with Verbose Output
 ```bash
-npm test -- --verbose
+pnpm test -- --verbose
 ```
 
 ## Test Outputs

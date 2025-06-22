@@ -18,8 +18,8 @@ export const createStockAPI = (vnstock: Vnstock) => ({
 
 export const createCommodityAPI = (vnstock: Vnstock) => ({
   gold: {
-    price: () => vnstock.commodity.goldPrice(),
-    priceV2: () => vnstock.commodity.goldPriceV2(),
+    priceBTMC: () => vnstock.commodity.goldPriceBTMC(),
+    priceGiaVangNet: () => vnstock.commodity.goldPriceGiaVangNet(),
     priceSJC: () => vnstock.commodity.goldPriceSJC(),
   },
   exchange: (date?: string) => vnstock.commodity.exchangeRates(date),

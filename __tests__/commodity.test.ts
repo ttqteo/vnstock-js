@@ -10,14 +10,14 @@ describe("Commodity Data", () => {
 
   test("should fetch gold price data (BTMC)", async () => {
     const result = await vnstock.commodity.goldPriceBTMC();
-    saveTestOutput("gold-price-v1", result);
+    saveTestOutput("gold-price-btmc", result);
     expect(result).not.toBeNull();
     expect(typeof result).toBe("object");
   });
 
   test("should fetch gold price data (giavang.net)", async () => {
     const result = await vnstock.commodity.goldPriceGiaVangNet();
-    saveTestOutput("gold-price-v2", result);
+    saveTestOutput("gold-price-giavangnet", result);
     expect(result).not.toBeNull();
     expect(typeof result).toBe("object");
   });
