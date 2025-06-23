@@ -1,5 +1,9 @@
 # Changelog
 
+## vnstock-js 0.4.3 release
+* Hotfix Company
+* Add simple stock.quote, similar to stock.price
+
 ## vnstock-js 0.4.2 release
 * Hotfix @ alias
 

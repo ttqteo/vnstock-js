@@ -1,8 +1,10 @@
 import { Vnstock } from "./runtime";
 import { INDEX_SYMBOLS } from "./shared/constants";
+import Company from "./core/stock/company";
 
 export const createStockAPI = (vnstock: Vnstock) => ({
-  price: (symbol: string, start: string, end?: string) => vnstock.stock.quote.history({ symbols: [symbol], start, end, timeFrame: "1D" }),
+  price: (ticker: string, start: string, end?: string) => vnstock.stock.quote.history({ symbols: [ticker], start, end, timeFrame: "1D" }),
+  quote: (ticker: string, start: string, end?: string) => vnstock.stock.quote.history({ symbols: [ticker], start, end, timeFrame: "1D" }),
 
   index: (index: string, start: string, end?: string) => {
     if (!INDEX_SYMBOLS.includes(index)) {
@@ -11,9 +13,12 @@ export const createStockAPI = (vnstock: Vnstock) => ({
     return vnstock.stock.quote.history({ symbols: [index], start, end, timeFrame: "1D" });
   },
 
-  company: (symbol: string) => vnstock.stock.company.overview(),
+  company: (ticker: string) => {
+    vnstock.stock.company = new Company(ticker);
+    return vnstock.stock.company.overview();
+  },
 
-  financials: (symbol: string, period: "quarter" | "year" = "quarter") => vnstock.stock.financials.balanceSheet({ symbol, period }),
+  financials: (ticker: string, period: "quarter" | "year" = "quarter") => vnstock.stock.financials.balanceSheet({ symbol: ticker, period }),
 });
 
 export const createCommodityAPI = (vnstock: Vnstock) => ({
