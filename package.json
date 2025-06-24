@@ -34,6 +34,11 @@
     "Vietnamese finance",
     "historical stock data"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ttqteo/vnstock-js.git"
+  },
+  "homepage": "https://vnstock-js-docs.vercel.app",
   "author": "ttqteo",
   "license": "Apache-2.0",
   "description": "An open source package for fetching stock market data in Vietnam Stock Market.",
