@@ -15,7 +15,24 @@
     "test": "jest __tests__"
   },
   "keywords": [
-    "vnstock"
+    "vnstock",
+    "Vietnam stock",
+    "Vietnamese stock",
+    "vn-index",
+    "stock api",
+    "Ho Chi Minh stock exchange",
+    "hnx",
+    "upcom",
+    "hsx",
+    "vnindex",
+    "vietstock",
+    "Vietnam finance",
+    "stock market",
+    "vnstock api",
+    "financial data",
+    "market data",
+    "Vietnamese finance",
+    "historical stock data"
   ],
   "author": "ttqteo",
   "license": "Apache-2.0",
