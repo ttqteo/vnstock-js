@@ -15,8 +15,18 @@ npm install vnstock-js@latest
 ```ts
 import { stock, commodity } from 'vnstock-js';
 
-// Stock market data
-const prices = await stock.price('VCI', '2025-01-01');
+// Ticker history data
+const history = await stock.quote({ticker: 'VCI', start: '2025-01-01'});
+
+// Ticker price board
+const priceBoard = await stock.priceBoard({ticker: 'VCI'});
+
+// Top gainers in day
+const priceBoard = await stock.topGainers();
+
+// Top losers in day
+const priceBoard = await stock.topLosers();
+
 
 // Gold Price from SJC
 const goldPrices = await commodity.gold.priceSJC();

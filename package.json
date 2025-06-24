@@ -38,6 +38,12 @@
     "type": "git",
     "url": "git+https://github.com/ttqteo/vnstock-js.git"
   },
+  "bugs": {
+    "url": "https://github.com/ttqteo/vnstock-js/issues"
+  },
+  "engines": {
+    "node": ">=16"
+  },
   "homepage": "https://vnstock-js-docs.vercel.app",
   "author": "ttqteo",
   "license": "Apache-2.0",
