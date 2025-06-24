@@ -1,5 +1,12 @@
 # Changelog
 
+## vnstock-js 0.5.0 release
+* Add fetching realtime from SSI (testing), naming VnstockRealtime
+* Eliminate types, change to VnstockType
+* Eliminate simple stock.price, change to stock.quote
+* Add trading.topGainers, trading.topLosers
+* Change pass params to object params
+
 ## vnstock-js 0.4.3 release
 * Hotfix Company
 * Add simple stock.quote, similar to stock.price

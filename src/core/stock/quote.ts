@@ -2,6 +2,7 @@ import axios from "axios";
 import { addDays, parse } from "date-fns";
 import { CHART_URL, headers, INTERVAL_MAP } from "../../shared/constants";
 import { ChartData } from "../../models/stock/ChartData";
+import { inputValidation } from "../../shared/utils";
 
 export default class Quote {
   constructor() {}
@@ -23,7 +24,7 @@ export default class Quote {
     timeFrame: string;
     countBack?: number;
   }): Promise<ChartData[]> {
-    this.inputValidation(timeFrame);
+    inputValidation(timeFrame);
     timeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
 
     const from = Math.round(parse(start, "yyyy-MM-dd", new Date()).getTime() / 1000);
@@ -55,20 +56,6 @@ export default class Quote {
       return data;
     } catch (error: any) {
       throw new Error(`An error occurred while fetching price board data: ${error.message}`);
-    }
-  }
-
-  /**
-   * Validates the input timeFrame against the available intervals.
-   * If the timeFrame is not provided, it will be ignored.
-   * Kiểm tra tính hợp lệ của tham số timeFrame.
-   * Nếu tham số timeFrame không được cung cấp, nó sẽ bị bỏ qua.
-   */
-  private inputValidation(timeFrame?: string) {
-    if (timeFrame) {
-      if (!(timeFrame in INTERVAL_MAP)) {
-        throw new Error(`Invalid timeFrame ${timeFrame}, it should be one of ${Object.keys(INTERVAL_MAP).join(", ")}`);
-      }
     }
   }
 }

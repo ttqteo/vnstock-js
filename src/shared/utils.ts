@@ -1,3 +1,5 @@
+import { INTERVAL_MAP } from "./constants";
+
 /**
  * Validates whether the provided date string matches the YYYY-MM-DD format.
  *
@@ -16,4 +18,18 @@ const validateDateFormat = (dateList: string[]): boolean => {
   return true;
 };
 
-export { validateDateFormat };
+/**
+ * Validates the input timeFrame against the available intervals.
+ * If the timeFrame is not provided, it will be ignored.
+ * Kiểm tra tính hợp lệ của tham số timeFrame.
+ * Nếu tham số timeFrame không được cung cấp, nó sẽ bị bỏ qua.
+ */
+const inputValidation = (timeFrame?: string) => {
+  if (timeFrame) {
+    if (!(timeFrame in INTERVAL_MAP)) {
+      throw new Error(`Invalid timeFrame ${timeFrame}, it should be one of ${Object.keys(INTERVAL_MAP).join(", ")}`);
+    }
+  }
+};
+
+export { validateDateFormat, inputValidation };

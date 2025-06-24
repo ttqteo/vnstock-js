@@ -23,4 +23,26 @@ describe("Stock Trading Data", () => {
       expect(item.listingInfo).toHaveProperty("refPrice");
     });
   });
+
+  test("should fetch top gaining stocks", async () => {
+    const result = await vnstock.stock.trading.topGainers({ timeFrame: "1D" });
+    saveTestOutput("top-gainers", result);
+    expect(Array.isArray(result)).toBe(true);
+    if (result.length > 0) {
+      const firstItem = result[0];
+      expect(firstItem).toHaveProperty("stockCode");
+      expect(firstItem).toHaveProperty("group");
+    }
+  });
+
+  test("should fetch top losing stocks", async () => {
+    const result = await vnstock.stock.trading.topLosers({ timeFrame: "1D" });
+    saveTestOutput("top-losers", result);
+    expect(Array.isArray(result)).toBe(true);
+    if (result.length > 0) {
+      const firstItem = result[0];
+      expect(firstItem).toHaveProperty("stockCode");
+      expect(firstItem).toHaveProperty("group");
+    }
+  });
 });

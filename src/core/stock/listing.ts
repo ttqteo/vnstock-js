@@ -127,7 +127,7 @@ export default class Listing {
    */
   async symbolsByGroup({ group = "VN30" }: { group?: string }) {
     this.inputValidation(group);
-    const url = "https://mt.vietcap.com.vn/api/price/symbols/getByGroup";
+    const url = BASE_URL + "/api/price/symbols/getByGroup";
     try {
       const response = await axios.get(url, { params: { group }, headers: headers });
       if (response.status !== 200) {

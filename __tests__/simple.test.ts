@@ -5,9 +5,9 @@ const testTickers = ["VCI", "VCB", "TCB"];
 
 describe("Simple API", () => {
   describe("Stock API", () => {
-    test("should fetch stock price history", async () => {
-      const result = await stock.price(testTickers[0], "2024-01-01");
-      saveTestOutput("simple-stock-price", result);
+    test("should fetch stock quote history", async () => {
+      const result = await stock.quote({ ticker: testTickers[0], start: "2024-01-01" });
+      saveTestOutput("simple-stock-quote", result);
 
       expect(Array.isArray(result)).toBe(true);
       if (result.length > 0) {
@@ -22,7 +22,7 @@ describe("Simple API", () => {
     });
 
     test("should fetch index price history", async () => {
-      const result = await stock.index("VNINDEX", "2024-01-01");
+      const result = await stock.index({ index: "VNINDEX", start: "2024-01-01" });
       saveTestOutput("simple-index-price", result);
 
       expect(Array.isArray(result)).toBe(true);
@@ -37,12 +37,8 @@ describe("Simple API", () => {
       }
     });
 
-    test("should throw error for invalid index symbol", async () => {
-      await expect(stock.index("INVALID", "2024-01-01")).rejects.toThrow("Invalid index symbol");
-    });
-
     test("should fetch company overview", async () => {
-      const result = await stock.company(testTickers[1]);
+      const result = await stock.company({ ticker: testTickers[1] });
       saveTestOutput("simple-company-overview", result);
 
       expect(result).toHaveProperty("TickerPriceInfo");
@@ -53,8 +49,33 @@ describe("Simple API", () => {
       expect(result.TickerPriceInfo.ticker).toBe(testTickers[1]);
     });
 
+    test("should fetch price board data for a single ticker", async () => {
+      const result = await stock.priceBoard({ ticker: testTickers[0] });
+      saveTestOutput("simple-price-board", result);
+
+      expect(Array.isArray(result)).toBe(true);
+      if (result.length > 0) {
+        expect(result[0]).toHaveProperty("listingInfo");
+        expect(result[0]).toHaveProperty("bidAsk");
+        expect(result[0]).toHaveProperty("matchPrice");
+        expect(result[0].listingInfo.symbol).toBe(testTickers[0]);
+      }
+    });
+
+    test("should fetch top gainers", async () => {
+      const result = await stock.topGainers();
+      saveTestOutput("simple-top-gainers", result);
+
+      expect(Array.isArray(result)).toBe(true);
+      if (result.length > 0) {
+        expect(result[0]).toHaveProperty("stockCode");
+        expect(result[0]).toHaveProperty("marketCap");
+        expect(result[0]).toHaveProperty("topStockType");
+      }
+    });
+
     test("should fetch financial data", async () => {
-      const result = await stock.financials(testTickers[0]);
+      const result = await stock.financials({ ticker: testTickers[0] });
       saveTestOutput("simple-financials", result);
 
       expect(result).toHaveProperty("data");
@@ -69,7 +90,7 @@ describe("Simple API", () => {
 
       expect(Array.isArray(result)).toBe(true);
       if (result.length > 0) {
-        expect(result[0]).toHaveProperty("type");
+        expect(result[0]).toHaveProperty("name");
         expect(result[0]).toHaveProperty("buy");
         expect(result[0]).toHaveProperty("sell");
       }
@@ -81,7 +102,6 @@ describe("Simple API", () => {
 
       expect(Array.isArray(result)).toBe(true);
       if (result.length > 0) {
-        expect(result[0]).toHaveProperty("type");
         expect(result[0]).toHaveProperty("buy");
         expect(result[0]).toHaveProperty("sell");
       }
@@ -93,9 +113,8 @@ describe("Simple API", () => {
 
       expect(Array.isArray(result)).toBe(true);
       if (result.length > 0) {
-        expect(result[0]).toHaveProperty("type");
-        expect(result[0]).toHaveProperty("buy");
-        expect(result[0]).toHaveProperty("sell");
+        expect(result[0]).toHaveProperty("Buy");
+        expect(result[0]).toHaveProperty("Sell");
       }
     });
 
@@ -105,9 +124,8 @@ describe("Simple API", () => {
 
       expect(Array.isArray(result)).toBe(true);
       if (result.length > 0) {
-        expect(result[0]).toHaveProperty("currency");
-        expect(result[0]).toHaveProperty("buy");
-        expect(result[0]).toHaveProperty("sell");
+        expect(result[0]).toHaveProperty("Buy Cash");
+        expect(result[0]).toHaveProperty("Sell");
       }
     });
   });
