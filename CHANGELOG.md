@@ -1,5 +1,8 @@
 # Changelog
 
+## vnstock-js 0.5.1 release
+* Change some stuffs
+
 ## vnstock-js 0.5.0 release
 * Add fetching realtime from SSI (testing), naming VnstockRealtime
 * Eliminate types, change to VnstockType

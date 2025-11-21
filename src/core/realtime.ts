@@ -21,7 +21,12 @@ function connect(options: RealtimeOptions = {}) {
   };
 
   socket.onmessage = (event: any) => {
-    const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+    let data;
+    try {
+      data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+    } catch (e) {
+      data = event.data;
+    }
     if (onMessage) onMessage(data);
   };
 
