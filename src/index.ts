@@ -11,4 +11,6 @@ export const VnstockRealtime = realtime;
 export { Vnstock };
 export { sma, ema, rsi } from "./indicators";
 
+export type { ScreenFilter, ScreenOptions, ScreenResult } from "./models/screening";
+
 export default vnstock;

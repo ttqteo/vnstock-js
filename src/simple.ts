@@ -38,6 +38,14 @@ export function createStockAPI(vnstock: Vnstock) {
         period: options.period,
       }),
 
+    screening: (options?: {
+      exchange?: string;
+      filters?: { field: string; operator: string; value: number | string }[];
+      sortBy?: string;
+      order?: "asc" | "desc";
+      limit?: number;
+    }) => vnstock.stock.screening.screen(options as any),
+
     realtime: vnstock.realtime,
   };
 }
