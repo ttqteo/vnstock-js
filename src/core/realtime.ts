@@ -1,110 +1,88 @@
-type RealtimeOptions = {
+import { RealtimeQuote } from "../models/normalized";
+
+const DEFAULT_URL = "wss://iboard-pushstream.ssi.com.vn/realtime";
+
+interface RealtimeOptions {
   url?: string;
   onMessage?: (msg: any) => void;
   onOpen?: () => void;
   onClose?: () => void;
   onError?: (err: any) => void;
-};
+}
 
-function connect(options: RealtimeOptions = {}) {
-  const { url = "wss://iboard-pushstream.ssi.com.vn/realtime", onMessage, onOpen, onClose, onError } = options;
+interface SubscribeOptions {
+  symbols: string[];
+  boardIds?: string[];
+  component?: string;
+}
 
-  const socket =
-    typeof window !== "undefined"
-      ? new WebSocket(url) // browser
-      : new (require("ws"))(url); // node
+function createWebSocket(url: string): any {
+  if (typeof window !== "undefined" && window.WebSocket) {
+    return new window.WebSocket(url);
+  }
+  const WS = require("ws");
+  return new WS(url);
+}
 
-  socket.onopen = () => {
-    if (onOpen) onOpen();
-    // Có thể send message subscribe tại đây
-    // socket.send(JSON.stringify({type: 'subscribe', symbol: 'FPT'}))
-  };
+function connect(options: RealtimeOptions = {}): any {
+  const { url = DEFAULT_URL, onMessage, onOpen, onClose, onError } = options;
+  const socket = createWebSocket(url);
 
-  socket.onmessage = (event: any) => {
-    let data;
-    try {
-      data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-    } catch (e) {
-      data = event.data;
-    }
-    if (onMessage) onMessage(data);
-  };
-
-  socket.onerror = (err: any) => {
-    if (onError) onError(err);
-  };
-
-  socket.onclose = () => {
-    if (onClose) onClose();
-  };
+  if (onOpen) socket.onopen = onOpen;
+  if (onMessage) socket.onmessage = (msg: any) => onMessage(msg.data || msg);
+  if (onError) socket.onerror = onError;
+  if (onClose) socket.onclose = onClose;
 
   return socket;
 }
 
-type SubscribeOptions = {
-  symbols: string[];
-  boardIds?: string[]; // mặc định là ['MAIN']
-  component?: string; // mặc định là 'priceTableEquities'
-};
+function subscribe(socket: any, options: SubscribeOptions): void {
+  const { symbols, boardIds = ["MAIN"], component = "priceTableEquities" } = options;
 
-export function subscribe(socket: WebSocket, { symbols, boardIds = ["MAIN"], component = "priceTableEquities" }: SubscribeOptions) {
-  if (!socket || socket.readyState !== 1) {
-    console.warn("Socket not ready");
-    return;
+  if (socket.readyState !== 1) {
+    throw new Error("WebSocket is not open");
   }
 
-  const message = {
-    type: "sub",
-    topic: "stockRealtimeBySymbolsAndBoards",
-    variables: {
-      symbols,
-      boardIds,
-    },
-    component,
-  };
-
-  socket.send(JSON.stringify(message));
+  socket.send(
+    JSON.stringify({
+      type: "sub",
+      topic: "stockRealtimeBySymbolsAndBoards",
+      variables: { symbols, boardIds },
+      component,
+    })
+  );
 }
 
-export function parseData(str: string) {
+function parseData(str: string): RealtimeQuote {
   const parts = str.split("|");
 
   return {
-    board: parts[0],
-    symbol: parts[1].split("#")[1],
+    exchange: parts[0] || "",
+    symbol: (parts[1] || "").split("#")[1] || "",
     bidPrices: [
-      { price: parts[2], volume: parts[3] },
-      { price: parts[4], volume: parts[5] },
-      { price: parts[6], volume: parts[7] },
+      { price: Number(parts[2]) / 1000, volume: Number(parts[3]) },
+      { price: Number(parts[4]) / 1000, volume: Number(parts[5]) },
+      { price: Number(parts[6]) / 1000, volume: Number(parts[7]) },
     ],
     askPrices: [
-      { price: parts[24], volume: parts[25] },
-      { price: parts[26], volume: parts[27] },
-      { price: parts[28], volume: parts[29] },
+      { price: Number(parts[24]) / 1000, volume: Number(parts[25]) },
+      { price: Number(parts[26]) / 1000, volume: Number(parts[27]) },
+      { price: Number(parts[28]) / 1000, volume: Number(parts[29]) },
     ],
     matched: {
-      price: parts[48],
-      volume: parts[49],
-      change: parts[50],
-      percent: parts[51],
+      price: Number(parts[48]) / 1000,
+      volume: Number(parts[49]),
+      change: Number(parts[50]) / 1000,
+      changePercent: Number(parts[51]) / 100,
     },
-    marketValue: {
-      matchedValue: parts[52],
-      totalValue: parts[53],
-    },
-    totalBuyVolume: parts[54],
-    totalBuyValue: parts[55],
-    totalVolume: parts[60],
-    totalValue: parts[61],
-    side: parts[63], // s or b (sell/buy)
-    lastUpdated: Number(parts[65]),
+    totalBuyVolume: Number(parts[54]) || 0,
+    totalBuyValue: Number(parts[55]) || 0,
+    totalVolume: Number(parts[60]) || 0,
+    totalValue: Number(parts[61]) || 0,
+    side: parts[63] === "b" ? "buy" : "sell",
+    lastUpdated: Number(parts[65]) || 0,
   };
 }
 
-const realtime = {
-  connect,
-  subscribe,
-  parseData,
-};
-
+export const realtime = { connect, subscribe, parseData };
 export default realtime;
