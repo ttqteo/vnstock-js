@@ -1,6 +1,6 @@
 {
   "name": "vnstock-js",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-beta.1",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
