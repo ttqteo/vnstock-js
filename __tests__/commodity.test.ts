@@ -1,38 +1,44 @@
-import { Vnstock } from "../src/runtime";
-import { saveTestOutput } from "./utils/testOutput";
+import vnstock from "../src";
 
-describe("Commodity Data", () => {
-  let vnstock: Vnstock;
+describe("Commodity", () => {
+  it("should return normalized BTMC gold prices", async () => {
+    const data = await vnstock.commodity.goldPriceBTMC();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("name");
+    expect(data[0]).toHaveProperty("buyPrice");
+    expect(data[0]).toHaveProperty("sellPrice");
+    expect(data[0]).toHaveProperty("karat");
+    expect(data[0]).not.toHaveProperty("kara");
+    expect(data[0]).not.toHaveProperty("buy");
+  }, 30000);
 
-  beforeEach(() => {
-    vnstock = new Vnstock();
-  });
+  it("should return GiaVangNet gold prices", async () => {
+    const data = await vnstock.commodity.goldPriceGiaVangNet();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+  }, 30000);
 
-  test("should fetch gold price data (BTMC)", async () => {
-    const result = await vnstock.commodity.goldPriceBTMC();
-    saveTestOutput("gold-price-btmc", result);
-    expect(result).not.toBeNull();
-    expect(typeof result).toBe("object");
-  });
+  it("should return normalized SJC gold prices", async () => {
+    const data = await vnstock.commodity.goldPriceSJC();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("type");
+    expect(data[0]).toHaveProperty("buyPrice");
+    expect(data[0]).toHaveProperty("sellPrice");
+    expect(data[0]).not.toHaveProperty("TypeName");
+    expect(data[0]).not.toHaveProperty("BuyValue");
+  }, 30000);
 
-  test("should fetch gold price data (giavang.net)", async () => {
-    const result = await vnstock.commodity.goldPriceGiaVangNet();
-    saveTestOutput("gold-price-giavangnet", result);
-    expect(result).not.toBeNull();
-    expect(typeof result).toBe("object");
-  });
-
-  test("should fetch gold price data (SJC)", async () => {
-    const result = await vnstock.commodity.goldPriceSJC();
-    saveTestOutput("gold-price-sjc", result);
-    expect(result).not.toBeNull();
-    expect(typeof result).toBe("object");
-  });
-
-  test("should fetch VCB exchange rates", async () => {
-    const result = await vnstock.commodity.exchangeRates();
-    saveTestOutput("exchange-rates", result);
-    expect(result).not.toBeNull();
-    expect(typeof result).toBe("object");
-  });
+  it("should return normalized exchange rates", async () => {
+    const data = await vnstock.commodity.exchangeRates();
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("currencyCode");
+    expect(data[0]).toHaveProperty("currencyName");
+    expect(data[0]).toHaveProperty("buyCash");
+    expect(data[0]).toHaveProperty("sell");
+    expect(data[0]).not.toHaveProperty("CurrencyCode");
+    expect(data[0]).not.toHaveProperty("Buy Cash");
+  }, 30000);
 });
