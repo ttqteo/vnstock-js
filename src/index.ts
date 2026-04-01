@@ -9,5 +9,6 @@ export const commodity = createCommodityAPI(vnstock);
 export * as VnstockTypes from "./models/normalized";
 export const VnstockRealtime = realtime;
 export { Vnstock };
+export { sma, ema, rsi } from "./indicators";
 
 export default vnstock;
