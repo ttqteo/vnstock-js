@@ -1,101 +1,81 @@
-import axios from "axios";
-import { BASE_URL, headers, INTERVAL_MAP } from "../../shared/constants";
-import { PriceBoard } from "../../models/stock";
-import { TickerChange } from "../../models/stock/TickerChange";
+import { fetchWithRetry } from "../../pipeline/fetch";
+import { applyTransform } from "../../pipeline/transform";
+import { tickerChangeTransformConfig } from "../../pipeline/transform/configs/trading";
+import { PriceBoardItem, TopStock } from "../../models/normalized";
+import { BASE_URL, INTERVAL_MAP } from "../../shared/constants";
 import { inputValidation } from "../../shared/utils";
 
 export default class Trading {
-  constructor() {}
-
-  /**
-   * Fetches price board data for the given list of symbols.
-   * Lấy dữ liệu bảng giá cho danh sách các mã chứng khoán được cung cấp.
-   */
-  async priceBoard(symbols: string[]): Promise<PriceBoard[]> {
-    if (!Array.isArray(symbols) || symbols.length === 0) {
-      throw new Error("Symbols array cannot be empty or invalid.");
+  async priceBoard(symbols: string[]): Promise<PriceBoardItem[]> {
+    if (!symbols || symbols.length === 0) {
+      throw new Error("Symbols array must not be empty");
     }
 
-    const payload = { symbols };
-    const url = BASE_URL + "/api/price/symbols/getList";
+    const rawData = await fetchWithRetry<any[]>({
+      url: `${BASE_URL}/api/price/symbols/getList`,
+      method: "POST",
+      data: { symbols },
+    });
 
-    try {
-      const response = await axios.post(url, payload, {
-        headers: headers,
-      });
+    return rawData.map((raw: any) => {
+      const listing = raw.listingInfo || {};
+      const match = raw.matchPrice || {};
+      const bidAsk = raw.bidAsk || {};
 
-      if (response.status !== 200) {
-        throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
-      }
-
-      const { data } = response as { data: PriceBoard[] };
-
-      return data;
-    } catch (error: any) {
-      throw new Error(`An error occurred while fetching price board data: ${error.message}`);
-    }
+      return {
+        symbol: listing.symbol || "",
+        companyName: listing.organName || "",
+        companyNameEn: listing.enOrganName || "",
+        exchange: listing.board || "",
+        ceilingPrice: (listing.ceiling || 0) / 1000,
+        floorPrice: (listing.floor || 0) / 1000,
+        referencePrice: (listing.refPrice || 0) / 1000,
+        price: (match.matchPrice || 0) / 1000,
+        matchVolume: match.matchVol || 0,
+        totalVolume: match.accumulatedVolume || 0,
+        totalValue: match.accumulatedValue || 0,
+        averagePrice: (match.avgMatchPrice || 0) / 1000,
+        highestPrice: (match.highest || 0) / 1000,
+        lowestPrice: (match.lowest || 0) / 1000,
+        foreignBuyVolume: match.foreignBuyVolume || 0,
+        foreignSellVolume: match.foreignSellVolume || 0,
+        bidPrices: (bidAsk.bidPrices || []).map((b: any) => ({
+          price: (b.price || 0) / 1000,
+          volume: b.volume || 0,
+        })),
+        askPrices: (bidAsk.askPrices || []).map((a: any) => ({
+          price: (a.price || 0) / 1000,
+          volume: a.volume || 0,
+        })),
+      } as PriceBoardItem;
+    });
   }
 
-  /**
-   * Fetches the top gaining stocks for a given time frame.
-   * Lấy danh sách các cổ phiếu tăng giá mạnh nhất trong một khoảng thời gian.
-   * @param timeFrame - The time frame (e.g., 'ONE_DAY', 'ONE_WEEK', 'ONE_MONTH', 'THREE_MONTHS', 'SIX_MONTHS', 'ONE_YEAR').
-   */
-  async topGainers({ timeFrame = "1D" }: { timeFrame?: string }): Promise<TickerChange[]> {
-    inputValidation(timeFrame);
-    timeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
-
-    const payload = {
-      timeFrame: timeFrame,
-      topStockType: 1,
-    };
-    const url = BASE_URL + "/api/price-alert-service/api/v1/non-authen/top-stock-change";
-
-    try {
-      const response = await axios.post(url, payload, {
-        headers: headers,
-      });
-
-      if (response.status !== 200) {
-        throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
-      }
-
-      const { data } = response as { data: TickerChange[] };
-
-      return data;
-    } catch (error: any) {
-      throw new Error(`An error occurred while fetching top gainers data: ${error.message}`);
-    }
+  async topGainers(timeFrame: string = "1D"): Promise<TopStock[]> {
+    return this._topStocks(timeFrame, 1);
   }
 
-  /**
-   * Fetches the top losing stocks for a given time frame.
-   * Lấy danh sách các cổ phiếu giảm giá mạnh nhất trong một khoảng thời gian.
-   */
-  async topLosers({ timeFrame = "1D" }: { timeFrame?: string }): Promise<TickerChange[]> {
+  async topLosers(timeFrame: string = "1D"): Promise<TopStock[]> {
+    return this._topStocks(timeFrame, 0);
+  }
+
+  private async _topStocks(timeFrame: string, topStockType: number): Promise<TopStock[]> {
     inputValidation(timeFrame);
-    timeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
+    const mappedTimeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
 
-    const payload = {
-      timeFrame: timeFrame,
-      topStockType: 0,
-    };
-    const url = BASE_URL + "/api/price-alert-service/api/v1/non-authen/top-stock-change";
+    const rawData = await fetchWithRetry<any[]>({
+      url: `${BASE_URL}/api/price-alert-service/api/v1/non-authen/top-stock-change`,
+      method: "POST",
+      data: {
+        topStockType,
+        timeFrame: mappedTimeFrame,
+        exchangeCode: null,
+        stockCodes: null,
+      },
+    });
 
-    try {
-      const response = await axios.post(url, payload, {
-        headers: headers,
-      });
-
-      if (response.status !== 200) {
-        throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
-      }
-
-      const { data } = response as { data: TickerChange[] };
-
-      return data;
-    } catch (error: any) {
-      throw new Error(`An error occurred while fetching top losers data: ${error.message}`);
-    }
+    return rawData.map((raw: any) =>
+      applyTransform(raw, tickerChangeTransformConfig) as unknown as TopStock
+    );
   }
 }

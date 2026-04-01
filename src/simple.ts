@@ -8,8 +8,8 @@ export const createStockAPI = (vnstock: Vnstock) => ({
     vnstock.stock.quote.history({ symbols: [ticker], start, end, timeFrame: "1D" }),
 
   priceBoard: ({ ticker }: { ticker: string }) => vnstock.stock.trading.priceBoard([ticker]),
-  topGainers: () => vnstock.stock.trading.topGainers({}),
-  topLosers: () => vnstock.stock.trading.topLosers({}),
+  topGainers: () => vnstock.stock.trading.topGainers(),
+  topLosers: () => vnstock.stock.trading.topLosers(),
 
   index: ({ index, start, end }: { index: string; start: string; end?: string }) => {
     if (!INDEX_SYMBOLS.includes(index)) {

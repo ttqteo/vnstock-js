@@ -1,48 +1,49 @@
-import { Vnstock } from "../src/runtime";
-import { saveTestOutput } from "./utils/testOutput";
+import vnstock from "../src";
 
-const symbols = ["MBB", "TCH"];
+describe("Trading", () => {
+  it("should return normalized price board", async () => {
+    const data = await vnstock.stock.trading.priceBoard(["VCI"]);
 
-describe("Stock Trading Data", () => {
-  let vnstock: Vnstock;
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
 
-  beforeEach(() => {
-    vnstock = new Vnstock();
-  });
+    const item = data[0];
+    expect(item).toHaveProperty("symbol");
+    expect(item).toHaveProperty("price");
+    expect(item).toHaveProperty("totalVolume");
+    expect(item).toHaveProperty("ceilingPrice");
+    expect(item).toHaveProperty("floorPrice");
+    expect(item).toHaveProperty("referencePrice");
+    expect(item).toHaveProperty("bidPrices");
+    expect(item).toHaveProperty("askPrices");
 
-  test("should fetch price board data for given symbols", async () => {
-    const result = await vnstock.stock.trading.priceBoard(symbols);
-    saveTestOutput("price-board", result);
-    expect(result).toHaveLength(symbols.length);
-    result.forEach((item, index) => {
-      expect(item.listingInfo.symbol).toBe(symbols[index]);
-      expect(item.listingInfo).toHaveProperty("code");
-      expect(item.listingInfo).toHaveProperty("symbol");
-      expect(item.listingInfo).toHaveProperty("ceiling");
-      expect(item.listingInfo).toHaveProperty("floor");
-      expect(item.listingInfo).toHaveProperty("refPrice");
-    });
-  });
+    expect(item.price).toBeLessThan(1000);
+    expect(item.ceilingPrice).toBeLessThan(1000);
 
-  test("should fetch top gaining stocks", async () => {
-    const result = await vnstock.stock.trading.topGainers({ timeFrame: "1D" });
-    saveTestOutput("top-gainers", result);
-    expect(Array.isArray(result)).toBe(true);
-    if (result.length > 0) {
-      const firstItem = result[0];
-      expect(firstItem).toHaveProperty("stockCode");
-      expect(firstItem).toHaveProperty("group");
-    }
-  });
+    expect(item).not.toHaveProperty("listingInfo");
+    expect(item).not.toHaveProperty("bidAsk");
+    expect(item).not.toHaveProperty("matchPrice");
+  }, 30000);
 
-  test("should fetch top losing stocks", async () => {
-    const result = await vnstock.stock.trading.topLosers({ timeFrame: "1D" });
-    saveTestOutput("top-losers", result);
-    expect(Array.isArray(result)).toBe(true);
-    if (result.length > 0) {
-      const firstItem = result[0];
-      expect(firstItem).toHaveProperty("stockCode");
-      expect(firstItem).toHaveProperty("group");
-    }
-  });
+  it("should return normalized top gainers", async () => {
+    const data = await vnstock.stock.trading.topGainers();
+
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+
+    const item = data[0];
+    expect(item).toHaveProperty("symbol");
+    expect(item).toHaveProperty("exchange");
+    expect(item).toHaveProperty("marketCap");
+    expect(item).not.toHaveProperty("stockCode");
+    expect(item).not.toHaveProperty("group");
+  }, 30000);
+
+  it("should return normalized top losers", async () => {
+    const data = await vnstock.stock.trading.topLosers();
+
+    expect(Array.isArray(data)).toBe(true);
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("symbol");
+  }, 30000);
 });
