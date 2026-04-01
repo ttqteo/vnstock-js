@@ -2,7 +2,7 @@ import { RealtimeQuote } from "../models/normalized";
 
 const DEFAULT_URL = "wss://iboard-pushstream.ssi.com.vn/realtime";
 
-interface RealtimeOptions {
+export interface RealtimeOptions {
   url?: string;
   onMessage?: (msg: any) => void;
   onOpen?: () => void;
@@ -10,7 +10,7 @@ interface RealtimeOptions {
   onError?: (err: any) => void;
 }
 
-interface SubscribeOptions {
+export interface SubscribeOptions {
   symbols: string[];
   boardIds?: string[];
   component?: string;

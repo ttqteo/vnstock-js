@@ -1,21 +1,23 @@
-import { Company } from "../../core/stock/company";
-import Financials from "../../core/stock/financial";
-import Listing from "../../core/stock/listing";
-import Quote from "../../core/stock/quote";
-import Trading from "../../core/stock/trading";
+import Trading from "./trading";
+import Quote from "./quote";
+import Listing from "./listing";
+import Financials from "./financial";
+import { Company } from "./company";
 
 export default class Stock {
   trading: Trading;
   quote: Quote;
   listing: Listing;
   financials: Financials;
-  company: Company;
 
-  constructor(ticker?: string) {
+  constructor() {
     this.trading = new Trading();
     this.quote = new Quote();
     this.listing = new Listing();
     this.financials = new Financials();
-    this.company = new Company(ticker || "VCI");
+  }
+
+  company(ticker: string): Company {
+    return new Company(ticker);
   }
 }

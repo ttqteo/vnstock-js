@@ -1,11 +1,14 @@
-import * as VnstockTypes from "./models";
-import * as VnstockRealtime from "./core/realtime";
 import { Vnstock } from "./runtime";
+import { realtime } from "./core/realtime";
 import { createStockAPI, createCommodityAPI } from "./simple";
+import * as NormalizedTypes from "./models/normalized";
 
 const vnstock = new Vnstock();
-const stock = createStockAPI(vnstock);
-const commodity = createCommodityAPI(vnstock);
+
+export const stock = createStockAPI(vnstock);
+export const commodity = createCommodityAPI(vnstock);
+export const VnstockTypes = NormalizedTypes;
+export const VnstockRealtime = realtime;
+export { Vnstock };
 
 export default vnstock;
-export { VnstockTypes, Vnstock, VnstockRealtime, stock, commodity };

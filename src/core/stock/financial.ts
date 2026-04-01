@@ -3,7 +3,7 @@ import { applyTransform } from "../../pipeline/transform";
 import { financialTransformConfig } from "../../pipeline/transform/configs/financial";
 import { GRAPHQL_URL, PERIOD_MAP, REPORT_NAME, SUPPORTED_LANGUAGES } from "../../shared/constants";
 
-interface FinancialResult {
+export interface FinancialResult {
   data: Record<string, unknown>;
   mapping: {
     ratio: any;
