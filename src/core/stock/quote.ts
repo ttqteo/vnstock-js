@@ -1,61 +1,51 @@
-import axios from "axios";
-import { addDays, parse } from "date-fns";
-import { CHART_URL, headers, INTERVAL_MAP } from "../../shared/constants";
-import { ChartData } from "../../models/stock/ChartData";
-import { inputValidation } from "../../shared/utils";
+import { parse } from "date-fns";
+import { fetchWithRetry } from "../../pipeline/fetch";
+import { transformQuoteHistory, QuoteHistory } from "../../pipeline/transform/configs/quote";
+import { CHART_URL, INTERVAL_MAP } from "../../shared/constants";
+import { validateDateFormat, inputValidation } from "../../shared/utils";
 
 export default class Quote {
-  constructor() {}
-
-  /**
-   * Fetches historical price data for the specified symbols and time frame.
-   * Lấy dữ liệu lịch sử giá cho các mã chứng khoán được cung cấp trong khoảng thời gian được chỉ định.
-   */
-  async history({
-    symbols,
-    start,
-    end,
-    timeFrame,
-    countBack = 365,
-  }: {
+  async history(options: {
     symbols: string[];
     start: string;
     end?: string;
     timeFrame: string;
     countBack?: number;
-  }): Promise<ChartData[]> {
+  }): Promise<QuoteHistory[]> {
+    const { symbols, start, end, timeFrame, countBack = 365 } = options;
+
     inputValidation(timeFrame);
-    timeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
+    validateDateFormat([start, ...(end ? [end] : [])]);
 
-    const from = Math.round(parse(start, "yyyy-MM-dd", new Date()).getTime() / 1000);
-    const to = Math.round(addDays(end ? parse(end, "yyyy-MM-dd", new Date()) : new Date(), 2).getTime() / 1000);
-    if (to !== undefined && from > to) {
-      throw new Error(`Start Date cannot greater than End Date`);
+    const mappedTimeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
+    const from = parse(start, "yyyy-MM-dd", new Date()).getTime() / 1000;
+    const now = new Date();
+    now.setDate(now.getDate() + 2);
+    const to = end
+      ? parse(end, "yyyy-MM-dd", new Date()).getTime() / 1000
+      : Math.floor(now.getTime() / 1000);
+
+    if (from > to) {
+      throw new Error("Start date must be before end date");
     }
 
-    const url = CHART_URL;
-    const payload = {
-      symbols,
-      from,
-      to,
-      timeFrame,
-      countBack,
-    };
+    const rawData = await fetchWithRetry<any[]>({
+      url: CHART_URL,
+      method: "POST",
+      data: {
+        symbols,
+        from,
+        to,
+        timeFrame: mappedTimeFrame,
+        countBack,
+      },
+    });
 
-    try {
-      const response = await axios.post(url, payload, {
-        headers: headers,
-      });
-
-      if (response.status !== 200) {
-        throw new Error(`Error fetching data: ${response.status} - ${JSON.stringify(response.data)}`);
-      }
-
-      const { data } = response as { data: ChartData[] };
-
-      return data;
-    } catch (error: any) {
-      throw new Error(`An error occurred while fetching price board data: ${error.message}`);
+    const results: QuoteHistory[] = [];
+    for (const chartData of rawData) {
+      results.push(...transformQuoteHistory(chartData));
     }
+
+    return results;
   }
 }
