@@ -1,5 +1,5 @@
 import realtime from "./core/realtime";
-import Company from "./core/stock/company";
+import { Company } from "./core/stock/company";
 import { Vnstock } from "./runtime";
 import { INDEX_SYMBOLS } from "./shared/constants";
 

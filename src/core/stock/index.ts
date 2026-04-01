@@ -1,4 +1,4 @@
-import Company from "../../core/stock/company";
+import { Company } from "../../core/stock/company";
 import Financials from "../../core/stock/financial";
 import Listing from "../../core/stock/listing";
 import Quote from "../../core/stock/quote";
