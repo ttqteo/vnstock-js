@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.1 (2026-04-02)
+
+- Xóa dependency `xlsx` (2 CVE: Prototype Pollution + ReDoS)
+- Chuyển sang VCB JSON API thay vì parse Excel
+- Sửa RSI type signature (`period` giờ optional)
+- Thêm request timeout 15 giây
+- Bổ sung fields thiếu trong `ScreenResult`
+- Bỏ duplicate `QuoteHistory` type
+
 ## 1.0.0 (2026-04-02)
 
 Breaking changes so với v0.5.x. Refactor toàn bộ kiến trúc.
