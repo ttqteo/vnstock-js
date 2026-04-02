@@ -1,51 +1,81 @@
 # Changelog
 
-## vnstock-js 0.5.1 release
-* Change some stuffs
+## 1.0.0-beta.1 (2026-04-02)
 
-## vnstock-js 0.5.0 release
-* Add fetching realtime from SSI (testing), naming VnstockRealtime
-* Eliminate types, change to VnstockType
-* Eliminate simple stock.price, change to stock.quote
-* Add trading.topGainers, trading.topLosers
-* Change pass params to object params
+Breaking changes so với v0.5.x. Refactor toàn bộ kiến trúc.
 
-## vnstock-js 0.4.3 release
-* Hotfix Company
-* Add simple stock.quote, similar to stock.price
+### Kiến trúc mới
+- **Pipeline architecture** -- Request Pipeline (fetch + retry) -> Transform Pipeline (parse, clean, rename, normalize, shape)
+- Tất cả output chuẩn hóa: Array of Objects, camelCase, giá chia 1000, ISO dates
+- Retry tự động 2 lần với exponential backoff cho lỗi 5xx/timeout
+- Request timeout 15 giây
 
-## vnstock-js 0.4.2 release
-* Hotfix @ alias
+### Tính năng mới
+- **Sàng lọc cổ phiếu** (`stock.screening`) -- lọc theo PE, ROE, vốn hóa với batch GraphQL
+- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI (pure functions)
+- **Company mở rộng** -- affiliates, analysisReports, insiderDeals
+- TypeScript interfaces đầy đủ cho tất cả output
 
-## vnstock-js 0.4.1 release
-Note: got issues, should update to latest
-* Fix README
-* Change export
+### Thay đổi breaking
+- Output format thay đổi hoàn toàn (giá chia 1000, field names đổi)
+- `stock.price()` -> `stock.quote()`
+- `stock.company()` giờ là factory method trả về Company instance
+- `VnstockTypes` trỏ sang normalized types
+- Realtime `parseData()` trả về `RealtimeQuote` với field names mới
 
-## vnstock-js 0.4.0 release
-Note: got issues, should update to latest
-* Add Gold Price SJC
-* Re-organize codebase
-* Hotfix error call to VCI avoid bot
+### Sửa lỗi
+- Sửa mapping index WebSocket SSI realtime data
+- Screening dùng batch GraphQL aliases
 
-## vnstock-js 0.3.1 release
-* Add Gold Price V2 (giavang.net)
-* Export Model
+---
 
-## vnstock-js 0.3.0 release
-* Remove support **TCBS**
-* Refactor
+## 0.5.1
 
-## vnstock-js 0.2.0 release
-Release with the following improvements:
+- Sửa lỗi nhỏ
 
-* Support **VCI** source
-  * Listing: **Symbols By Exchange**, **Symbols By Industries**, **Industry ICB** ,**Symbols By Group**.
-  * Financials Report: **Balance Sheet**, **Income Statement**, **Cashflow**.
-* Support **Exchange Rates** on Commodity Prices.
+## 0.5.0
 
-## vnstock-js 0.1.0 release
+- Thêm realtime WebSocket từ SSI
+- Đổi `stock.price` -> `stock.quote`
+- Thêm `trading.topGainers`, `trading.topLosers`
+- Đổi params sang object params
 
-Initial release with the following features:
-* Retrieve **trading prices**,  **historical quotes** and **symbols listings** from **VCI** and **TCBS** stock market data.
-* Support **Commodity Prices** *(Gold Price Vietnam)*.
+## 0.4.3
+
+- Sửa lỗi Company
+- Thêm `stock.quote` (simple API)
+
+## 0.4.2
+
+- Sửa lỗi import alias
+
+## 0.4.1
+
+- Sửa README, đổi export
+
+## 0.4.0
+
+- Thêm giá vàng SJC
+- Tái cấu trúc codebase
+- Sửa lỗi gọi VCI API
+
+## 0.3.1
+
+- Thêm giá vàng GiaVang.net
+- Export model types
+
+## 0.3.0
+
+- Bỏ hỗ trợ TCBS
+- Tái cấu trúc
+
+## 0.2.0
+
+- Hỗ trợ VCI: listing (theo sàn, ngành, nhóm), báo cáo tài chính
+- Thêm tỷ giá ngoại tệ VCB
+
+## 0.1.0
+
+- Phiên bản đầu tiên
+- Giá giao dịch, lịch sử giá, danh sách mã từ VCI và TCBS
+- Giá vàng Việt Nam

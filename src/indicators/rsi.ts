@@ -7,7 +7,7 @@ export interface RsiResult {
 
 export function rsi(
   data: QuoteHistory[],
-  options: { period: number; field?: keyof QuoteHistory } = { period: 14 }
+  options: { period?: number; field?: keyof QuoteHistory } = {}
 ): RsiResult[] {
   const { period = 14, field = "close" } = options;
 

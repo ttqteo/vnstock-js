@@ -1,5 +1,8 @@
 import { format, fromUnixTime } from "date-fns";
 import { TransformConfig } from "../../types";
+import { QuoteHistory } from "../../../models/normalized";
+
+export { QuoteHistory };
 
 export const quoteTransformConfig: TransformConfig = {
   fieldMap: {
@@ -14,15 +17,6 @@ export const quoteTransformConfig: TransformConfig = {
   dateFields: ["date"],
   percentFields: [],
 };
-
-export interface QuoteHistory {
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
 
 export function transformQuoteHistory(raw: {
   o: number[];

@@ -28,6 +28,7 @@ export async function fetchWithRetry<T = unknown>(
         data: config.data,
         params: config.params,
         headers: { ...defaultHeaders, ...config.headers },
+        timeout: 15000,
       });
       return response.data as T;
     } catch (error) {

@@ -14,6 +14,11 @@ export interface ScreenOptions {
 
 export interface ScreenResult {
   symbol: string;
+  companyName: string;
+  companyNameEn: string;
+  industry: string;
+  industryEn: string;
+  exchange: string;
   pe: number;
   pb: number;
   eps: number;
@@ -23,8 +28,8 @@ export interface ScreenResult {
   price: number;
   priceChange: number;
   volume: number;
-  exchange: string;
-  companyName: string;
-  industry: string;
+  revenue: number;
+  netProfit: number;
+  debtToEquity: number;
   [key: string]: unknown;
 }
