@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0-beta.1 (2026-04-02)
+## 1.0.0 (2026-04-02)
 
 Breaking changes so với v0.5.x. Refactor toàn bộ kiến trúc.
 
