@@ -14,36 +14,37 @@ jest.mock("ws", () => {
 });
 
 describe("Realtime", () => {
-  it("should parse data into normalized format", () => {
-    // Build a pipe-delimited string with enough parts (66+ elements)
-    const parts = new Array(66).fill("");
-    parts[0] = "MAIN";
-    parts[1] = "VCI#VCI";
-    parts[2] = "25500"; parts[3] = "1000";  // bid 1
-    parts[4] = "25400"; parts[5] = "900";   // bid 2
-    parts[6] = "25300"; parts[7] = "800";   // bid 3
-    parts[24] = "26000"; parts[25] = "500"; // ask 1
-    parts[26] = "26100"; parts[27] = "600"; // ask 2
-    parts[28] = "26200"; parts[29] = "700"; // ask 3
-    parts[48] = "25800"; parts[49] = "5000"; parts[50] = "300"; parts[51] = "1.18";
-    parts[54] = "54000"; parts[55] = "55000";
-    parts[60] = "60000"; parts[61] = "61000";
-    parts[63] = "b";
-    parts[65] = "1705276800";
-    const raw = parts.join("|");
+  it("should parse real SSI WebSocket data correctly", () => {
+    // Real ACB data from SSI WebSocket
+    const raw = "MAIN|S#ACB|23550|4400|23500|282300|23450|228700|||||||||||||||23600|143700|23650|121800|23700|70600|||||||||||||||23550|900|23700|hose|23500|23569.13|144892|3426335000|132400|3122040000|-250|-1.05|2245400|52922115000||||25450|22150|23800||||129163175|s|N||||0|0|VSDASBXX||23700|||||||||||||||||||||23";
 
     const result = realtime.parseData(raw);
 
     expect(result.exchange).toBe("MAIN");
-    expect(result.symbol).toBe("VCI");
-    expect(result.bidPrices).toHaveLength(3);
-    expect(result.bidPrices[0].price).toBe(25.5);
-    expect(result.askPrices).toHaveLength(3);
-    expect(result.askPrices[0].price).toBe(26.0);
-    expect(result.matched.price).toBe(25.8);
-    expect(result.matched.volume).toBe(5000);
-    expect(result.side).toBe("buy");
-    expect(result.totalVolume).toBe(60000);
+    expect(result.symbol).toBe("ACB");
+
+    // Bid prices (3 levels)
+    expect(result.bidPrices[0]).toEqual({ price: 23.55, volume: 4400 });
+    expect(result.bidPrices[1]).toEqual({ price: 23.5, volume: 282300 });
+    expect(result.bidPrices[2]).toEqual({ price: 23.45, volume: 228700 });
+
+    // Ask prices (3 levels)
+    expect(result.askPrices[0]).toEqual({ price: 23.6, volume: 143700 });
+    expect(result.askPrices[1]).toEqual({ price: 23.65, volume: 121800 });
+    expect(result.askPrices[2]).toEqual({ price: 23.7, volume: 70600 });
+
+    // Match
+    expect(result.matched.price).toBe(23.55);
+    expect(result.matched.volume).toBe(900);
+    expect(result.matched.change).toBe(-0.25);
+    expect(result.matched.changePercent).toBeCloseTo(-0.0105);
+
+    // Volumes
+    expect(result.totalVolume).toBe(2245400);
+    expect(result.totalBuyVolume).toBe(144892);
+
+    // Side
+    expect(result.side).toBe("sell");
   });
 
   it("should connect and return socket", () => {
