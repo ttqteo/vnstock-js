@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.1.0 (2026-04-03)
+
+### Tính năng mới
+- **Error taxonomy** -- 6 custom error classes: `VnstockError`, `NetworkError`, `RateLimitError`, `ApiError`, `InvalidSymbolError`, `InvalidParameterError`, `ParseError`
+- **Realtime v2** -- `RealtimeClient` dùng EventEmitter pattern, auto-reconnect với exponential backoff, heartbeat, subscribe queue
+- **Adapter pattern** -- `StockDataAdapter` interface + `VciAdapter`, chuẩn bị cho multi-source sau này
+- **FinancialStatement typing** -- thêm 7 optional typed fields (revenue, grossProfit, netIncome, totalAssets, totalEquity, totalDebt, operatingCashFlow)
+
+### Thay đổi breaking
+- Realtime API cũ (`VnstockRealtime.connect/subscribe/parseData`) thay bằng `realtime.create()` + `RealtimeClient` event emitter
+- `realtime` giờ là top-level export, không còn trên `Vnstock` class hay `stock` object
+
+### Nội bộ
+- Pipeline `fetchWithRetry` wrap axios errors thành custom error classes
+- Tất cả validation dùng `InvalidParameterError` thay vì `throw new Error`
+- Core modules (quote, trading, listing, financial, company) gọi qua adapter thay vì trực tiếp URL
+
 ## 1.0.1 (2026-04-02)
 
 - Xóa dependency `xlsx` (2 CVE: Prototype Pollution + ReDoS)
