@@ -22,4 +22,5 @@ export interface RequestConfig {
 export interface FetchOptions {
   retries?: number;
   retryDelay?: number;
+  rateLimitWait?: number;
 }

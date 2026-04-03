@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.2.0 (2026-04-03)
+
+### Tính năng mới
+- **Symbol Directory** -- danh sách ~3300 mã offline với search theo tên/mã/ngành, relevance ranking, VN30 boost
+- **Market Calendar** -- `isTradeDay`, `nextTradeDay`, `prevTradeDay`, `holidays`, giờ giao dịch sàn HOSE
+- **Rate limit auto-wait** -- gặp HTTP 429 tự động chờ theo `Retry-After` header rồi retry
+
+### API mới
+- `stock.search(query, { limit })` -- tìm mã cổ phiếu offline
+- `listing.search()`, `listing.getBySymbol()`, `listing.getByExchange()`, `listing.getByIndustry()`, `listing.allLocal()`
+- `market.calendar.isTradeDay(date)`, `nextTradeDay(date)`, `prevTradeDay(date)`, `holidays(year)`, `session()`
+
+### Nội bộ
+- `fetchWithRetry` hỗ trợ `rateLimitWait` option (mặc định 5s)
+- Thêm `SymbolInfo`, `TradingSession` types
+- Thêm script `npm run update-symbols`
+- Bundle `data/symbols.json` và `data/holidays.json` trong npm package
+
 ## 1.1.0 (2026-04-03)
 
 ### Tính năng mới

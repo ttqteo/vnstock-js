@@ -1,11 +1,13 @@
 import { Vnstock } from "./runtime";
 import { RealtimeClient, create as createRealtime, parseData } from "./realtime";
 import { createStockAPI, createCommodityAPI } from "./simple";
+import { calendar } from "./core/market";
 
 const vnstock = new Vnstock();
 
 export const stock = createStockAPI(vnstock);
 export const commodity = createCommodityAPI(vnstock);
+export const market = { calendar };
 export * as VnstockTypes from "./models/normalized";
 export const realtime = { create: createRealtime, parseData };
 export { RealtimeClient };

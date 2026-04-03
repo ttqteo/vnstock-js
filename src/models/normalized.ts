@@ -235,3 +235,24 @@ export interface RealtimeQuote {
   side: "buy" | "sell";
   lastUpdated: number;
 }
+
+export interface SymbolInfo {
+  symbol: string;
+  companyName: string;
+  companyNameEn: string;
+  exchange: string;
+  industry: string;
+  industryEn: string;
+  sector: string;
+  sectorEn: string;
+  icbCode: string;
+  vn30: boolean;
+}
+
+export interface TradingSession {
+  exchange: string;
+  morning: { open: string; close: string };
+  afternoon: { open: string; close: string };
+  ato: string;
+  atc: string;
+}

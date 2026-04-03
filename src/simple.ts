@@ -46,6 +46,9 @@ export function createStockAPI(vnstock: Vnstock) {
       order?: "asc" | "desc";
       limit?: number;
     }) => vnstock.stock.screening.screen(options as any),
+
+    search: (query: string, options?: { limit?: number }) =>
+      vnstock.stock.listing.search(query, options),
   };
 }
 

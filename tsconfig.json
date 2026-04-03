@@ -12,6 +12,7 @@
     "strict": true,
     "downlevelIteration": true,
     "noImplicitAny": true,
+    "resolveJsonModule": true,
     "baseUrl": ".",
   },
   "exclude": ["examples", "node_modules", "dist"],

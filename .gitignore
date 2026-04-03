@@ -132,5 +132,9 @@ dist
 # new
 /lib
 package-lock.json
-
 test-outputs
+
+# Claude
+CLAUDE.md
+.claude/
+docs/plans/
