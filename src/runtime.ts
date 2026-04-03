@@ -1,15 +1,15 @@
+import { VciAdapter } from "./adapters";
+import { StockDataAdapter } from "./adapters/types";
 import Stock from "./core/stock";
 import Commodity from "./core/commodity";
-import realtime from "./core/realtime";
 
 export class Vnstock {
   stock: Stock;
   commodity: Commodity;
-  realtime: typeof realtime;
 
-  constructor() {
-    this.stock = new Stock();
+  constructor(adapter?: StockDataAdapter) {
+    const stockAdapter = adapter || new VciAdapter();
+    this.stock = new Stock(stockAdapter);
     this.commodity = new Commodity();
-    this.realtime = realtime;
   }
 }

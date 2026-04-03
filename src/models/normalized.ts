@@ -1,4 +1,3 @@
-// ============ QUOTE ============
 
 export interface QuoteHistory {
   date: string;
@@ -9,7 +8,6 @@ export interface QuoteHistory {
   volume: number;
 }
 
-// ============ TRADING ============
 
 export interface PriceBoardItem {
   symbol: string;
@@ -45,7 +43,6 @@ export interface TopStock {
   hnx30: boolean;
 }
 
-// ============ COMPANY ============
 
 export interface CompanyProfile {
   id: string;
@@ -143,17 +140,22 @@ export interface AnalysisReport {
   name: string;
 }
 
-// ============ FINANCIAL ============
 
 export interface FinancialStatement {
   symbol: string;
   year: number;
   quarter: number;
   updatedAt: string;
+  revenue?: number;
+  grossProfit?: number;
+  netIncome?: number;
+  totalAssets?: number;
+  totalEquity?: number;
+  totalDebt?: number;
+  operatingCashFlow?: number;
   [key: string]: unknown;
 }
 
-// ============ LISTING ============
 
 export interface ListedSymbol {
   id: number;
@@ -190,7 +192,6 @@ export interface IndustryClassification {
   nameEn: string;
 }
 
-// ============ COMMODITY ============
 
 export interface GoldPriceBtmc {
   name: string;
@@ -220,7 +221,6 @@ export interface ExchangeRate {
   sell: string;
 }
 
-// ============ REALTIME ============
 
 export interface RealtimeQuote {
   exchange: string;

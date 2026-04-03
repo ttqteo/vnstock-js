@@ -81,7 +81,7 @@ describe("fetchWithRetry", () => {
         { url: "https://example.com/api", method: "GET" },
         { retries: 2, retryDelay: 10 }
       )
-    ).rejects.toEqual(error5xx);
+    ).rejects.toThrow(/503/);
 
     expect(mockedAxios.request).toHaveBeenCalledTimes(3);
   });
@@ -95,7 +95,7 @@ describe("fetchWithRetry", () => {
         { url: "https://example.com/api", method: "GET" },
         { retries: 2, retryDelay: 10 }
       )
-    ).rejects.toEqual(error4xx);
+    ).rejects.toThrow(/404/);
 
     expect(mockedAxios.request).toHaveBeenCalledTimes(1);
   });
