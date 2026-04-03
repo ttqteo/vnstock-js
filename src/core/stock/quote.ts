@@ -1,10 +1,15 @@
-import { parse } from "date-fns";
-import { fetchWithRetry } from "../../pipeline/fetch";
-import { transformQuoteHistory, QuoteHistory } from "../../pipeline/transform/configs/quote";
-import { CHART_URL, INTERVAL_MAP } from "../../shared/constants";
+import { QuoteHistory } from "../../pipeline/transform/configs/quote";
 import { validateDateFormat, inputValidation } from "../../shared/utils";
+import { InvalidParameterError } from "../../errors";
+import { StockDataAdapter } from "../../adapters/types";
 
 export default class Quote {
+  private adapter: StockDataAdapter;
+
+  constructor(adapter: StockDataAdapter) {
+    this.adapter = adapter;
+  }
+
   async history(options: {
     symbols: string[];
     start: string;
@@ -12,40 +17,19 @@ export default class Quote {
     timeFrame: string;
     countBack?: number;
   }): Promise<QuoteHistory[]> {
-    const { symbols, start, end, timeFrame, countBack = 365 } = options;
+    const { symbols, start, end, timeFrame, countBack } = options;
 
     inputValidation(timeFrame);
     validateDateFormat([start, ...(end ? [end] : [])]);
 
-    const mappedTimeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
-    const from = parse(start, "yyyy-MM-dd", new Date()).getTime() / 1000;
-    const now = new Date();
-    now.setDate(now.getDate() + 2);
-    const to = end
-      ? parse(end, "yyyy-MM-dd", new Date()).getTime() / 1000
-      : Math.floor(now.getTime() / 1000);
-
-    if (from > to) {
-      throw new Error("Start date must be before end date");
+    if (end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      if (startDate > endDate) {
+        throw new InvalidParameterError("start", start, ["must be before end date"]);
+      }
     }
 
-    const rawData = await fetchWithRetry<any[]>({
-      url: CHART_URL,
-      method: "POST",
-      data: {
-        symbols,
-        from,
-        to,
-        timeFrame: mappedTimeFrame,
-        countBack,
-      },
-    });
-
-    const results: QuoteHistory[] = [];
-    for (const chartData of rawData) {
-      results.push(...transformQuoteHistory(chartData));
-    }
-
-    return results;
+    return this.adapter.fetchQuoteHistory({ symbols, start, end, timeFrame, countBack });
   }
 }

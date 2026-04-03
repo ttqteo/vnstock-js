@@ -4,6 +4,8 @@ import Listing from "./listing";
 import Financials from "./financial";
 import { Company } from "./company";
 import Screening from "./screening";
+import { StockDataAdapter } from "../../adapters/types";
+import { VciAdapter } from "../../adapters/vci";
 
 export default class Stock {
   trading: Trading;
@@ -12,15 +14,18 @@ export default class Stock {
   financials: Financials;
   screening: Screening;
 
-  constructor() {
-    this.trading = new Trading();
-    this.quote = new Quote();
-    this.listing = new Listing();
-    this.financials = new Financials();
+  private adapter: StockDataAdapter;
+
+  constructor(adapter?: StockDataAdapter) {
+    this.adapter = adapter || new VciAdapter();
+    this.trading = new Trading(this.adapter);
+    this.quote = new Quote(this.adapter);
+    this.listing = new Listing(this.adapter);
+    this.financials = new Financials(this.adapter);
     this.screening = new Screening();
   }
 
   company(ticker: string): Company {
-    return new Company(ticker);
+    return new Company(ticker, this.adapter);
   }
 }

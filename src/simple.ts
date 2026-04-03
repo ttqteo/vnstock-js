@@ -1,5 +1,6 @@
 import { Vnstock } from "./runtime";
 import { INDEX_SYMBOLS } from "./shared/constants";
+import { InvalidParameterError } from "./errors";
 
 export function createStockAPI(vnstock: Vnstock) {
   return {
@@ -13,7 +14,7 @@ export function createStockAPI(vnstock: Vnstock) {
 
     index: (options: { index: string; start: string; end?: string }) => {
       if (!INDEX_SYMBOLS.includes(options.index)) {
-        throw new Error(`Invalid index: ${options.index}. Valid: ${INDEX_SYMBOLS.join(", ")}`);
+        throw new InvalidParameterError("index", options.index, INDEX_SYMBOLS);
       }
       return vnstock.stock.quote.history({
         symbols: [options.index],
@@ -45,8 +46,6 @@ export function createStockAPI(vnstock: Vnstock) {
       order?: "asc" | "desc";
       limit?: number;
     }) => vnstock.stock.screening.screen(options as any),
-
-    realtime: vnstock.realtime,
   };
 }
 
