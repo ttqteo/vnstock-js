@@ -33,7 +33,7 @@ export async function fetchWithRetry<T = unknown>(
   config: RequestConfig,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { retries = 2, retryDelay = 1000 } = options;
+  const { retries = 2, retryDelay = 1000, rateLimitWait = 5000 } = options;
 
   let lastError: unknown;
 
@@ -48,8 +48,20 @@ export async function fetchWithRetry<T = unknown>(
         timeout: 15000,
       });
       return response.data as T;
-    } catch (error) {
+    } catch (error: any) {
       lastError = error;
+      // Auto-wait on 429 rate limit before retrying
+      if (
+        error.response &&
+        error.response.status === 429 &&
+        rateLimitWait > 0 &&
+        attempt < retries
+      ) {
+        var retryAfter = parseInt(error.response.headers && error.response.headers["retry-after"], 10);
+        var waitMs = retryAfter > 0 ? Math.min(retryAfter * 1000, rateLimitWait) : rateLimitWait;
+        await sleep(waitMs);
+        continue;
+      }
       if (attempt < retries && isRetryable(error)) {
         await sleep(retryDelay * Math.pow(2, attempt));
         continue;
