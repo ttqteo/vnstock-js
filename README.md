@@ -29,7 +29,12 @@ npm install vnstock-js
 ## Sử dụng nhanh
 
 ```ts
-import { stock, commodity } from 'vnstock-js';
+import vnstock from 'vnstock-js';
+
+// Bắt buộc: khởi tạo một lần lúc startup trước khi sử dụng symbol lookup hay calendar APIs
+await vnstock.init();
+
+const { stock, commodity } = vnstock;
 
 // Dữ liệu giá lịch sử
 const history = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
@@ -68,6 +73,18 @@ const gold = await commodity.gold.priceSJC();
 // Tỷ giá
 const rates = await commodity.exchange();
 ```
+
+### `vnstock.init(options?)`
+
+Gọi một lần lúc startup trước khi sử dụng symbol lookup hay calendar APIs. Tải danh sách mã và ngày lễ từ GitHub (lưu cache cục bộ trong `~/.vnstock-js/cache/` trong 24h).
+
+Tùy chọn:
+- `symbolsUrl`, `holidaysUrl` — ghi đè URL GitHub mặc định
+- `ttl` — thời gian cache tính bằng ms (mặc định 24h)
+- `force` — bỏ qua cache và tải lại
+- `cacheDir` — ghi đè vị trí cache
+- `noCache` — tắt cache trên disk (chỉ dùng bộ nhớ)
+- `timeout` — timeout tải dữ liệu tính bằng ms (mặc định 10s)
 
 ## Chỉ báo kỹ thuật
 

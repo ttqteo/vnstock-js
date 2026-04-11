@@ -15,6 +15,7 @@ import vnstock, {
   sma,
   ema,
   rsi,
+  init as namedInit,
 } from "../src";
 
 describe("Public API exports", () => {
@@ -70,5 +71,15 @@ describe("Public API exports", () => {
 
   it("exports normalized types namespace", () => {
     expect(VnstockTypes).toBeDefined();
+  });
+});
+
+describe("init() export", () => {
+  it("exports init as named export", () => {
+    expect(typeof namedInit).toBe("function");
+  });
+
+  it("exposes init on default export", () => {
+    expect(typeof (vnstock as any).init).toBe("function");
   });
 });

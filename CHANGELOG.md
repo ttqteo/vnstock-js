@@ -1,5 +1,32 @@
 # Changelog
 
+## v1.3.0
+
+### Breaking
+
+- **`await init()` is now required** before using symbol lookup or calendar APIs. Symbol and holiday data is no longer bundled — it's fetched at runtime from raw GitHub for freshness.
+
+  **Migration:**
+  ```typescript
+  import { init } from "vnstock-js";
+
+  await init();   // add this once at app startup
+  // ... now safe to use market.calendar / stock APIs that depend on symbols/holidays
+  ```
+
+  `init()` accepts options: `symbolsUrl`, `holidaysUrl`, `ttl`, `force`, `cacheDir`, `noCache`, `timeout`. See README for details.
+
+### Tính năng mới
+
+- Remote data module: symbols and holidays now fetched from `raw.githubusercontent.com/ttqteo/vnstock-js/master/data/*.json`
+- Disk cache at `~/.vnstock-js/cache/` with 24h default TTL
+- Offline fallback: if fetch fails, stale cache is used
+- `NotInitializedError` and `DataUnavailableError` error types
+
+### Thay đổi
+
+- `data/*.json` is no longer bundled in the npm package (fetched at runtime instead)
+
 ## 1.2.0 (2026-04-03)
 
 ### Tính năng mới

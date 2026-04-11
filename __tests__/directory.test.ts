@@ -1,6 +1,16 @@
 import { Directory } from "../src/core/listing/directory";
+import { _reset } from "../src/data";
+import { initWithFixtures } from "./helpers/init-data";
+
+jest.mock("axios");
+import axios from "axios";
+const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe("Directory", () => {
+  beforeAll(async () => {
+    await initWithFixtures(mockedAxios);
+  });
+
   describe("all()", () => {
     it("returns >1000 items with correct shape", () => {
       const data = Directory.all();
@@ -121,5 +131,12 @@ describe("Directory", () => {
       const results = Directory.search("zzxxyy99");
       expect(results).toEqual([]);
     });
+  });
+});
+
+describe("Directory — not initialized", () => {
+  it("throws NotInitializedError when called before init()", () => {
+    _reset();
+    expect(() => Directory.all()).toThrow(/not initialized/i);
   });
 });
