@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.3.1
+
+Bản vá cho CLI sau khi release 1.3.0.
+
+### Sửa
+
+- **`history --range 7d`** giờ trả đúng ~7 phiên (trước đây trả ~365 phiên do VCI API bỏ qua `start` khi `countBack` mặc định lớn). Handler tự tính `countBack` theo khoảng ngày và filter lại kết quả.
+- **Hiển thị giá:** làm tròn tối đa 2 chữ số thập phân, cắt số 0 cuối. Không còn `56.291760000000004k`.
+- **`symbols --exchange HOSE`** giờ hoạt động (trước đây trả rỗng vì data lưu `HSX`). `Directory.getByExchange` tự map `HOSE` → `HSX`.
+- **`symbols` mặc định trả đầy đủ** (trước đây tự cắt ở 50). `--limit N` chỉ áp dụng khi user chỉ định.
+- **`vnstock -v`** cho `--version` (trước đây dùng `-V` hoa mặc định của commander). Version đọc từ `package.json` thay vì hardcode. `--verbose` ở sub-command bỏ alias `-v` để tránh xung đột.
+
+### Thêm
+
+- **Header cho `history` và `symbols`:** ví dụ `VCB  2026-04-07 → 2026-04-14  (5 phiên)` và `HOSE  (702 mã)`.
+- **`docs/local-test.md`** — hướng dẫn `npm link`, watch mode, `npm pack`, debug CLI trước khi release.
+- **`npm run dev`** — `tsc --watch` để auto rebuild khi sửa code.
+
 ## v1.3.0
 
 ### Breaking
