@@ -39,6 +39,24 @@
 - `RealtimeClientOptions.heartbeatInterval` và `heartbeatTimeout` bị loại.
 - Thay bằng `deadManTimeout?: number` (ms, mặc định 60000).
 
+### CLI tool (mới)
+
+Tệp người dùng mới: **terminal users**. Cài: `npm i -g vnstock-js` hoặc `npx vnstock-js <command>`.
+
+**Commands:**
+- `vnstock quote <SYMBOL>` — snapshot 1 mã (giá, % change, volume, trần/sàn)
+- `vnstock history <SYMBOL> [--from 7d|1w|1m|1y] [--range 7d] [--limit N]` — lịch sử OHLCV
+- `vnstock search <QUERY>` — tìm mã theo tên/ticker
+- `vnstock symbols [--exchange HOSE|HNX|UPCOM]` — liệt kê mã
+
+**Flags chung:**
+- `--json`, `--csv` — output format
+- `--no-color` — tắt ANSI màu
+- `-v, --verbose` — thêm chi tiết
+- Non-TTY stdout auto fallback plain text (pipe-friendly)
+
+`quote` và `history` không cần `init()` (truy vấn trực tiếp). `search` và `symbols` tự gọi `init()` lần đầu. Tất cả tính toán date theo múi giờ Việt Nam (UTC+7).
+
 Nếu không set các option này (đa số trường hợp) — không cần làm gì.
 
 ## 1.2.0 (2026-04-03)
