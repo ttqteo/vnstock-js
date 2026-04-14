@@ -43,7 +43,7 @@ describe("handleSymbols", () => {
     expect(mockAll).toHaveBeenCalled();
   });
 
-  it("applies default limit 50", async () => {
+  it("returns full list by default (no auto limit)", async () => {
     const big = Array.from({ length: 100 }, (_, i) => ({
       symbol: "S" + i,
       companyName: "n",
@@ -52,7 +52,19 @@ describe("handleSymbols", () => {
     mockAll.mockReturnValue(big);
     const out = await handleSymbols({ ...base, json: true });
     const parsed = JSON.parse(out);
-    expect(parsed).toHaveLength(50);
+    expect(parsed).toHaveLength(100);
+  });
+
+  it("applies --limit when provided", async () => {
+    const big = Array.from({ length: 100 }, (_, i) => ({
+      symbol: "S" + i,
+      companyName: "n",
+      exchange: "HSX",
+    }));
+    mockAll.mockReturnValue(big);
+    const out = await handleSymbols({ ...base, limit: 10, json: true });
+    const parsed = JSON.parse(out);
+    expect(parsed).toHaveLength(10);
   });
 
   it("default output is grid (symbol only)", async () => {

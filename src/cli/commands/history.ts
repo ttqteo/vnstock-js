@@ -4,7 +4,7 @@ import { renderCsv } from "../renderers/csv";
 import { renderTable } from "../renderers/table";
 import { parseDateInput, todayISO, nowVN } from "../format/date";
 import { formatPrice, formatPercent, compactNumber } from "../format/number";
-import { priceColor } from "../format/color";
+import { priceColor, bold, dim } from "../format/color";
 
 export const meta = { requiresData: false };
 
@@ -35,11 +35,24 @@ export async function handleHistory(opts: HistoryOpts): Promise<string> {
   }
   var end = opts.to ? parseDateInput(opts.to, today) : todayISO();
 
+  var dayMs = 86400000;
+  var dayDelta = Math.ceil(
+    (new Date(end + "T00:00:00Z").getTime() -
+      new Date(start + "T00:00:00Z").getTime()) /
+      dayMs
+  ) + 1;
+  var countBack = Math.max(dayDelta, 1);
+
   var rows = await vnstock.stock.quote.history({
     symbols: [symbol],
     start: start,
     end: end,
     timeFrame: "1D",
+    countBack: countBack,
+  });
+
+  rows = rows.filter(function (r: any): boolean {
+    return r.date >= start && r.date <= end;
   });
 
   rows = rows.slice().sort(function (a: any, b: any) {
@@ -83,5 +96,8 @@ export async function handleHistory(opts: HistoryOpts): Promise<string> {
     }
   }
 
-  return renderTable({ head: head, rows: tableRows });
+  var header =
+    bold(symbol, opts) +
+    dim("  " + start + " → " + end + "  (" + rows.length + " phiên)", opts);
+  return header + "\n" + renderTable({ head: head, rows: tableRows });
 }

@@ -4,6 +4,8 @@ import { handleQuote, meta as quoteMeta } from "./commands/quote";
 import { handleHistory, meta as historyMeta } from "./commands/history";
 import { handleSearch, meta as searchMeta } from "./commands/search";
 import { handleSymbols, meta as symbolsMeta } from "./commands/symbols";
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+var pkg = require("../../package.json");
 
 interface CommandMeta {
   requiresData: boolean;
@@ -65,7 +67,7 @@ function buildProgram(): Command {
   program
     .name("vnstock")
     .description("CLI for Vietnam stock market data (vnstock-js)")
-    .version("1.3.0");
+    .version(pkg.version, "-v, --version", "output the version number");
 
   program
     .command("quote")
@@ -75,7 +77,7 @@ function buildProgram(): Command {
     .option("--csv", "output CSV")
     .option("--no-color", "disable color")
     .option("--quiet", "suppress non-error logs")
-    .option("-v, --verbose", "show more details")
+    .option("--verbose", "show more details")
     .action(function (symbol: string, options: GlobalFlags) {
       var out = resolveOutputOpts(options);
       return runCommand(
@@ -108,7 +110,7 @@ function buildProgram(): Command {
     .option("--csv", "output CSV")
     .option("--no-color", "disable color")
     .option("--quiet", "suppress non-error logs")
-    .option("-v, --verbose", "show OHLC details")
+    .option("--verbose", "show OHLC details")
     .action(function (symbol: string, options: any) {
       var out = resolveOutputOpts(options);
       return runCommand(
@@ -142,7 +144,7 @@ function buildProgram(): Command {
     .option("--csv", "output CSV")
     .option("--no-color", "disable color")
     .option("--quiet", "suppress non-error logs")
-    .option("-v, --verbose", "show more details")
+    .option("--verbose", "show more details")
     .action(function (query: string, options: any) {
       var out = resolveOutputOpts(options);
       return runCommand(
@@ -173,7 +175,7 @@ function buildProgram(): Command {
     .option("--csv", "output CSV")
     .option("--no-color", "disable color")
     .option("--quiet", "suppress non-error logs")
-    .option("-v, --verbose", "show 2-column table with names")
+    .option("--verbose", "show 2-column table with names")
     .action(function (options: any) {
       var out = resolveOutputOpts(options);
       return runCommand(

@@ -31,6 +31,16 @@ describe("formatPrice", () => {
     expect(formatPrice(59.3)).toBe("59.3k");
     expect(formatPrice(1234.56)).toBe("1234.56k");
   });
+
+  it("rounds floating-point artifacts to 2 decimals", () => {
+    expect(formatPrice(56.291760000000004)).toBe("56.29k");
+    expect(formatPrice(60.43164)).toBe("60.43k");
+  });
+
+  it("trims trailing zeros", () => {
+    expect(formatPrice(60.0)).toBe("60k");
+    expect(formatPrice(59.3)).toBe("59.3k");
+  });
 });
 
 describe("formatPercent", () => {

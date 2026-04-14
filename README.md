@@ -92,7 +92,7 @@ Tất cả tính theo múi giờ Việt Nam (UTC+7).
 
 - `--json`, `--csv` — format output (suppress màu + bảng)
 - `--no-color` — tắt màu
-- `-v, --verbose` — hiện thêm chi tiết
+- `--verbose` — hiện thêm chi tiết (`-v` dành cho `--version`)
 - Non-TTY stdout tự động tắt màu + spinner (pipe-friendly)
 
 ## Sử dụng nhanh
