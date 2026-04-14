@@ -1,6 +1,6 @@
 {
   "name": "vnstock-js",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -15,6 +15,7 @@
     "prepare": "husky install",
     "clean": "rimraf dist",
     "build": "npm run clean && tsc",
+    "dev": "tsc --watch",
     "test": "jest",
     "update-symbols": "ts-node scripts/update-symbols.ts"
   },

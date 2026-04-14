@@ -20,6 +20,8 @@ export class Directory {
   static getByExchange(exchange: string): SymbolInfo[] {
     var data = getSymbols();
     var upper = exchange.toUpperCase();
+    // Normalize: HOSE is the official name, HSX is what VCI returns
+    if (upper === "HOSE") upper = "HSX";
     var results: SymbolInfo[] = [];
     for (var i = 0; i < data.length; i++) {
       if (data[i].exchange.toUpperCase() === upper) {

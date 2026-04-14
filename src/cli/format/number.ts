@@ -20,7 +20,12 @@ export function compactNumber(n: number): string {
 }
 
 export function formatPrice(priceInK: number): string {
-  return priceInK.toString() + "k";
+  var rounded = Math.round(priceInK * 100) / 100;
+  var str = rounded.toString();
+  if (str.indexOf(".") === -1) return str + "k";
+  // Trim trailing zeros: 59.30 -> 59.3, 59.00 -> 59
+  str = str.replace(/\.?0+$/, "");
+  return str + "k";
 }
 
 export function formatPercent(pct: number): string {

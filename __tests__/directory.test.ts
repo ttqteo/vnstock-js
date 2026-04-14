@@ -54,6 +54,13 @@ describe("Directory", () => {
         expect(item.exchange).toBe("HSX");
       });
     });
+
+    it('accepts "HOSE" as alias for "HSX"', () => {
+      const hose = Directory.getByExchange("HOSE");
+      const hsx = Directory.getByExchange("HSX");
+      expect(hose.length).toBe(hsx.length);
+      expect(hose.length).toBeGreaterThan(0);
+    });
   });
 
   describe("getByIndustry()", () => {

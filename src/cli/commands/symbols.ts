@@ -2,6 +2,7 @@ import { Directory } from "../../core/listing/directory";
 import { renderJson } from "../renderers/json";
 import { renderCsv } from "../renderers/csv";
 import { renderTable, renderGrid } from "../renderers/table";
+import { bold, dim } from "../format/color";
 
 export const meta = { requiresData: true };
 
@@ -23,18 +24,22 @@ export async function handleSymbols(opts: SymbolsOpts): Promise<string> {
     results = Directory.all();
   }
 
-  var limit = typeof opts.limit === "number" && opts.limit > 0 ? opts.limit : 50;
-  results = results.slice(0, limit);
+  if (typeof opts.limit === "number" && opts.limit > 0) {
+    results = results.slice(0, opts.limit);
+  }
 
   if (opts.json) return renderJson(results);
   if (opts.csv) return renderCsv(results as any);
+
+  var label = opts.exchange ? opts.exchange.toUpperCase() : "All exchanges";
+  var header = bold(label, opts) + dim("  (" + results.length + " mã)", opts);
 
   if (opts.verbose) {
     var head = ["Symbol", "Name"];
     var rows: Array<Array<string>> = results.map(function (r: any): string[] {
       return [r.symbol, r.companyName];
     });
-    return renderTable({ head: head, rows: rows });
+    return header + "\n" + renderTable({ head: head, rows: rows });
   }
 
   var syms: string[] = results.map(function (r: any): string {
@@ -44,5 +49,5 @@ export async function handleSymbols(opts: SymbolsOpts): Promise<string> {
   for (var i = 0; i < syms.length; i++) {
     if (syms[i].length > maxLen) maxLen = syms[i].length;
   }
-  return renderGrid(syms, maxLen);
+  return header + "\n" + renderGrid(syms, maxLen);
 }
