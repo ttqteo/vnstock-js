@@ -4,6 +4,5 @@ export interface RealtimeClientOptions {
   autoReconnect?: boolean;
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
-  heartbeatInterval?: number;
-  heartbeatTimeout?: number;
+  deadManTimeout?: number;
 }

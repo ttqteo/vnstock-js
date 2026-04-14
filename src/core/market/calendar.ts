@@ -1,13 +1,5 @@
 import { TradingSession } from "../../models/normalized";
-
-var holidayData: Record<string, string[]> | null = null;
-
-function getHolidayData(): Record<string, string[]> {
-  if (!holidayData) {
-    holidayData = require("../../../data/holidays.json");
-  }
-  return holidayData!;
-}
+import { getHolidays } from "../../data";
 
 function parseDate(s: string): Date {
   var p = s.split("-");
@@ -26,7 +18,7 @@ export class Calendar {
     var d = parseDate(dateStr);
     var dow = d.getDay();
     if (dow === 0 || dow === 6) return false;
-    var data = getHolidayData();
+    var data = getHolidays();
     var year = String(d.getFullYear());
     var list = data[year] || [];
     return list.indexOf(dateStr) === -1;
@@ -53,7 +45,7 @@ export class Calendar {
   }
 
   holidays(year: number): string[] {
-    var data = getHolidayData();
+    var data = getHolidays();
     return data[String(year)] || [];
   }
 

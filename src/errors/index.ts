@@ -17,7 +17,9 @@ export type ErrorCode =
   | "API_ERROR"
   | "INVALID_SYMBOL"
   | "INVALID_PARAMETER"
-  | "PARSE_ERROR";
+  | "PARSE_ERROR"
+  | "NOT_INITIALIZED"
+  | "DATA_UNAVAILABLE";
 
 export class VnstockError extends Error {
   readonly code: ErrorCode;
@@ -80,5 +82,28 @@ export class InvalidParameterError extends VnstockError {
 export class ParseError extends VnstockError {
   constructor(message: string, cause?: Error) {
     super(message, "PARSE_ERROR", cause);
+  }
+}
+
+export class NotInitializedError extends VnstockError {
+  constructor(message?: string) {
+    super(
+      message ||
+        "vnstock-js not initialized. Call `await vnstock.init()` once at startup before using Directory or Calendar APIs.",
+      "NOT_INITIALIZED"
+    );
+  }
+}
+
+export class DataUnavailableError extends VnstockError {
+  readonly dataset: string;
+
+  constructor(dataset: string, cause?: Error) {
+    super(
+      'Data "' + dataset + '" unavailable: fetch failed and no cache available',
+      "DATA_UNAVAILABLE",
+      cause
+    );
+    this.dataset = dataset;
   }
 }

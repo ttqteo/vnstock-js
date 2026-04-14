@@ -6,6 +6,8 @@ import {
   InvalidSymbolError,
   InvalidParameterError,
   ParseError,
+  NotInitializedError,
+  DataUnavailableError,
 } from "../src/errors";
 
 describe("Error taxonomy", () => {
@@ -152,5 +154,25 @@ describe("Error taxonomy", () => {
       const err = new ParseError("bad json");
       expect(err).toBeInstanceOf(VnstockError);
     });
+  });
+});
+
+describe("NotInitializedError", () => {
+  it("extends VnstockError with code NOT_INITIALIZED", () => {
+    const err = new NotInitializedError();
+    expect(err).toBeInstanceOf(VnstockError);
+    expect(err.code).toBe("NOT_INITIALIZED");
+    expect(err.message).toMatch(/init/i);
+  });
+});
+
+describe("DataUnavailableError", () => {
+  it("extends VnstockError with code DATA_UNAVAILABLE", () => {
+    const cause = new Error("network down");
+    const err = new DataUnavailableError("symbols", cause);
+    expect(err).toBeInstanceOf(VnstockError);
+    expect(err.code).toBe("DATA_UNAVAILABLE");
+    expect(err.message).toContain("symbols");
+    expect(err.cause).toBe(cause);
   });
 });

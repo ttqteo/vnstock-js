@@ -1,11 +1,14 @@
 {
   "name": "vnstock-js",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "vnstock": "bin/vnstock"
+  },
   "files": [
     "dist/**/*",
-    "data/**/*",
+    "bin/**/*",
     "README.md"
   ],
   "scripts": {
@@ -61,7 +64,10 @@
   },
   "dependencies": {
     "axios": "^1.8.4",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
     "date-fns": "^4.1.0",
+    "picocolors": "^1.1.1",
     "ws": "^8.18.2"
   }
 }

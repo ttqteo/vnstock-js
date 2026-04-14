@@ -1,5 +1,64 @@
 # Changelog
 
+## v1.3.0
+
+### Breaking
+
+- **`await init()` is now required** before using symbol lookup or calendar APIs. Symbol and holiday data is no longer bundled — it's fetched at runtime from raw GitHub for freshness.
+
+  **Migration:**
+  ```typescript
+  import { init } from "vnstock-js";
+
+  await init();   // add this once at app startup
+  // ... now safe to use market.calendar / stock APIs that depend on symbols/holidays
+  ```
+
+  `init()` accepts options: `symbolsUrl`, `holidaysUrl`, `ttl`, `force`, `cacheDir`, `noCache`, `timeout`. See README for details.
+
+### Tính năng mới
+
+- Remote data module: symbols and holidays now fetched from `raw.githubusercontent.com/ttqteo/vnstock-js/master/data/*.json`
+- Disk cache at `~/.vnstock-js/cache/` with 24h default TTL
+- Offline fallback: if fetch fails, stale cache is used
+- `NotInitializedError` and `DataUnavailableError` error types
+
+### Thay đổi
+
+- `data/*.json` is no longer bundled in the npm package (fetched at runtime instead)
+
+### Realtime hardening
+
+**Sửa:**
+- `unsubscribe()` giờ thực sự gửi unsub message cho server (trước đây chỉ xóa local, server vẫn stream).
+- Message routing phân biệt quote / JSON control / plain text, không còn nuốt ack message từ server.
+- Loại bỏ WebSocket `ping()` vô nghĩa. Browser environment không còn bị reset connection oan mỗi ~40s.
+- Thay heartbeat bằng **dead-man's switch**: reconnect nếu không nhận bất kỳ message nào trong `deadManTimeout` (mặc định 60s).
+
+**Breaking (minor):**
+- `RealtimeClientOptions.heartbeatInterval` và `heartbeatTimeout` bị loại.
+- Thay bằng `deadManTimeout?: number` (ms, mặc định 60000).
+
+### CLI tool (mới)
+
+Tệp người dùng mới: **terminal users**. Cài: `npm i -g vnstock-js` hoặc `npx vnstock-js <command>`.
+
+**Commands:**
+- `vnstock quote <SYMBOL>` — snapshot 1 mã (giá, % change, volume, trần/sàn)
+- `vnstock history <SYMBOL> [--from 7d|1w|1m|1y] [--range 7d] [--limit N]` — lịch sử OHLCV
+- `vnstock search <QUERY>` — tìm mã theo tên/ticker
+- `vnstock symbols [--exchange HOSE|HNX|UPCOM]` — liệt kê mã
+
+**Flags chung:**
+- `--json`, `--csv` — output format
+- `--no-color` — tắt ANSI màu
+- `-v, --verbose` — thêm chi tiết
+- Non-TTY stdout auto fallback plain text (pipe-friendly)
+
+`quote` và `history` không cần `init()` (truy vấn trực tiếp). `search` và `symbols` tự gọi `init()` lần đầu. Tất cả tính toán date theo múi giờ Việt Nam (UTC+7).
+
+Nếu không set các option này (đa số trường hợp) — không cần làm gì.
+
 ## 1.2.0 (2026-04-03)
 
 ### Tính năng mới

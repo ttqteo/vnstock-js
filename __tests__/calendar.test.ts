@@ -1,6 +1,16 @@
+import { initWithFixtures } from "./helpers/init-data";
+
+jest.mock("axios");
+import axios from "axios";
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
 import { Calendar } from "../src/core/market/calendar";
 
 const cal = new Calendar();
+
+beforeAll(async () => {
+  await initWithFixtures(mockedAxios);
+});
 
 describe("Calendar", () => {
   describe("isTradeDay", () => {
