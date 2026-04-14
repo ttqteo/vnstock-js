@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.2
+
+### Sửa
+
+- **`history --range 1d`** (hoặc window ngắn) giờ tính đúng `Change %` cho phiên cũ nhất trong kết quả. Handler fetch thêm buffer 10 phiên trước `start` để phiên đầu window có reference cho phép so sánh với phiên trước nó. Trước đây phiên cũ nhất luôn hiện `+0.00%` vì không có reference.
+
 ## 1.3.1
 
 Bản vá cho CLI sau khi release 1.3.0.

@@ -41,9 +41,11 @@ export async function handleHistory(opts: HistoryOpts): Promise<string> {
       new Date(start + "T00:00:00Z").getTime()) /
       dayMs
   ) + 1;
-  var countBack = Math.max(dayDelta, 1);
+  // Fetch 10 extra days before `start` so oldest row in window has a prev
+  // reference for change % computation (covers weekends/holidays).
+  var countBack = Math.max(dayDelta + 10, 11);
 
-  var rows = await vnstock.stock.quote.history({
+  var rawRows = await vnstock.stock.quote.history({
     symbols: [symbol],
     start: start,
     end: end,
@@ -51,13 +53,20 @@ export async function handleHistory(opts: HistoryOpts): Promise<string> {
     countBack: countBack,
   });
 
-  rows = rows.filter(function (r: any): boolean {
-    return r.date >= start && r.date <= end;
-  });
-
-  rows = rows.slice().sort(function (a: any, b: any) {
+  var sortedAll = rawRows.slice().sort(function (a: any, b: any) {
     return a.date < b.date ? 1 : a.date > b.date ? -1 : 0;
   });
+
+  // Keep only rows in window, but retain `prev` reference for the oldest one
+  var rows: any[] = [];
+  var prevRefs: Record<string, any> = {};
+  for (var i = 0; i < sortedAll.length; i++) {
+    var r: any = sortedAll[i];
+    if (r.date >= start && r.date <= end) {
+      rows.push(r);
+      prevRefs[r.date] = sortedAll[i + 1];
+    }
+  }
 
   if (typeof opts.limit === "number" && opts.limit > 0) {
     rows = rows.slice(0, opts.limit);
@@ -73,9 +82,11 @@ export async function handleHistory(opts: HistoryOpts): Promise<string> {
   var tableRows: Array<Array<string | number>> = [];
   for (var i = 0; i < rows.length; i++) {
     var r: any = rows[i];
-    var prev: any = rows[i + 1];
+    // Prev within rendered window; fall back to prevRefs (buffer fetched
+    // before `start`) so oldest row still has a reference.
+    var prev: any = rows[i + 1] || prevRefs[r.date];
     var change = prev ? ((r.close - prev.close) / prev.close) * 100 : 0;
-    var changeStr = priceColor(change, formatPercent(change), opts);
+    var changeStr = prev ? priceColor(change, formatPercent(change), opts) : "—";
     if (opts.verbose) {
       tableRows.push([
         r.date,
