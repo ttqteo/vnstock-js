@@ -27,6 +27,20 @@
 
 - `data/*.json` is no longer bundled in the npm package (fetched at runtime instead)
 
+### Realtime hardening
+
+**Sửa:**
+- `unsubscribe()` giờ thực sự gửi unsub message cho server (trước đây chỉ xóa local, server vẫn stream).
+- Message routing phân biệt quote / JSON control / plain text, không còn nuốt ack message từ server.
+- Loại bỏ WebSocket `ping()` vô nghĩa. Browser environment không còn bị reset connection oan mỗi ~40s.
+- Thay heartbeat bằng **dead-man's switch**: reconnect nếu không nhận bất kỳ message nào trong `deadManTimeout` (mặc định 60s).
+
+**Breaking (minor):**
+- `RealtimeClientOptions.heartbeatInterval` và `heartbeatTimeout` bị loại.
+- Thay bằng `deadManTimeout?: number` (ms, mặc định 60000).
+
+Nếu không set các option này (đa số trường hợp) — không cần làm gì.
+
 ## 1.2.0 (2026-04-03)
 
 ### Tính năng mới

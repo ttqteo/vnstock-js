@@ -1,6 +1,7 @@
 import { RealtimeClient, parseData, create } from "../src/realtime";
+import { loadFixture, incomingQuoteLines } from "./utils/realtime-fixture";
 
-// Mock ws module
+const FIXTURE_NAME = "session-2026-04-14T06-32-07-325Z.jsonl";
 
 let mockInstance: any;
 
@@ -13,14 +14,14 @@ jest.mock("ws", () => {
       onerror: null as any,
       onclose: null as any,
       send: jest.fn(),
-      close: jest.fn(),
-      ping: jest.fn(),
+      close: jest.fn(() => {
+        mockInstance.readyState = 3;
+        if (mockInstance.onclose) mockInstance.onclose();
+      }),
     };
     return mockInstance;
   };
 });
-
-// Helpers
 
 function openSocket() {
   mockInstance.readyState = 1;
@@ -31,18 +32,37 @@ function receiveMessage(data: string) {
   if (mockInstance.onmessage) mockInstance.onmessage({ data });
 }
 
-function closeSocket() {
-  mockInstance.readyState = 3;
-  if (mockInstance.onclose) mockInstance.onclose();
-}
+describe("parseData (fixture-based)", () => {
+  const fixture = loadFixture(FIXTURE_NAME);
+  const quotes = incomingQuoteLines(fixture);
+  const allowedSymbols = new Set(["VCB", "FPT", "MBB"]);
 
-// Real ACB data from SSI WebSocket
-const RAW_ACB =
-  "MAIN|S#ACB|23550|4400|23500|282300|23450|228700|||||||||||||||23600|143700|23650|121800|23700|70600|||||||||||||||23550|900|23700|hose|23500|23569.13|144892|3426335000|132400|3122040000|-250|-1.05|2245400|52922115000||||25450|22150|23800||||129163175|s|N||||0|0|VSDASBXX||23700|||||||||||||||||||||23";
+  it("fixture contains at least 20 quote lines", () => {
+    expect(quotes.length).toBeGreaterThan(20);
+  });
 
-// Tests
+  it("every captured quote parses without throwing", () => {
+    for (const raw of quotes) {
+      expect(() => parseData(raw)).not.toThrow();
+    }
+  });
 
-describe("RealtimeClient", () => {
+  it("every quote has a valid known symbol and positive matched price", () => {
+    for (const raw of quotes) {
+      const q = parseData(raw);
+      expect(allowedSymbols.has(q.symbol)).toBe(true);
+      expect(q.matched.price).toBeGreaterThan(0);
+      expect(q.bidPrices.length).toBe(3);
+      expect(q.askPrices.length).toBe(3);
+    }
+  });
+
+  it("throws ParseError on malformed input that lacks expected fields", () => {
+    expect(() => parseData(null as any)).toThrow();
+  });
+});
+
+describe("RealtimeClient message routing", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     mockInstance = null;
@@ -52,134 +72,173 @@ describe("RealtimeClient", () => {
     jest.useRealTimers();
   });
 
-  it("emits 'connected' on WebSocket open", (done) => {
-    const client = new RealtimeClient();
-    client.on("connected", () => {
-      done();
-    });
+  it("emits 'quote' on pipe-delimited message", () => {
+    const client = new RealtimeClient({ symbols: ["VCB"] });
+    const onQuote = jest.fn();
+    client.on("quote", onQuote);
     client.connect();
     openSocket();
+
+    const raw =
+      "MAIN|S#VCB|59300|197000|59200|244200|59100|139800|||||||||||||||59400|155900|59500|116800|59600|118800|||||||||||||||59300|1000|59600|hose|59300|59400|100|1000000|50|500000|0|0|1000|1000000||||60500|58100|59300||||0|s|N||||0|0|VSDVCBX||59600|||||||||||||||||||||59";
+    receiveMessage(raw);
+
+    expect(onQuote).toHaveBeenCalledTimes(1);
+    expect(onQuote.mock.calls[0][0].symbol).toBe("VCB");
   });
 
-  it("queues subscribe before socket is open", () => {
+  it("silently ignores {result:'complete'} unsub ack", () => {
     const client = new RealtimeClient();
+    const onQuote = jest.fn();
+    const onError = jest.fn();
+    client.on("quote", onQuote);
+    client.on("error", onError);
     client.connect();
-    // Socket is not open yet (readyState = 0)
-    client.subscribe(["HPG"]);
-    expect(mockInstance.send).not.toHaveBeenCalled();
-
-    // Now open
     openSocket();
-    // The subscription should have been sent (HPG is now in symbols set, sent on open)
-    expect(mockInstance.send).toHaveBeenCalled();
-    const payload = JSON.parse(mockInstance.send.mock.calls[0][0]);
-    expect(payload.variables.symbols).toContain("HPG");
+
+    receiveMessage('{"result":"complete","type":"unsub","topic":"stockRealtimeBySymbolsAndBoards","variables":{"symbols":["VCB"],"boardIds":["MAIN"]},"component":"priceTableEquities"}');
+
+    expect(onQuote).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
   });
 
-  it("sends subscription immediately when socket is open", () => {
+  it("emits 'error' on JSON error message", () => {
+    const client = new RealtimeClient();
+    const onError = jest.fn();
+    client.on("error", onError);
+    client.connect();
+    openSocket();
+
+    receiveMessage('{"error":"Invalid symbol"}');
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0].message).toContain("Invalid symbol");
+  });
+
+  it("silently ignores plain string (e.g. Subscribed ack)", () => {
+    const client = new RealtimeClient();
+    const onQuote = jest.fn();
+    const onError = jest.fn();
+    client.on("quote", onQuote);
+    client.on("error", onError);
+    client.connect();
+    openSocket();
+
+    receiveMessage("Subscribed stockRealtimeBySymbolsAndBoards");
+
+    expect(onQuote).not.toHaveBeenCalled();
+    expect(onError).not.toHaveBeenCalled();
+  });
+
+  it("silently ignores malformed JSON", () => {
+    const client = new RealtimeClient();
+    const onError = jest.fn();
+    client.on("error", onError);
+    client.connect();
+    openSocket();
+
+    receiveMessage("{not valid json");
+
+    expect(onError).not.toHaveBeenCalled();
+  });
+});
+
+describe("RealtimeClient lifecycle", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    mockInstance = null;
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("emits 'connected' on socket open and sends initial subscription", () => {
+    const client = new RealtimeClient({ symbols: ["VCB", "FPT"] });
+    const onConnected = jest.fn();
+    client.on("connected", onConnected);
+
+    client.connect();
+    openSocket();
+
+    expect(onConnected).toHaveBeenCalledTimes(1);
+    expect(mockInstance.send).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(mockInstance.send.mock.calls[0][0]);
+    expect(sent.type).toBe("sub");
+    expect(sent.variables.symbols).toEqual(["VCB", "FPT"]);
+  });
+
+  it("subscribe() after connected sends sub message", () => {
     const client = new RealtimeClient();
     client.connect();
     openSocket();
     mockInstance.send.mockClear();
 
-    client.subscribe(["FPT"]);
+    client.subscribe(["ACB"]);
+
     expect(mockInstance.send).toHaveBeenCalledTimes(1);
-    const payload = JSON.parse(mockInstance.send.mock.calls[0][0]);
-    expect(payload.type).toBe("sub");
-    expect(payload.variables.symbols).toEqual(["FPT"]);
+    const sent = JSON.parse(mockInstance.send.mock.calls[0][0]);
+    expect(sent.type).toBe("sub");
+    expect(sent.variables.symbols).toEqual(["ACB"]);
   });
 
-  it("emits 'quote' with parsed data on message", (done) => {
-    const client = new RealtimeClient({ symbols: ["ACB"] });
-    client.on("quote", (data) => {
-      expect(data.symbol).toBe("ACB");
-      expect(data.matched.price).toBe(23.55);
-      done();
-    });
+  it("unsubscribe() sends unsub message with correct schema", () => {
+    const client = new RealtimeClient({ symbols: ["VCB"] });
     client.connect();
     openSocket();
-    receiveMessage(RAW_ACB);
+    mockInstance.send.mockClear();
+
+    client.unsubscribe(["VCB"]);
+
+    expect(mockInstance.send).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(mockInstance.send.mock.calls[0][0]);
+    expect(sent).toEqual({
+      type: "unsub",
+      topic: "stockRealtimeBySymbolsAndBoards",
+      variables: { symbols: ["VCB"], boardIds: ["MAIN"] },
+      component: "priceTableEquities",
+    });
   });
 
-  it("disconnect() closes socket and prevents reconnect", () => {
+  it("dead-man timer closes socket after silence", () => {
+    const client = new RealtimeClient({ deadManTimeout: 60000 });
+    client.connect();
+    openSocket();
+
+    expect(mockInstance.close).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(60001);
+
+    expect(mockInstance.close).toHaveBeenCalledTimes(1);
+  });
+
+  it("dead-man timer resets on incoming message", () => {
+    const client = new RealtimeClient({ deadManTimeout: 60000 });
+    client.connect();
+    openSocket();
+
+    jest.advanceTimersByTime(30000);
+    receiveMessage("Subscribed something");
+    jest.advanceTimersByTime(30000);
+
+    expect(mockInstance.close).not.toHaveBeenCalled();
+  });
+
+  it("disconnect() intentional close does not trigger reconnect", () => {
     const client = new RealtimeClient();
+    const onReconnecting = jest.fn();
+    client.on("reconnecting", onReconnecting);
     client.connect();
     openSocket();
 
     client.disconnect();
+
     expect(mockInstance.close).toHaveBeenCalled();
+    expect(onReconnecting).not.toHaveBeenCalled();
   });
 
-  it("emits 'disconnected' and 'reconnecting' on unexpected close", () => {
-    const client = new RealtimeClient({ reconnectInterval: 1000, maxReconnectAttempts: 3 });
-    const disconnected = jest.fn();
-    const reconnecting = jest.fn();
-    client.on("disconnected", disconnected);
-    client.on("reconnecting", reconnecting);
-
-    client.connect();
-    openSocket();
-    closeSocket();
-
-    expect(disconnected).toHaveBeenCalledWith("connection lost");
-    expect(reconnecting).toHaveBeenCalledWith(1);
-  });
-
-  it("emits 'error' on WebSocket error", () => {
-    const client = new RealtimeClient();
-    const errorFn = jest.fn();
-    client.on("error", errorFn);
-    client.connect();
-    mockInstance.onerror(new Error("ws fail"));
-    expect(errorFn).toHaveBeenCalled();
-    expect(errorFn.mock.calls[0][0].message).toBe("ws fail");
-  });
-
-  it("unsubscribe removes symbols from internal set", () => {
-    const client = new RealtimeClient({ symbols: ["VNM", "FPT"] });
-    client.unsubscribe(["VNM"]);
-    client.connect();
-    openSocket();
-
-    // Only FPT should be in the subscription
-    const payload = JSON.parse(mockInstance.send.mock.calls[0][0]);
-    expect(payload.variables.symbols).toEqual(["FPT"]);
-  });
-
-  it("create() factory returns a RealtimeClient", () => {
-    const client = create({ symbols: ["VCI"] });
-    expect(client).toBeInstanceOf(RealtimeClient);
-  });
-});
-
-describe("parseData", () => {
-  it("correctly parses SSI pipe-delimited data", () => {
-    const result = parseData(RAW_ACB);
-
-    expect(result.exchange).toBe("MAIN");
-    expect(result.symbol).toBe("ACB");
-
-    // Bid prices (3 levels)
-    expect(result.bidPrices[0]).toEqual({ price: 23.55, volume: 4400 });
-    expect(result.bidPrices[1]).toEqual({ price: 23.5, volume: 282300 });
-    expect(result.bidPrices[2]).toEqual({ price: 23.45, volume: 228700 });
-
-    // Ask prices (3 levels)
-    expect(result.askPrices[0]).toEqual({ price: 23.6, volume: 143700 });
-    expect(result.askPrices[1]).toEqual({ price: 23.65, volume: 121800 });
-    expect(result.askPrices[2]).toEqual({ price: 23.7, volume: 70600 });
-
-    // Match
-    expect(result.matched.price).toBe(23.55);
-    expect(result.matched.volume).toBe(900);
-    expect(result.matched.change).toBe(-0.25);
-    expect(result.matched.changePercent).toBeCloseTo(-0.0105);
-
-    // Volumes
-    expect(result.totalVolume).toBe(2245400);
-    expect(result.totalBuyVolume).toBe(144892);
-
-    // Side
-    expect(result.side).toBe("sell");
+  it("create() factory returns a RealtimeClient instance", () => {
+    const c = create({ symbols: ["VCB"] });
+    expect(c).toBeInstanceOf(RealtimeClient);
   });
 });

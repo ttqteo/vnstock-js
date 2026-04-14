@@ -58,16 +58,13 @@ export class RealtimeClient extends EventEmitter {
   private readonly autoReconnect: boolean;
   private readonly reconnectInterval: number;
   private readonly maxReconnectAttempts: number;
-  private readonly heartbeatInterval: number;
-  private readonly heartbeatTimeout: number;
+  private readonly deadManTimeout: number;
 
   private symbols: Set<string>;
-  private pendingQueue: string[] = [];
   private socket: any = null;
   private intentionalClose = false;
   private reconnectAttempts = 0;
-  private heartbeatTimer: any = null;
-  private heartbeatTimeoutTimer: any = null;
+  private deadManTimer: any = null;
   private reconnectTimer: any = null;
 
   constructor(opts?: RealtimeClientOptions) {
@@ -79,8 +76,7 @@ export class RealtimeClient extends EventEmitter {
     this.autoReconnect = o.autoReconnect !== false;
     this.reconnectInterval = o.reconnectInterval || 3000;
     this.maxReconnectAttempts = o.maxReconnectAttempts || 10;
-    this.heartbeatInterval = o.heartbeatInterval || 30000;
-    this.heartbeatTimeout = o.heartbeatTimeout || 10000;
+    this.deadManTimeout = o.deadManTimeout || 60000;
     this.symbols = new Set(o.symbols || []);
   }
 
@@ -92,7 +88,7 @@ export class RealtimeClient extends EventEmitter {
 
   disconnect(): void {
     this.intentionalClose = true;
-    this._stopHeartbeat();
+    this._clearDeadManTimer();
     this._clearReconnectTimer();
     if (this.socket) {
       this.socket.close();
@@ -107,16 +103,22 @@ export class RealtimeClient extends EventEmitter {
 
     if (this.socket && this.socket.readyState === 1) {
       this._sendSubscription(symbols);
-    } else {
-      for (var j = 0; j < symbols.length; j++) {
-        this.pendingQueue.push(symbols[j]);
-      }
     }
   }
 
   unsubscribe(symbols: string[]): void {
     for (var i = 0; i < symbols.length; i++) {
       this.symbols.delete(symbols[i]);
+    }
+    if (this.socket && this.socket.readyState === 1 && symbols.length > 0) {
+      this.socket.send(
+        JSON.stringify({
+          type: "unsub",
+          topic: "stockRealtimeBySymbolsAndBoards",
+          variables: { symbols: symbols, boardIds: ["MAIN"] },
+          component: "priceTableEquities",
+        })
+      );
     }
   }
 
@@ -128,48 +130,43 @@ export class RealtimeClient extends EventEmitter {
       self.reconnectAttempts = 0;
       self.emit("connected");
 
-      // Send initial subscription for all tracked symbols
       var allSymbols = Array.from(self.symbols);
       if (allSymbols.length > 0) {
         self._sendSubscription(allSymbols);
       }
 
-      // Flush pending queue
-      if (self.pendingQueue.length > 0) {
-        var pending = self.pendingQueue.slice();
-        self.pendingQueue = [];
-        // Filter out symbols already sent above
-        var extra: string[] = [];
-        for (var i = 0; i < pending.length; i++) {
-          if (!self.symbols.has(pending[i])) {
-            extra.push(pending[i]);
-          }
-        }
-        if (extra.length > 0) {
-          self._sendSubscription(extra);
-        }
-      }
-
-      self._startHeartbeat();
+      self._resetDeadManTimer();
     };
 
     this.socket.onmessage = function (event: any) {
       var data = event.data || event;
-      // Reset heartbeat on any incoming message
-      self._resetHeartbeatTimeout();
+      if (typeof data !== "string") return;
 
-      if (typeof data === "string" && data.indexOf("|") !== -1) {
+      self._resetDeadManTimer();
+
+      if (data.indexOf("|") !== -1) {
         try {
-          var quote = parseData(data);
-          self.emit("quote", quote);
+          self.emit("quote", parseData(data));
         } catch (err) {
           self.emit("error", err instanceof Error ? err : new Error(String(err)));
         }
+        return;
+      }
+
+      if (data.charAt(0) === "{") {
+        try {
+          var msg = JSON.parse(data);
+          if (msg && msg.error) {
+            self.emit("error", new Error(String(msg.error)));
+          }
+        } catch (_e) {
+        }
+        return;
       }
     };
 
     this.socket.onclose = function () {
-      self._stopHeartbeat();
+      self._clearDeadManTimer();
       self.socket = null;
 
       if (!self.intentionalClose) {
@@ -195,39 +192,21 @@ export class RealtimeClient extends EventEmitter {
     );
   }
 
-  private _startHeartbeat(): void {
+  private _resetDeadManTimer(): void {
     var self = this;
-    this._stopHeartbeat();
-    this.heartbeatTimer = setInterval(function () {
-      if (self.socket && self.socket.readyState === 1) {
-        try {
-          self.socket.ping();
-        } catch (_e) {
-          // browser WebSocket has no ping — ignore
-        }
-        self.heartbeatTimeoutTimer = setTimeout(function () {
-          // No pong received in time — force close to trigger reconnect
-          if (self.socket) {
-            self.socket.close();
-          }
-        }, self.heartbeatTimeout);
+    this._clearDeadManTimer();
+    this.deadManTimer = setTimeout(function () {
+      if (self.socket) {
+        self.socket.close();
       }
-    }, this.heartbeatInterval);
+    }, this.deadManTimeout);
   }
 
-  private _resetHeartbeatTimeout(): void {
-    if (this.heartbeatTimeoutTimer) {
-      clearTimeout(this.heartbeatTimeoutTimer);
-      this.heartbeatTimeoutTimer = null;
+  private _clearDeadManTimer(): void {
+    if (this.deadManTimer) {
+      clearTimeout(this.deadManTimer);
+      this.deadManTimer = null;
     }
-  }
-
-  private _stopHeartbeat(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-    this._resetHeartbeatTimeout();
   }
 
   private _scheduleReconnect(): void {
@@ -243,6 +222,7 @@ export class RealtimeClient extends EventEmitter {
     this.emit("reconnecting", this.reconnectAttempts);
 
     this.reconnectTimer = setTimeout(function () {
+      self.reconnectTimer = null;
       self._createSocket();
     }, delay);
   }
