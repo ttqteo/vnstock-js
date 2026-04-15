@@ -4,8 +4,16 @@ import { handleQuote, meta as quoteMeta } from "./commands/quote";
 import { handleHistory, meta as historyMeta } from "./commands/history";
 import { handleSearch, meta as searchMeta } from "./commands/search";
 import { handleSymbols, meta as symbolsMeta } from "./commands/symbols";
+import { checkForUpdate, printUpdateBanner } from "./update-check";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 var pkg = require("../../package.json");
+
+// Fire update check in parallel with command; resolve banner data for later.
+var updatePromise: Promise<string | null> = checkForUpdate(pkg.version).catch(
+  function () {
+    return null;
+  }
+);
 
 interface CommandMeta {
   requiresData: boolean;
@@ -45,6 +53,22 @@ async function ensureInit(meta: CommandMeta, quiet: boolean): Promise<void> {
   await init();
 }
 
+async function maybePrintUpdateBanner(flags: GlobalFlags): Promise<void> {
+  if (flags.quiet) return;
+  // Wait briefly for parallel check to resolve; if slow, skip to keep UX snappy.
+  var latest = await Promise.race([
+    updatePromise,
+    new Promise<null>(function (resolve) {
+      setTimeout(function () {
+        resolve(null);
+      }, 300);
+    }),
+  ]);
+  if (latest) {
+    printUpdateBanner(latest, pkg.version);
+  }
+}
+
 async function runCommand(
   meta: CommandMeta,
   runner: () => Promise<string>,
@@ -54,6 +78,7 @@ async function runCommand(
     await ensureInit(meta, Boolean(flags.quiet));
     var out = await runner();
     process.stdout.write(out + "\n");
+    await maybePrintUpdateBanner(flags);
     process.exit(0);
   } catch (err) {
     var msg = err instanceof Error ? err.message : String(err);
