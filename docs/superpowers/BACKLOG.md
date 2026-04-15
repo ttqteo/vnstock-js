@@ -1,77 +1,90 @@
-# vnstock-js — Backlog & Roadmap
+# vnstock-js — SDK Backlog
 
-**Last updated:** 2026-04-10
-**Current focus:** v1.3.0 (xem [specs/2026-04-10-vnstock-js-v1.3.0-design.md](specs/2026-04-10-vnstock-js-v1.3.0-design.md))
+**Last updated:** 2026-04-14
+**Current focus:** v1.3.2 patch release, then v1.4 planning
+**Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
-Tài liệu này theo dõi các hướng phát triển chưa được lên spec chi tiết. Mỗi mục là một "candidate" để brainstorm thành design spec riêng khi đến lượt.
+Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
 
 ---
 
-## Roadmap tổng quan
+## Shipped
+
+| Version | Date | Highlights |
+|---|---|---|
+| v1.1.0 | 2026-04-03 | Error taxonomy, adapter pattern, Realtime v2 EventEmitter |
+| v1.2.0 | 2026-04-03 | Symbol Directory, Market Calendar, rate-limit auto-wait |
+| v1.3.0 | 2026-04-14 | `await init()` remote data, Realtime hardening, **CLI** (quote/history/search/symbols) |
+| v1.3.1 | 2026-04-14 | CLI patches (range fix, HSX/HOSE alias, price rounding, `-v` version, symbols full default) |
+| v1.3.2 | In progress | History buffer fix for accurate `Change %` at window edge |
+
+---
+
+## SDK Release roadmap
 
 | Version | Theme | Status |
 |---|---|---|
-| v1.3.0 | Realtime hardening + CLI + Remote data | **In progress** (spec written) |
-| v1.4.0 | Use-case modules / Easy mode | Backlog |
-| v1.5.0 | CLI expansion + watchlist/config | Backlog |
-| v1.6.0 | Fundamentals + screeners | Backlog |
-| v2.0.0 | Multi-source platform | Backlog (long-term) |
-| Continuous | Distribution & content | Always-on |
+| v1.4.0 | Easy-mode helpers + Watchlist | Next up |
+| v1.5.0 | CLI fill-in commands + config | After v1.4 |
+| v1.6.0 | Fundamentals + Screeners | Backlog |
+
+### ~~v2.0.0 Multi-source~~ — Deferred / Not planned
+
+Multi-source (SSI, TCBS, plugin system) đã **drop khỏi active roadmap**. Lý do: VCI API đủ dùng, không có user request concrete cho nguồn khác, chi phí maintain nhiều adapter cao. Giữ lại ghi chú ở đây để contributors biết đã cân nhắc.
+
+Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như v1.7+ (không cần major bump).
 
 ---
 
-## v1.4.0 — Use-case Modules / Easy Mode
+## v1.4.0 — Easy-mode + Watchlist
 
-**Theme:** Mở rộng tệp người dùng từ "dev" sang "analyst / trader bán-kỹ thuật" bằng cách cung cấp các helper one-liner và module đóng gói theo job-to-be-done.
+**Theme:** Mở rộng tệp user từ "JS/TS dev" sang "analyst / trader bán-kỹ thuật" — cung cấp helper one-liner và module đóng gói theo job-to-be-done.
 
-### Candidates
+### In scope
 
-- **Easy-mode helpers** — one-liner functions phổ biến:
-  - `vnstock.quickQuote("VCB")` → giá mới nhất + change %
-  - `vnstock.recentHistory("VCB", 30)` → 30 ngày gần nhất
-  - `vnstock.topGainers()`, `vnstock.topLosers()`
-  - `vnstock.compareSymbols(["VCB", "TCB", "MBB"])` → bảng so sánh
+- **Easy-mode helpers** trên SDK default instance:
+  - `vnstock.quickQuote("VCB")` — giá mới nhất + change % (wrap `stock.priceBoard`)
+  - `vnstock.recentHistory("VCB", 30)` — N phiên gần nhất (wrap `stock.quote.history` + slice)
+  - `vnstock.compareSymbols(["VCB", "TCB", "MBB"])` — table giá + % change cho nhiều mã
+  - `vnstock.topMovers()` — wrap `topGainers` + `topLosers` trả về cả hai
 - **Watchlist module** — quản lý danh sách mã yêu thích:
-  - Persist ra config file (`~/.vnstock-js/watchlist.json`)
-  - API: `addSymbol`, `removeSymbol`, `listSymbols`, `getQuotes(watchlistName)`
-  - CLI: `vnstock watchlist add VCB`, `vnstock watchlist quotes`
-- **Portfolio analytics (basic)** — không phải full backtesting:
-  - Tính giá trị danh mục theo input positions
-  - P/L per position, total return
-  - Sector allocation breakdown
-- **Simple alerts** — rule-based, không cần realtime:
-  - "Cảnh báo nếu VCB giảm > 3% so với hôm qua"
-  - Polling-based, hook vào cron/scheduler bên ngoài
+  - API: `watchlist.add`, `remove`, `list`, `quotes(name)`, `create`, `delete`
+  - Persist: Node/CLI → JSON file `~/.vnstock-js/watchlist.json`. Browser → để user lo (optional hook cho localStorage/IndexedDB)
+- **Portfolio basic** — tính giá trị danh mục:
+  - Input: positions `[{ symbol, quantity, avgCost }]`
+  - Output: marketValue, totalCost, P/L per position, total return %
+  - KHÔNG: Sharpe, drawdown, benchmarking — để v1.7+ nếu có nhu cầu
 
-### Open questions
+### Out of scope
 
-- Watchlist persist ở đâu cho non-CLI users (browser, server-side)?
-- Alerts có cần infra riêng không, hay chỉ cung cấp building block?
-- Portfolio analytics scope tới đâu — cơ bản (P/L) hay nâng cao (Sharpe, drawdown)?
+- Alerts (cần scheduler infra, defer sang v1.5+)
+- Advanced portfolio analytics (Sharpe, drawdown)
+- Custom indicator builder beyond SMA/EMA/RSI (đã có trong v1.0)
 
 ---
 
-## v1.5.0 — CLI Expansion
+## v1.5.0 — CLI fill-in + Config
 
-**Theme:** Mở rộng CLI từ v1.3.0 base với các command còn thiếu và config-driven workflow.
+**Theme:** Hoàn thiện CLI bằng các command còn thiếu và config-driven workflow.
 
-### Candidates
+### In scope
 
-- **More commands:**
-  - `vnstock gold` — giá vàng VN
-  - `vnstock market overview` — VN-Index, HNX-Index, breadth
-  - `vnstock fundamentals <SYMBOL>` (dependency: v1.6 fundamentals module)
-  - `vnstock compare <S1> <S2> ...`
-- **Config file support** — `~/.vnstock-js/config.json`:
-  - Default exchange, locale, output mode
-  - API token nếu sau này có premium source
-  - Mirror URL cho remote data (enterprise use)
-- **Watchlist presets** — wire vào v1.4.0 watchlist:
-  - `vnstock quote --watchlist tech-stocks`
-- **Pipe-friendly improvements:**
-  - `vnstock symbols --json | jq '.[] | select(.exchange=="HOSE")'`
-  - Streaming output cho lệnh trả nhiều dòng
-- **Shell completions** — bash/zsh/fish auto-complete
+- **Commands mới:**
+  - `vnstock gold` — giá vàng BTMC/SJC/GiaVangNet
+  - `vnstock market` — VN-Index, HNX-Index, UPCOM-Index snapshot
+  - `vnstock compare <S1> <S2> [<S3>...]` — bảng so sánh multi-symbol
+  - `vnstock watchlist <add|remove|list|quotes>` — wire vào v1.4 watchlist
+- **Config file** `~/.vnstock-js/config.json`:
+  - Default exchange, locale, output mode (table/json/csv)
+  - Cache dir, mirror URL (enterprise)
+  - Watchlist default
+- **Shell completions** — bash/zsh/fish auto-complete cho command + symbols (lazy load từ directory)
+- **Pipe-friendly improvements:** streaming output cho large result sets, exit code discipline
+
+### Out of scope
+
+- Fundamentals command (phụ thuộc v1.6 module)
+- Alert command (defer)
 
 ---
 
@@ -79,123 +92,58 @@ Tài liệu này theo dõi các hướng phát triển chưa được lên spec 
 
 **Theme:** Bổ sung domain "fundamental analysis" — báo cáo tài chính, ratios, screening.
 
-### Candidates
+### In scope
 
 - **Fundamentals module:**
-  - Income statement, balance sheet, cash flow (yearly + quarterly)
-  - Key ratios: P/E, P/B, ROE, ROA, EPS, dividend yield
-  - Source: VCI hoặc thêm provider mới
+  - `stock.financial(symbol).incomeStatement()` — quý + năm
+  - `stock.financial(symbol).balanceSheet()`
+  - `stock.financial(symbol).cashFlow()`
+  - `stock.financial(symbol).ratios()` — P/E, P/B, ROE, ROA, EPS, dividend yield
 - **Screeners:**
-  - Filter symbols by criteria: market cap, P/E range, sector, volume…
-  - Composable filters: `screener.where({pe: {lt: 15}, marketCap: {gt: 1e12}})`
+  - Composable filters: `screener.where({ pe: { lt: 15 }, marketCap: { gt: 1e12 } })`
+  - Common presets: `screener.valueStocks()`, `screener.growthStocks()`, `screener.dividendStocks()`
   - CLI: `vnstock screener --pe '<15' --market-cap '>1T'`
-- **Sector classification:** chuẩn hoá ngành/lĩnh vực cho lookup
+- **Sector classification:** chuẩn hoá ngành/lĩnh vực cho lookup (dùng lại ICB từ v1.2)
 
 ### Open questions
 
-- Source data fundamentals có public không? Reliability?
-- Cache strategy — fundamentals ít thay đổi (quarterly), nên TTL dài hơn nhiều
-- Schema chuẩn hoá: dùng GAAP-like hay đơn giản hoá?
-
----
-
-## v2.0.0 — Multi-source Platform
-
-**Theme:** Chuyển từ "wrapper VCI" thành "platform nhiều provider". Đây là breaking change lớn — chuẩn bị cho roadmap dài hạn.
-
-### Candidates
-
-- **Provider abstraction:**
-  - Adapter interface chuẩn hoá: `IProvider` với methods `fetchPriceBoard`, `fetchHistory`, `fetchSymbols`, …
-  - Provider registry: pluggable, user chọn provider qua config
-  - Built-in providers: VCI (current), SSI, TCBS, Vietstock?
-- **Schema standardization:**
-  - Common domain model độc lập với raw response của từng source
-  - Mapping layer trong mỗi adapter
-  - Versioned schema (v2 schema, có thể coexist với v1 trong transition period)
-- **Plugin system:**
-  - User có thể tự viết adapter cho internal/private source
-  - Publish riêng như `@vnstock-js/provider-foo`
-- **Source selection per call:**
-  - `vnstock.history("VCB", { provider: "ssi" })`
-  - Fallback chain: try SSI → fallback VCI nếu fail
-- **Cross-source consistency check** (advanced):
-  - Compare data giữa providers để phát hiện data quality issue
-- **Migration tooling:**
-  - Codemod / migration guide từ v1.x → v2.0
-
-### Open questions
-
-- API surface v2 có giữ tương thích v1 không, hay clean break?
-- Adapter pattern hiện tại trong v1.2.0 đã đủ mạnh chưa, hay cần redesign?
-- Naming: `provider`, `source`, `adapter` — chọn từ nào cho consistent
-- Test strategy cho multi-source: làm sao test mà không phụ thuộc nhiều API thật?
-
----
-
-## Continuous — Distribution & Content
-
-**Theme:** Hoạt động liên tục, không gắn version cụ thể. Mỗi release nên đi kèm content push.
-
-### Candidates
-
-- **Cookbook examples** — `examples/` directory với standalone scripts:
-  - "Build a watchlist dashboard in 30 lines"
-  - "Daily portfolio email with cron + vnstock"
-  - "Backtest a simple moving average strategy"
-  - "Stream realtime quotes to Slack"
-- **Notebook examples** — Jupyter / Observable notebooks
-- **Blog posts:**
-  - Release announcements
-  - "10 lệnh terminal cho nhà đầu tư VN" (push mạnh khi v1.3.0 CLI ra)
-  - Use case stories
-- **Video content** — YouTube tutorials, screencasts ngắn
-- **Community building:**
-  - GitHub Discussions
-  - Discord/Telegram channel?
-- **Comparison content** — vs vnstock (Python), vs vn-stock-sdk
-- **Showcase gallery** — apps/projects user xây dựng từ vnstock-js
-
-### Metrics to track
-
-- Weekly downloads (baseline: ~19 hiện tại theo Socket)
-- GitHub stars
-- Issues/discussions activity
-- Docs site traffic
-- Time-to-first-quote cho user mới
+- VCI có đủ data fundamentals yearly + quarterly không? Reliability cho quarterly latest?
+- Cache strategy: fundamentals ít thay đổi (quý), TTL dài hơn remote data thường (7 ngày?)
+- Schema: dùng GAAP-like (debit/credit strict) hay đơn giản hoá (revenue/expense grouping)?
 
 ---
 
 ## Cross-cutting concerns (any version)
 
-### Quality bar improvements
+### Quality bar
 
-- **TypeScript polish:**
-  - Stricter discriminated unions cho error/result
-  - Generics cho response shapes
-  - Better type inference cho fluent APIs
-- **Stability guarantees:**
-  - Semver discipline + clear deprecation policy
-  - "Stable" vs "experimental" API tags
-- **Observability:**
-  - Optional debug logging hook
-  - Telemetry opt-in (tracking which APIs are most used, anonymous)
-- **Performance:**
-  - Bundle size monitoring (size-limit)
-  - Benchmark suite cho hot paths
-  - Tree-shaking verification
+- **TypeScript polish:** discriminated unions cho error/result, generics cho response shapes
+- **Stability tags:** `@stable` / `@experimental` trong JSDoc
+- **Bundle size:** `size-limit` CI check
+- **Benchmark suite** cho hot paths (parser, transform)
+- **Tree-shaking** verification
 
-### Documentation infrastructure
+### Observability (optional, v1.5+)
 
-- **API reference:** auto-generate từ TSDoc
-- **Versioned docs:** mỗi major version có docs riêng
-- **i18n:** docs song ngữ Việt/Anh để mở rộng audience
+- Debug logging hook (`vnstock.setLogger(fn)`)
+- Telemetry opt-in — anonymous API usage stats
 
 ---
 
-## Workflow notes
+## Metrics to track (project health)
 
-- **Branch model:** mỗi version lớn có branch `dev-vX.Y.Z` riêng. Feature branches off của dev branch.
-- **Spec lifecycle:** brainstorm → spec (`docs/superpowers/specs/`) → plan (`docs/plans/`) → implement → verify → release.
-- **Backlog grooming:** review file này mỗi khi bắt đầu version mới, promote candidates lên spec.
-- **Spec & backlog visibility:** `docs/superpowers/` bị gitignore — chỉ tồn tại trên dev branches local, không xuất hiện trên `master`. Trước khi merge dev → master, exclude `docs/superpowers/` khỏi merge (xem README workflow).
+- Weekly npm downloads (baseline ~19 trước v1.3)
+- GitHub stars
+- Issues/Discussions activity
+- Docs site traffic
+- Time-to-first-quote (từ `npm install` đến successful `priceBoard` call)
+
+---
+
+## Workflow
+
+- **Branch model:** mỗi version lớn có branch `dev-vX.Y.Z`. Feature branches off dev.
+- **Spec lifecycle:** brainstorm → spec (roadmap `specs/`) → plan (roadmap `plans/`) → implement → verify → release
+- **Backlog grooming:** review file này mỗi khi bắt đầu version mới, promote candidate lên spec
+- **Commit discipline:** 1 squashed commit per version release (see feedback_commits memory)
+- **Visibility:** `docs/superpowers/` nằm trên orphan `roadmap` branch, không bao giờ merge vào master/dev
