@@ -34,7 +34,8 @@ Mở rộng `/finance` hiện có. Mỗi widget = 1 use case với code snippet 
 | **v1.3.x** (now) | Quote/history/search — expand hiện có với code snippets inline ready-to-copy |
 | **v1.4 ships** | Watchlist editor UI (add/remove, persist), `compareSymbols` comparison table, Portfolio tracker (nhập positions, show P/L) |
 | **v1.5 ships** | CLI terminal demo (Xterm.js embedded — user chạy `vnstock quote VCB` ngay trên site), config file editor UI |
-| **v1.6 ships** | Screener UI (filter by PE/PB/ROE), fundamentals dashboard (income/balance/cashflow tabs), sector breakdown pie |
+| **v1.6 ships** | **MCP section**: install guide cho Claude Desktop/Cursor/VS Code, demo video "hỏi Claude về cổ phiếu VN", tool reference |
+| **v1.7 ships** | Screener UI (filter by PE/PB/ROE), fundamentals dashboard (income/balance/cashflow tabs), sector breakdown pie |
 
 ### Pattern cho mỗi widget
 
@@ -76,7 +77,8 @@ Standalone scripts, clone là chạy:
 Release-triggered:
 - [ ] v1.4 release — "Watchlist + Portfolio trong vnstock-js"
 - [ ] v1.5 release — "Hoàn thiện CLI vnstock-js"
-- [ ] v1.6 release — "Phân tích cơ bản với vnstock-js"
+- [ ] v1.6 release — **"Hỏi Claude về cổ phiếu Việt Nam: MCP server vnstock-js"** — push mạnh, viral potential
+- [ ] v1.7 release — "Phân tích cơ bản với vnstock-js"
 
 Evergreen / SEO:
 - [ ] "10 lệnh terminal cho nhà đầu tư VN" (push khi v1.3 CLI ra)

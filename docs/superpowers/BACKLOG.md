@@ -26,13 +26,22 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 |---|---|---|
 | v1.4.0 | Easy-mode helpers + Watchlist | Next up |
 | v1.5.0 | CLI fill-in commands + config | After v1.4 |
-| v1.6.0 | Fundamentals + Screeners | Backlog |
+| v1.6.0 | **MCP server** (`vnstock mcp` subcommand, tools cho Claude Desktop / Cursor / VS Code) | Backlog |
+| v1.7.0 | Fundamentals + Screeners | Backlog |
+
+### ~~CLI chat interactive~~ — Dropped
+
+Đã cân nhắc build `vnstock chat` menu-driven với `@inquirer/prompts`, nhưng **drop hoàn toàn** vì:
+- MCP server (v1.6) distribution lever lớn hơn — audience Claude Desktop/Cursor triệu users
+- Build UX/parser tự làm rủi ro cao, Claude/Cursor đã lo UI tốt hơn
+- Non-Claude user vẫn có CLI commands (`vnstock quote VCB` etc.) đã đủ
+- YAGNI — làm MCP trước, đánh giá demand chat CLI sau
 
 ### ~~v2.0.0 Multi-source~~ — Deferred / Not planned
 
 Multi-source (SSI, TCBS, plugin system) đã **drop khỏi active roadmap**. Lý do: VCI API đủ dùng, không có user request concrete cho nguồn khác, chi phí maintain nhiều adapter cao. Giữ lại ghi chú ở đây để contributors biết đã cân nhắc.
 
-Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như v1.7+ (không cần major bump).
+Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như v1.8+ (không cần major bump).
 
 ---
 
@@ -88,7 +97,58 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 
 ---
 
-## v1.6.0 — Fundamentals + Screeners
+## v1.6.0 — MCP Server
+
+**Theme:** Expose `vnstock-js` làm MCP (Model Context Protocol) server để Claude Desktop / Cursor / VS Code có thể query stock VN qua tool-calling. Distribution lever lớn — audience Claude users rộng hơn terminal users nhiều lần.
+
+### In scope
+
+- **MCP server** — binary `vnstock mcp` (subcommand CLI hiện có) hoặc standalone `vnstock-mcp`. Chạy trên stdio theo spec MCP.
+- **Tools expose (~8 core):**
+  - `get_quote(symbol)` — priceBoard snapshot (giá, change, volume, trần/sàn)
+  - `get_history(symbol, from?, to?, range?, limit?)` — lịch sử OHLCV
+  - `search_symbols(query, limit?)` — directory fuzzy search
+  - `list_symbols(exchange?, limit?)` — liệt kê mã theo sàn
+  - `top_movers()` — gainers + losers combined
+  - `is_trade_day(date)` — calendar check
+  - `get_trading_calendar(year)` — danh sách ngày nghỉ
+  - `get_company_info(symbol)` — profile cơ bản (tên, sàn, ngành)
+- **Install flow:**
+  ```json
+  // claude_desktop_config.json
+  {
+    "mcpServers": {
+      "vnstock": {
+        "command": "npx",
+        "args": ["-y", "vnstock-js", "mcp"]
+      }
+    }
+  }
+  ```
+  Hoặc `npm i -g vnstock-js` rồi `command: "vnstock", args: ["mcp"]`.
+- **VN context trong tool descriptions:** mỗi tool có description tiếng Việt + tiếng Anh giải thích thuật ngữ (trần, sàn, ATO, bluechip...). Claude tự format câu trả lời tiếng Việt từ data return.
+- **Test strategy:** mock MCP transport, test mỗi tool với synthetic SDK response. Integration test riêng spawn server + client.
+
+### Tech dependencies
+
+- `@modelcontextprotocol/sdk` official TypeScript SDK
+- Reuse 100% SDK hiện có (Directory, stock.trading, stock.quote, market.calendar). Không logic riêng.
+
+### Out of scope
+
+- Advanced tools (screener, fundamentals) — đẩy sang v1.7 sau khi ship Fundamentals module
+- Watchlist tools — depend vào v1.4 watchlist, nếu ship sau thì thêm
+- Streaming/realtime qua MCP — MCP không support WebSocket natively
+
+### Open questions
+
+- Package layout: subcommand `vnstock mcp` trong same package, hay tách `@vnstock-js/mcp`? → Recommend: **subcommand** (user 1 lần install, dùng cả CLI + MCP)
+- Authentication: MCP có auth không? → Không cần cho public VCI API
+- Rate limit: Claude có thể spam tools fast. Dùng `rateLimitWait` từ v1.2 đủ.
+
+---
+
+## v1.7.0 — Fundamentals + Screeners
 
 **Theme:** Bổ sung domain "fundamental analysis" — báo cáo tài chính, ratios, screening.
 
@@ -103,6 +163,7 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
   - Composable filters: `screener.where({ pe: { lt: 15 }, marketCap: { gt: 1e12 } })`
   - Common presets: `screener.valueStocks()`, `screener.growthStocks()`, `screener.dividendStocks()`
   - CLI: `vnstock screener --pe '<15' --market-cap '>1T'`
+  - MCP tool: `screen_stocks(filters)` — extend v1.6 MCP
 - **Sector classification:** chuẩn hoá ngành/lĩnh vực cho lookup (dùng lại ICB từ v1.2)
 
 ### Open questions
