@@ -2,6 +2,10 @@
 
 ## 1.3.2
 
+### Thêm
+
+- **CLI tự phát hiện version mới**: mỗi lần chạy `vnstock`, background check `registry.npmjs.org/vnstock-js/latest`, nếu phát hiện bản mới sẽ in banner ở cuối output (stderr). Cache 24h tại `~/.vnstock-js/cache/version-check.json`, timeout 2s, fail silent. Tự skip khi non-TTY, `CI=1`, `NODE_ENV=test`, hoặc `VNSTOCK_NO_UPDATE_CHECK=1`. Không thêm dependency nào.
+
 ### Sửa
 
 - **`history --range 1d`** (hoặc window ngắn) giờ tính đúng `Change %` cho phiên cũ nhất trong kết quả. Handler fetch thêm buffer 10 phiên trước `start` để phiên đầu window có reference cho phép so sánh với phiên trước nó. Trước đây phiên cũ nhất luôn hiện `+0.00%` vì không có reference.
