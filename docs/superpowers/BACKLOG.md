@@ -1,7 +1,7 @@
 # vnstock-js — SDK Backlog
 
-**Last updated:** 2026-04-14
-**Current focus:** v1.3.2 patch release, then v1.4 planning
+**Last updated:** 2026-04-15
+**Current focus:** v1.3.2 shipping, v1.4 = MCP Server (promoted from v1.6)
 **Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
 Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
@@ -24,10 +24,12 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 
 | Version | Theme | Status |
 |---|---|---|
-| v1.4.0 | Easy-mode helpers + Watchlist | Next up |
-| v1.5.0 | CLI fill-in commands + config | After v1.4 |
-| v1.6.0 | **MCP server** (`vnstock mcp` subcommand, tools cho Claude Desktop / Cursor / VS Code) | Backlog |
+| v1.4.0 | **MCP server** (`vnstock mcp` subcommand, tools cho Claude Desktop / Cursor / VS Code) | Next up |
+| v1.5.0 | Easy-mode helpers + Watchlist + Portfolio basic | After v1.4 |
+| v1.6.0 | CLI fill-in commands + config | Backlog |
 | v1.7.0 | Fundamentals + Screeners | Backlog |
+
+**Rationale đẩy MCP lên v1.4:** distribution lever lớn nhất — ship sớm để test demand. Spec đã viết xong (`specs/2026-04-14-v1.6-mcp-server-design.md`, giữ tên file cũ để reference), 8 tools wrap SDK hiện có, không block gì.
 
 ### ~~CLI chat interactive~~ — Dropped
 
@@ -45,65 +47,15 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 
 ---
 
-## v1.4.0 — Easy-mode + Watchlist
+## v1.4.0 — MCP Server
 
-**Theme:** Mở rộng tệp user từ "JS/TS dev" sang "analyst / trader bán-kỹ thuật" — cung cấp helper one-liner và module đóng gói theo job-to-be-done.
+**Theme:** Expose `vnstock-js` làm MCP (Model Context Protocol) server để Claude Desktop / Cursor / VS Code có thể query stock VN qua tool-calling. Distribution lever lớn nhất trong roadmap — audience Claude users rộng hơn terminal users nhiều lần. Đẩy lên v1.4 (từ v1.6) để test demand sớm.
 
-### In scope
-
-- **Easy-mode helpers** trên SDK default instance:
-  - `vnstock.quickQuote("VCB")` — giá mới nhất + change % (wrap `stock.priceBoard`)
-  - `vnstock.recentHistory("VCB", 30)` — N phiên gần nhất (wrap `stock.quote.history` + slice)
-  - `vnstock.compareSymbols(["VCB", "TCB", "MBB"])` — table giá + % change cho nhiều mã
-  - `vnstock.topMovers()` — wrap `topGainers` + `topLosers` trả về cả hai
-- **Watchlist module** — quản lý danh sách mã yêu thích:
-  - API: `watchlist.add`, `remove`, `list`, `quotes(name)`, `create`, `delete`
-  - Persist: Node/CLI → JSON file `~/.vnstock-js/watchlist.json`. Browser → để user lo (optional hook cho localStorage/IndexedDB)
-- **Portfolio basic** — tính giá trị danh mục:
-  - Input: positions `[{ symbol, quantity, avgCost }]`
-  - Output: marketValue, totalCost, P/L per position, total return %
-  - KHÔNG: Sharpe, drawdown, benchmarking — để v1.7+ nếu có nhu cầu
-
-### Out of scope
-
-- Alerts (cần scheduler infra, defer sang v1.5+)
-- Advanced portfolio analytics (Sharpe, drawdown)
-- Custom indicator builder beyond SMA/EMA/RSI (đã có trong v1.0)
-
----
-
-## v1.5.0 — CLI fill-in + Config
-
-**Theme:** Hoàn thiện CLI bằng các command còn thiếu và config-driven workflow.
+**Spec reference:** `specs/2026-04-14-v1.6-mcp-server-design.md` (tên file giữ theo ngày viết spec, nội dung áp dụng cho v1.4)
 
 ### In scope
 
-- **Commands mới:**
-  - `vnstock gold` — giá vàng BTMC/SJC/GiaVangNet
-  - `vnstock market` — VN-Index, HNX-Index, UPCOM-Index snapshot
-  - `vnstock compare <S1> <S2> [<S3>...]` — bảng so sánh multi-symbol
-  - `vnstock watchlist <add|remove|list|quotes>` — wire vào v1.4 watchlist
-- **Config file** `~/.vnstock-js/config.json`:
-  - Default exchange, locale, output mode (table/json/csv)
-  - Cache dir, mirror URL (enterprise)
-  - Watchlist default
-- **Shell completions** — bash/zsh/fish auto-complete cho command + symbols (lazy load từ directory)
-- **Pipe-friendly improvements:** streaming output cho large result sets, exit code discipline
-
-### Out of scope
-
-- Fundamentals command (phụ thuộc v1.6 module)
-- Alert command (defer)
-
----
-
-## v1.6.0 — MCP Server
-
-**Theme:** Expose `vnstock-js` làm MCP (Model Context Protocol) server để Claude Desktop / Cursor / VS Code có thể query stock VN qua tool-calling. Distribution lever lớn — audience Claude users rộng hơn terminal users nhiều lần.
-
-### In scope
-
-- **MCP server** — binary `vnstock mcp` (subcommand CLI hiện có) hoặc standalone `vnstock-mcp`. Chạy trên stdio theo spec MCP.
+- **MCP server** — binary `vnstock mcp` (subcommand CLI hiện có). Chạy trên stdio theo spec MCP.
 - **Tools expose (~8 core):**
   - `get_quote(symbol)` — priceBoard snapshot (giá, change, volume, trần/sàn)
   - `get_history(symbol, from?, to?, range?, limit?)` — lịch sử OHLCV
@@ -137,7 +89,7 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 ### Out of scope
 
 - Advanced tools (screener, fundamentals) — đẩy sang v1.7 sau khi ship Fundamentals module
-- Watchlist tools — depend vào v1.4 watchlist, nếu ship sau thì thêm
+- Watchlist tools — depend vào v1.5 watchlist, thêm vào MCP ở v1.5 release
 - Streaming/realtime qua MCP — MCP không support WebSocket natively
 
 ### Open questions
@@ -145,6 +97,59 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 - Package layout: subcommand `vnstock mcp` trong same package, hay tách `@vnstock-js/mcp`? → Recommend: **subcommand** (user 1 lần install, dùng cả CLI + MCP)
 - Authentication: MCP có auth không? → Không cần cho public VCI API
 - Rate limit: Claude có thể spam tools fast. Dùng `rateLimitWait` từ v1.2 đủ.
+
+---
+
+## v1.5.0 — Easy-mode + Watchlist + Portfolio
+
+**Theme:** Mở rộng tệp user từ "JS/TS dev" sang "analyst / trader bán-kỹ thuật" — cung cấp helper one-liner và module đóng gói theo job-to-be-done. Sau khi v1.4 MCP ship, thêm watchlist/portfolio tools vào MCP ở release này.
+
+### In scope
+
+- **Easy-mode helpers** trên SDK default instance:
+  - `vnstock.quickQuote("VCB")` — giá mới nhất + change % (wrap `stock.priceBoard`)
+  - `vnstock.recentHistory("VCB", 30)` — N phiên gần nhất (wrap `stock.quote.history` + slice)
+  - `vnstock.compareSymbols(["VCB", "TCB", "MBB"])` — table giá + % change cho nhiều mã
+  - `vnstock.topMovers()` — wrap `topGainers` + `topLosers` trả về cả hai
+- **Watchlist module** — quản lý danh sách mã yêu thích:
+  - API: `watchlist.add`, `remove`, `list`, `quotes(name)`, `create`, `delete`
+  - Persist: Node/CLI → JSON file `~/.vnstock-js/watchlist.json`. Browser → để user lo (optional hook cho localStorage/IndexedDB)
+- **Portfolio basic** — tính giá trị danh mục:
+  - Input: positions `[{ symbol, quantity, avgCost }]`
+  - Output: marketValue, totalCost, P/L per position, total return %
+  - KHÔNG: Sharpe, drawdown, benchmarking — để v1.7+ nếu có nhu cầu
+- **MCP extension:** thêm `watchlist_*` tools + `portfolio_summary` tool vào MCP server v1.4
+
+### Out of scope
+
+- Alerts (cần scheduler infra, defer sang v1.6+)
+- Advanced portfolio analytics (Sharpe, drawdown)
+- Custom indicator builder beyond SMA/EMA/RSI (đã có trong v1.0)
+
+---
+
+## v1.6.0 — CLI fill-in + Config
+
+**Theme:** Hoàn thiện CLI bằng các command còn thiếu và config-driven workflow.
+
+### In scope
+
+- **Commands mới:**
+  - `vnstock gold` — giá vàng BTMC/SJC/GiaVangNet
+  - `vnstock market` — VN-Index, HNX-Index, UPCOM-Index snapshot
+  - `vnstock compare <S1> <S2> [<S3>...]` — bảng so sánh multi-symbol
+  - `vnstock watchlist <add|remove|list|quotes>` — wire vào v1.5 watchlist
+- **Config file** `~/.vnstock-js/config.json`:
+  - Default exchange, locale, output mode (table/json/csv)
+  - Cache dir, mirror URL (enterprise)
+  - Watchlist default
+- **Shell completions** — bash/zsh/fish auto-complete cho command + symbols (lazy load từ directory)
+- **Pipe-friendly improvements:** streaming output cho large result sets, exit code discipline
+
+### Out of scope
+
+- Fundamentals command (phụ thuộc v1.7 module)
+- Alert command (defer)
 
 ---
 

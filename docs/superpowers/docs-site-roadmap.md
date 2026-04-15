@@ -1,6 +1,6 @@
 # vnstock-js-docs — Site Roadmap
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-04-15
 **Related:** [BACKLOG.md](BACKLOG.md) — SDK roadmap, cross-referenced từ đây
 
 Repo: `../vnstock-js-docs` (Next.js 16 + MDX, deploy Vercel)
@@ -32,9 +32,9 @@ Mở rộng `/finance` hiện có. Mỗi widget = 1 use case với code snippet 
 | SDK version | Widgets thêm vào docs |
 |---|---|
 | **v1.3.x** (now) | Quote/history/search — expand hiện có với code snippets inline ready-to-copy |
-| **v1.4 ships** | Watchlist editor UI (add/remove, persist), `compareSymbols` comparison table, Portfolio tracker (nhập positions, show P/L) |
-| **v1.5 ships** | CLI terminal demo (Xterm.js embedded — user chạy `vnstock quote VCB` ngay trên site), config file editor UI |
-| **v1.6 ships** | **MCP section**: install guide cho Claude Desktop/Cursor/VS Code, demo video "hỏi Claude về cổ phiếu VN", tool reference |
+| **v1.4 ships** | **MCP section**: install guide cho Claude Desktop/Cursor/VS Code, demo video "hỏi Claude về cổ phiếu VN", tool reference |
+| **v1.5 ships** | Watchlist editor UI (add/remove, persist), `compareSymbols` comparison table, Portfolio tracker (nhập positions, show P/L) |
+| **v1.6 ships** | CLI terminal demo (Xterm.js embedded — user chạy `vnstock quote VCB` ngay trên site), config file editor UI |
 | **v1.7 ships** | Screener UI (filter by PE/PB/ROE), fundamentals dashboard (income/balance/cashflow tabs), sector breakdown pie |
 
 ### Pattern cho mỗi widget
@@ -75,9 +75,9 @@ Standalone scripts, clone là chạy:
 ### Blog posts (trên `vnstock-js-docs/blog`)
 
 Release-triggered:
-- [ ] v1.4 release — "Watchlist + Portfolio trong vnstock-js"
-- [ ] v1.5 release — "Hoàn thiện CLI vnstock-js"
-- [ ] v1.6 release — **"Hỏi Claude về cổ phiếu Việt Nam: MCP server vnstock-js"** — push mạnh, viral potential
+- [ ] v1.4 release — **"Hỏi Claude về cổ phiếu Việt Nam: MCP server vnstock-js"** — push mạnh, viral potential
+- [ ] v1.5 release — "Watchlist + Portfolio trong vnstock-js"
+- [ ] v1.6 release — "Hoàn thiện CLI vnstock-js"
 - [ ] v1.7 release — "Phân tích cơ bản với vnstock-js"
 
 Evergreen / SEO:
@@ -181,10 +181,11 @@ Thêm vào routes-config:
 Nếu làm tuần tự (không song song nhiều tracks):
 
 1. **Ngay sau v1.3.2 ship** → Track 1 (expand `/finance` với code snippets inline), Track 3 changelog discipline
-2. **Trong khi dev v1.4** → Track 2 cookbook MD (watchlist example, portfolio example)
-3. **Khi v1.4 ship** → Track 1 widget (watchlist UI), Track 2 blog post v1.4
-4. **Khi v1.5 ship** → Track 1 CLI demo (Xterm.js), Track 2 "10 lệnh terminal" blog
-5. **Continuous** → Track 3 `/status` page (CI cron + data freshness)
+2. **Trong khi dev v1.4 (MCP)** → Track 2 cookbook MD (MCP install guide, "hỏi Claude" examples)
+3. **Khi v1.4 ship** → Track 1 MCP section + demo video, Track 2 blog post "Hỏi Claude về cổ phiếu VN" (push viral)
+4. **Khi v1.5 ship** → Track 1 widgets (watchlist UI, portfolio), Track 2 cookbook MD watchlist/portfolio
+5. **Khi v1.6 ship** → Track 1 CLI demo (Xterm.js), Track 2 "10 lệnh terminal" blog
+6. **Continuous** → Track 3 `/status` page (CI cron + data freshness)
 
 ---
 
