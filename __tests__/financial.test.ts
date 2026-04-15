@@ -1,6 +1,9 @@
 import vnstock from "../src";
 
-describe("Financial", () => {
+// Skipped: VCI GraphQL endpoint (trading.vietcap.com.vn/data-mt/graphql)
+// returns HTTP 200 with empty body {} since ~2026-04. Planned migration to
+// KBS data source in v1.4.
+describe.skip("Financial", () => {
   it("should return normalized balance sheet", async () => {
     const data = await vnstock.stock.financials.balanceSheet({
       symbol: "VCI",

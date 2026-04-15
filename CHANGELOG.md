@@ -10,6 +10,10 @@
 
 - **`history --range 1d`** (hoặc window ngắn) giờ tính đúng `Change %` cho phiên cũ nhất trong kết quả. Handler fetch thêm buffer 10 phiên trước `start` để phiên đầu window có reference cho phép so sánh với phiên trước nó. Trước đây phiên cũ nhất luôn hiện `+0.00%` vì không có reference.
 
+### Known issue
+
+- **VCI GraphQL endpoint offline từ ~04/2026** (`trading.vietcap.com.vn/data-mt/graphql` trả body rỗng `{}`). Ảnh hưởng: `company.*`, `financials.*`, `listing.symbolsByIndustries`, `listing.industriesIcb`. Các API khác (`quote`, `priceBoard`, `topGainers/Losers`, `listing.symbolsByExchange`, `commodity`, realtime) vẫn hoạt động bình thường. Kế hoạch: migrate sang KBS data source ở v1.4.
+
 ## 1.3.1
 
 Bản vá cho CLI sau khi release 1.3.0.

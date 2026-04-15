@@ -21,7 +21,8 @@ describe("Listing", () => {
     expect(data[0]).not.toHaveProperty("organName");
   }, 30000);
 
-  it("should return symbols by industries", async () => {
+  // Skipped: VCI GraphQL returns empty body since ~2026-04 (migrate to KBS in v1.4)
+  it.skip("should return symbols by industries", async () => {
     const data = await vnstock.stock.listing.symbolsByIndustries();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
@@ -32,7 +33,8 @@ describe("Listing", () => {
     expect(data[0]).not.toHaveProperty("icbName3");
   }, 30000);
 
-  it("should return ICB industries", async () => {
+  // Skipped: VCI GraphQL returns empty body since ~2026-04 (migrate to KBS in v1.4)
+  it.skip("should return ICB industries", async () => {
     const data = await vnstock.stock.listing.industriesIcb();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);

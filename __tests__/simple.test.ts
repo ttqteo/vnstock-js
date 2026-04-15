@@ -30,13 +30,15 @@ describe("Simple API", () => {
       expect(data[0]).toHaveProperty("symbol");
     }, 30000);
 
-    it("stock.company returns Company instance", async () => {
+    // Skipped: VCI GraphQL returns empty body since ~2026-04 (migrate to KBS in v1.4)
+    it.skip("stock.company returns Company instance", async () => {
       const company = stock.company({ ticker: "VCI" });
       const profile = await company.profile();
       expect(profile).toHaveProperty("industry");
     }, 30000);
 
-    it("stock.financials returns normalized data", async () => {
+    // Skipped: VCI GraphQL returns empty body since ~2026-04 (migrate to KBS in v1.4)
+    it.skip("stock.financials returns normalized data", async () => {
       const data = await stock.financials({ ticker: "VCI" });
       expect(data).toHaveProperty("data");
       expect(data.data).toHaveProperty("symbol");
