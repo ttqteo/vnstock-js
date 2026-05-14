@@ -10,6 +10,7 @@ const vnstock = new Vnstock();
 export const stock = createStockAPI(vnstock);
 export const commodity = createCommodityAPI(vnstock);
 export const market = { calendar };
+export const news = vnstock.news;
 export * as VnstockTypes from "./models/normalized";
 export const realtime = { create: createRealtime, parseData };
 export { RealtimeClient };

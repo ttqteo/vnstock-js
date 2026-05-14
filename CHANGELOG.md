@@ -1,5 +1,37 @@
 # Changelog
 
+## 1.3.3
+
+### Thêm
+
+- **Module `news`** — fetch tin tức tài chính VN từ [news-crawler](https://github.com/ttqteo/news-crawler) (RSS aggregator daily JSON: Vietstock, Markettimes, Người Quan Sát, VnExpress, Tin Nhanh Chứng Khoán).
+  - `vnstock.news.byDate(date?)` — date `"YYYY-MM-DD"` hoặc bỏ trống = hôm nay; trả `FinancialNews[]` sort theo `publishedAt` desc
+  - `vnstock.news.bySource(source, date?)` — filter substring (case-insensitive)
+  - `vnstock.news.search(keyword, date?)` — search trong `title` + `summary`
+  - Type `FinancialNews { id, source, title, summary, link, image, publishedAt }`
+  - Data fetch trực tiếp từ raw GitHub, không cache local (user tự cache nếu cần)
+
+### Sửa
+
+- **VCI Listing / Company / Financial hoạt động trở lại.** Chuyển 3 module này từ GraphQL (`trading.vietcap.com.vn/data-mt/graphql`, offline từ ~04/2026) sang Vietcap REST mới (`iq.vietcap.com.vn/api/iq-insight-service/...` + `trading.vietcap.com.vn/api/...`). Port theo `vnstock` Python 3.5.2.
+  - `listing.symbolsByIndustries()` → `GET /v2/company/search-bar?language=1|2`
+  - `listing.industriesIcb()` → `GET /v1/sectors/icb-codes`
+  - `company.*` (`profile`, `shareholders`, `officers`, `events`, `news`, `dividends`, `insiderDeals`) → 5 REST calls song song (`/details`, `/{ticker}/shareholder-structure`, `/{ticker}/shareholder`, `/events`, `/news`) thay 1 GraphQL query
+  - `financials.balanceSheet|incomeStatement|cashFlow()` → `GET /v1/company/{symbol}/financial-statement?section=BALANCE_SHEET|INCOME_STATEMENT|CASH_FLOW` + `/statistics-financial` (ratios) + `/financial-statement/metrics` (field mapping)
+- Public API (`Company`, `Financials`, `Listing`) **không đổi** — adapter re-shape REST response về cùng contract cũ để không breaking core.
+
+### Nội bộ
+
+- `src/shared/session.ts` — sticky `Device-Id` (16 hex per process), random `User-Agent` từ pool 5 browsers, in-memory cookie jar theo domain.
+- `VciAdapter.ensureHandshake()` — gọi `GET trading.vietcap.com.vn/priceboard` 1 lần (module-level state, promise dedup) để lấy session cookies trước Vietcap REST calls.
+- `pipeline/fetch.ts` chỉ inject Vietcap-specific headers (Origin/Referer/Device-Id/Cookie) cho `*.vietcap.com.vn`; external domains (BTMC, SJC, GiaVangNet, Vietcombank) giữ headers tối thiểu để không bị 403.
+
+### Known issue
+
+- `listing.allSymbols()` vẫn skip — endpoint `ai.vietcap.com.vn` trả 403.
+- `screening` chưa migrate REST — vẫn dùng GraphQL deprecated. Defer sang version sau (không có endpoint REST tương đương trong Python source).
+- Một số commodity test (SJC) vẫn fail do upstream 403 (pre-existing, không liên quan v1.3.3).
+
 ## 1.3.2
 
 ### Thêm
