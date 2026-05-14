@@ -1,7 +1,7 @@
 # vnstock-js — SDK Backlog
 
 **Last updated:** 2026-05-14
-**Current focus:** v1.3.3 = VCI REST migration (bug fix, port từ vnstock Python 3.5.2); v1.4 = MCP Server next
+**Current focus:** v1.3.3 shipped (PR #8 merged); v1.4 = MCP Server next up
 **Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
 Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
@@ -17,7 +17,7 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 | v1.3.0 | 2026-04-14 | `await init()` remote data, Realtime hardening, **CLI** (quote/history/search/symbols) |
 | v1.3.1 | 2026-04-14 | CLI patches (range fix, HSX/HOSE alias, price rounding, `-v` version, symbols full default) |
 | v1.3.2 | 2026-04-14 | History buffer fix for accurate `Change %` at window edge, CLI update notifier |
-| v1.3.3 | In progress | **VCI REST migration** — Listing/Company/Financial chuyển GraphQL → Vietcap REST (port từ vnstock Python 3.5.2). Plan: `plans/2026-05-14-v1.3.3-vci-rest-migration.md` |
+| v1.3.3 | 2026-05-14 | **VCI REST migration** — Listing/Company/Financial từ GraphQL → Vietcap REST. **+ Module `news`** từ ttqteo/news-crawler. Plan: `plans/2026-05-14-v1.3.3-vci-rest-migration.md` |
 
 ---
 
