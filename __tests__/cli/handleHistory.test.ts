@@ -12,9 +12,18 @@ import sdk from "../../src";
 
 const mockHistory = (sdk as any).stock.quote.history as jest.Mock;
 
+function isoDaysAgo(daysAgo: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString().substring(0, 10);
+}
+
+const recentToday = isoDaysAgo(0);
+const recentYesterday = isoDaysAgo(1);
+
 const sampleRows = [
-  { date: "2026-04-14", open: 59.2, high: 59.4, low: 59.1, close: 59.3, volume: 3_830_000 },
-  { date: "2026-04-11", open: 59.0, high: 59.3, low: 58.9, close: 59.2, volume: 4_100_000 },
+  { date: recentToday, open: 59.2, high: 59.4, low: 59.1, close: 59.3, volume: 3_830_000 },
+  { date: recentYesterday, open: 59.0, high: 59.3, low: 58.9, close: 59.2, volume: 4_100_000 },
 ];
 
 const base = { json: false, csv: false, color: false, quiet: true, verbose: false };
@@ -35,18 +44,18 @@ describe("handleHistory", () => {
     const out = await handleHistory({ symbol: "VCB", range: "7d", ...base, json: true });
     const parsed = JSON.parse(out);
     expect(parsed).toHaveLength(2);
-    expect(parsed[0].date).toBe("2026-04-14");
+    expect(parsed[0].date).toBe(recentToday);
   });
 
   it("returns CSV with date header", async () => {
     const out = await handleHistory({ symbol: "VCB", range: "7d", ...base, csv: true });
     expect(out.split("\n")[0]).toContain("date");
-    expect(out).toContain("2026-04-14");
+    expect(out).toContain(recentToday);
   });
 
   it("default table contains dates and prices", async () => {
     const out = await handleHistory({ symbol: "VCB", range: "7d", ...base });
-    expect(out).toContain("2026-04-14");
+    expect(out).toContain(recentToday);
     expect(out).toContain("59.3");
   });
 
@@ -67,7 +76,7 @@ describe("handleHistory", () => {
   it("applies --limit to rows", async () => {
     mockHistory.mockResolvedValue(
       Array.from({ length: 10 }, (_, i) => ({
-        date: `2026-04-${String(i + 1).padStart(2, "0")}`,
+        date: isoDaysAgo(9 - i),
         open: 1, high: 1, low: 1, close: 1, volume: 1,
       }))
     );
