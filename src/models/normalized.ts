@@ -193,6 +193,17 @@ export interface IndustryClassification {
 }
 
 
+export interface FinancialNews {
+  id: string;
+  source: string;
+  title: string;
+  summary: string;
+  link: string;
+  image: string;
+  publishedAt: string;
+}
+
+
 export interface GoldPriceBtmc {
   name: string;
   karat: string;

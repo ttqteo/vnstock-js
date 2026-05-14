@@ -1,6 +1,7 @@
 import axios from "axios";
 import { RequestConfig, FetchOptions } from "./types";
 import { headers as defaultHeaders } from "../shared/constants";
+import { getDeviceId, getUserAgent, getCookieHeader, setCookies } from "../shared/session";
 import { NetworkError, RateLimitError, ApiError } from "../errors";
 
 function isRetryable(error: any): boolean {
@@ -25,8 +26,28 @@ function wrapError(error: any): never {
       error
     );
   }
-  // Network-level errors: timeout, DNS, connection refused, etc.
   throw new NetworkError(error.message || "Network error", error);
+}
+
+function isVietcapUrl(url: string): boolean {
+  return url.indexOf("vietcap.com.vn") !== -1;
+}
+
+function buildHeaders(url: string, override: Record<string, string> | undefined): Record<string, string> {
+  var merged: Record<string, string> = {};
+  if (isVietcapUrl(url)) {
+    for (var k in defaultHeaders) merged[k] = (defaultHeaders as any)[k];
+    merged["User-Agent"] = getUserAgent();
+    merged["Device-Id"] = getDeviceId();
+    merged["Cookie"] = getCookieHeader(url);
+  } else {
+    merged["User-Agent"] = getUserAgent();
+    merged["Accept"] = "application/json, text/plain, */*";
+  }
+  if (override) {
+    for (var ok in override) merged[ok] = override[ok];
+  }
+  return merged;
 }
 
 export async function fetchWithRetry<T = unknown>(
@@ -44,13 +65,13 @@ export async function fetchWithRetry<T = unknown>(
         method: config.method,
         data: config.data,
         params: config.params,
-        headers: { ...defaultHeaders, ...config.headers },
+        headers: buildHeaders(config.url, config.headers),
         timeout: 15000,
       });
+      setCookies(config.url, response.headers && (response.headers as any)["set-cookie"]);
       return response.data as T;
     } catch (error: any) {
       lastError = error;
-      // Auto-wait on 429 rate limit before retrying
       if (
         error.response &&
         error.response.status === 429 &&
