@@ -1,7 +1,7 @@
 # vnstock-js — SDK Backlog
 
-**Last updated:** 2026-04-15
-**Current focus:** v1.3.2 shipping, v1.4 = MCP Server (promoted from v1.6)
+**Last updated:** 2026-05-14
+**Current focus:** v1.3.3 = VCI REST migration (bug fix, port từ vnstock Python 3.5.2); v1.4 = MCP Server next
 **Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
 Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
@@ -16,7 +16,8 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 | v1.2.0 | 2026-04-03 | Symbol Directory, Market Calendar, rate-limit auto-wait |
 | v1.3.0 | 2026-04-14 | `await init()` remote data, Realtime hardening, **CLI** (quote/history/search/symbols) |
 | v1.3.1 | 2026-04-14 | CLI patches (range fix, HSX/HOSE alias, price rounding, `-v` version, symbols full default) |
-| v1.3.2 | In progress | History buffer fix for accurate `Change %` at window edge |
+| v1.3.2 | 2026-04-14 | History buffer fix for accurate `Change %` at window edge, CLI update notifier |
+| v1.3.3 | In progress | **VCI REST migration** — Listing/Company/Financial chuyển GraphQL → Vietcap REST (port từ vnstock Python 3.5.2). Plan: `plans/2026-05-14-v1.3.3-vci-rest-migration.md` |
 
 ---
 
@@ -29,7 +30,7 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 | v1.6.0 | CLI fill-in commands + config | Backlog |
 | v1.7.0 | Fundamentals + Screeners | Backlog |
 
-**Rationale đẩy MCP lên v1.4:** distribution lever lớn nhất — ship sớm để test demand. Spec đã viết xong (`specs/2026-04-14-v1.6-mcp-server-design.md`, giữ tên file cũ để reference), 8 tools wrap SDK hiện có, không block gì.
+**Rationale đẩy MCP lên v1.4:** distribution lever lớn nhất — ship sớm để test demand. Spec đã viết xong (`specs/2026-04-14-v1.4.0-mcp-server-design.md`), 8 tools wrap SDK hiện có, không block gì.
 
 ### ~~CLI chat interactive~~ — Dropped
 
@@ -51,7 +52,7 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 
 **Theme:** Expose `vnstock-js` làm MCP (Model Context Protocol) server để Claude Desktop / Cursor / VS Code có thể query stock VN qua tool-calling. Distribution lever lớn nhất trong roadmap — audience Claude users rộng hơn terminal users nhiều lần. Đẩy lên v1.4 (từ v1.6) để test demand sớm.
 
-**Spec reference:** `specs/2026-04-14-v1.6-mcp-server-design.md` (tên file giữ theo ngày viết spec, nội dung áp dụng cho v1.4)
+**Spec reference:** `specs/2026-04-14-v1.4.0-mcp-server-design.md`
 
 ### In scope
 
