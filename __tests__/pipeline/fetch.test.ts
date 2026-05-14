@@ -100,17 +100,33 @@ describe("fetchWithRetry", () => {
     expect(mockedAxios.request).toHaveBeenCalledTimes(1);
   });
 
-  it("includes default headers with Referer", async () => {
-    mockedAxios.request.mockResolvedValueOnce({ data: {} });
+  it("includes Vietcap-specific headers for vietcap.com.vn URLs", async () => {
+    mockedAxios.request.mockResolvedValueOnce({ data: {}, headers: {} });
 
-    await fetchWithRetry({ url: "https://example.com/api", method: "GET" });
+    await fetchWithRetry({ url: "https://trading.vietcap.com.vn/api/test", method: "GET" });
 
     expect(mockedAxios.request).toHaveBeenCalledWith(
       expect.objectContaining({
         headers: expect.objectContaining({
           Referer: expect.any(String),
+          Origin: expect.any(String),
+          "Device-Id": expect.any(String),
+          Cookie: expect.stringContaining("device_id="),
         }),
       })
     );
+  });
+
+  it("uses minimal headers for non-Vietcap URLs (no Origin/Referer to avoid 403)", async () => {
+    mockedAxios.request.mockResolvedValueOnce({ data: {}, headers: {} });
+
+    await fetchWithRetry({ url: "https://example.com/api", method: "GET" });
+
+    const call = mockedAxios.request.mock.calls[0][0];
+    expect(call.headers).toHaveProperty("User-Agent");
+    expect(call.headers).toHaveProperty("Accept");
+    expect(call.headers).not.toHaveProperty("Origin");
+    expect(call.headers).not.toHaveProperty("Referer");
+    expect(call.headers).not.toHaveProperty("Device-Id");
   });
 });
