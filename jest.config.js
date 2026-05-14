@@ -7,6 +7,10 @@ module.exports = {
       tsConfig: path.resolve("jest.tsconfig.json"),
     },
   },
+  reporters: [
+    "default",
+    ["<rootDir>/scripts/jest-markdown-reporter.js", { outputDir: "docs/reports" }],
+  ],
   projects: [
     {
       displayName: "test",
