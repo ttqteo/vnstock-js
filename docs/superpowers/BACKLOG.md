@@ -61,6 +61,7 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 **Theme:** Launch vnstock-js là "AI Research Toolkit cho VN stock". Bundle MCP + AI primitives để có coherent launch story — không phải "thin SDK wrapper" mà là VN-native market intelligence pre-computed.
 
 **Spec reference:** [`specs/2026-04-14-v1.4.0-mcp-server-design.md`](specs/2026-04-14-v1.4.0-mcp-server-design.md) (revised 2026-05-14)
+**Plan reference:** [`plans/2026-05-14-v1.4.0-ai-native-foundation.md`](plans/2026-05-14-v1.4.0-ai-native-foundation.md) — 12 tasks, ~12 days dev, calendar 2-3 weeks
 
 ### In scope
 
