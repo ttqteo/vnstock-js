@@ -19,6 +19,10 @@ Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng kho�
 - **Hàng hóa** -- Giá vàng (BTMC, SJC, GiaVang.net), tỷ giá VCB
 - **Tin tức** -- Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
 - **Realtime** -- WebSocket dữ liệu giá trực tiếp (SSI)
+- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI, MACD, Bollinger Bands, ATR
+- **AI context** -- `aiContext()` trả structured trend/RSI/MACD/S-R/volume cho LLM reasoning
+- **MCP server** -- `vnstock mcp` cho Claude Desktop / Cursor / VS Code
+- **Watchlist** -- quản lý danh sách mã yêu thích, persist `~/.vnstock-js/watchlist.json`
 - **CLI** -- Command-line tool `vnstock` cho terminal users
 - **TypeScript** -- Đầy đủ type definitions
 
@@ -159,13 +163,115 @@ Tùy chọn:
 ## Chỉ báo kỹ thuật
 
 ```ts
-import { sma, ema, rsi } from 'vnstock-js';
+import { sma, ema, rsi, macd, bollinger, atr } from 'vnstock-js';
 
 const history = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
 
 const sma20 = sma(history, { period: 20 });
 const ema12 = ema(history, { period: 12 });
 const rsi14 = rsi(history);
+const macdData = macd(history);                        // 12/26/9 default
+const bb = bollinger(history, { period: 20, stddev: 2 });
+const atr14 = atr(history, 14);
+```
+
+## AI context — phân tích kỹ thuật cho LLM (v1.4+)
+
+```ts
+import vnstock from 'vnstock-js';
+
+// Structured JSON cho AI reasoning
+const ctx = await vnstock.stock.aiContext('VCB');
+console.log(ctx.trend);     // { direction: 'bullish', strength: 0.7, rationale: '...' }
+console.log(ctx.indicators);// RSI, MACD, SMA, EMA, Bollinger, ATR
+console.log(ctx.levels);    // { support: [...], resistance: [...] }
+
+// Plain-text format để dán vào GPT/Gemini bên ngoài
+const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
+```
+
+## MCP server — hỏi Claude về cổ phiếu VN (v1.4+)
+
+vnstock-js đi kèm MCP (Model Context Protocol) server expose 11 tools cho Claude:
+
+- 8 data tools: `get_quote`, `get_history`, `search_symbols`, `list_symbols`, `top_movers`, `is_trade_day`, `get_trading_calendar`, `get_company_info`
+- 3 AI tools: `get_ai_context` (structured technical analysis), `to_ai_prompt` (plain-text), `compare_symbols`
+
+### Claude Desktop
+
+Edit `claude_desktop_config.json`:
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "vnstock": {
+      "command": "npx",
+      "args": ["-y", "vnstock-js", "mcp"]
+    }
+  }
+}
+```
+
+Reload Claude Desktop và hỏi: "giá VCB hôm nay", "phân tích kỹ thuật MBB", "so sánh VCB TCB MBB"...
+
+### Claude Code CLI
+
+User-scope (toàn cục, mọi project dùng được):
+
+```bash
+claude mcp add --scope user vnstock npx -y vnstock-js mcp
+claude mcp list   # verify: "vnstock: ... - ✓ Connected"
+```
+
+Project-scope (commit `.mcp.json` chia sẻ team):
+
+```bash
+claude mcp add --scope project vnstock npx -y vnstock-js mcp
+```
+
+Project-scope MCP cần approve trong session đầu: gõ `/mcp` trong Claude Code → approve `vnstock`.
+
+### Cursor / VS Code
+
+Tương tự config schema, xem docs MCP của từng client.
+
+### Test queries
+
+Sau khi setup xong, gõ trong Claude:
+
+| Query | Tool gọi |
+|---|---|
+| `giá VCB hôm nay` | `get_quote` |
+| `phân tích kỹ thuật VCB` | `get_ai_context` |
+| `xuất context VCB sang text` | `to_ai_prompt` |
+| `so sánh VCB và TCB` | `compare_symbols` |
+| `top tăng giảm hôm nay` | `top_movers` |
+| `30/4/2026 có giao dịch không` | `is_trade_day` |
+| `tìm mã ngân hàng` | `search_symbols` |
+| `FPT 30 phiên qua` | `get_history` |
+
+## Easy-mode helpers (v1.4+)
+
+```ts
+import { quickQuote, recentHistory, compareSymbols, topMovers } from 'vnstock-js';
+
+const q = await quickQuote('VCB');           // { symbol, price, change, volume, ... }
+const last30 = await recentHistory('VCB', 30);
+const cmp = await compareSymbols(['VCB', 'TCB', 'MBB']);
+const movers = await topMovers();             // { gainers, losers }
+```
+
+## Watchlist (v1.4+)
+
+```ts
+import { watchlist } from 'vnstock-js';
+
+await watchlist.create('banks');
+await watchlist.add('banks', ['VCB', 'TCB', 'MBB']);
+const symbols = await watchlist.list('banks');
+// Persist tại ~/.vnstock-js/watchlist.json (Node)
 ```
 
 ## API nâng cao

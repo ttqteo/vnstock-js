@@ -1,4 +1,4 @@
-import { stock, commodity } from "../src";
+import { stock, commodity, quickQuote, recentHistory, compareSymbols, topMovers } from "../src";
 
 describe("Simple API", () => {
   describe("stock", () => {
@@ -61,6 +61,39 @@ describe("Simple API", () => {
       const data = await commodity.exchange();
       expect(Array.isArray(data)).toBe(true);
       expect(data[0]).toHaveProperty("currencyCode");
+    }, 30000);
+  });
+
+  describe("easy-mode", () => {
+    it("quickQuote returns flat object with price + change", async () => {
+      const q = await quickQuote("VCB");
+      expect(q).not.toBeNull();
+      expect(q).toHaveProperty("symbol", "VCB");
+      expect(q).toHaveProperty("price");
+      expect(q).toHaveProperty("volume");
+    }, 30000);
+
+    it("recentHistory returns N most-recent candles", async () => {
+      const rows = await recentHistory("VCB", 10);
+      expect(Array.isArray(rows)).toBe(true);
+      expect(rows.length).toBeLessThanOrEqual(10);
+      if (rows.length > 0) expect(rows[0]).toHaveProperty("close");
+    }, 30000);
+
+    it("compareSymbols returns array of flat quote objects", async () => {
+      const rows = await compareSymbols(["VCB", "FPT"]);
+      expect(Array.isArray(rows)).toBe(true);
+      expect(rows.length).toBe(2);
+      expect(rows[0]).toHaveProperty("symbol");
+      expect(rows[0]).toHaveProperty("price");
+    }, 30000);
+
+    it("topMovers returns { gainers, losers }", async () => {
+      const data = await topMovers();
+      expect(data).toHaveProperty("gainers");
+      expect(data).toHaveProperty("losers");
+      expect(Array.isArray(data.gainers)).toBe(true);
+      expect(Array.isArray(data.losers)).toBe(true);
     }, 30000);
   });
 });

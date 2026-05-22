@@ -137,5 +137,6 @@ test-outputs
 # Claude
 CLAUDE.md
 .claude/
+.mcp.json
 docs/plans/
 docs/reports/

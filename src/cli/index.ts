@@ -220,11 +220,34 @@ function buildProgram(): Command {
       );
     });
 
+  program
+    .command("mcp")
+    .description("Start MCP server (stdio) for Claude Desktop / Cursor / VS Code")
+    .action(async function () {
+      var mod = await import("./mcp/index");
+      await mod.start();
+    });
+
   return program;
 }
 
+// Default-to-quote shortcut: `vnstock MBB` → `vnstock quote MBB`.
+// If first positional looks like a symbol (uppercase letters/digits/comma)
+// and not a known subcommand or flag, inject `quote`.
+var KNOWN_COMMANDS = ["quote", "history", "search", "symbols", "mcp", "help"];
+var argv = process.argv.slice();
+if (argv.length >= 3) {
+  var first = argv[2];
+  var isKnown = KNOWN_COMMANDS.indexOf(first) !== -1;
+  var isFlag = first.charAt(0) === "-";
+  var looksLikeSymbols = /^[A-Za-z][A-Za-z0-9,]*$/.test(first);
+  if (!isKnown && !isFlag && looksLikeSymbols) {
+    argv.splice(2, 0, "quote");
+  }
+}
+
 var program = buildProgram();
-program.parseAsync(process.argv).catch(function (err: any) {
+program.parseAsync(argv).catch(function (err: any) {
   process.stderr.write("Fatal: " + (err && err.message) + "\n");
   process.exit(2);
 });
