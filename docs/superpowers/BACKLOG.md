@@ -1,7 +1,7 @@
 # vnstock-js — SDK Backlog
 
-**Last updated:** 2026-05-14
-**Current focus:** v1.3.3 shipped (PR #8 merged); v1.4.0 = **AI-Native Foundation** next up (per [v2.0 north-star vision](specs/2026-05-14-v2.0-ai-native-vision.md))
+**Last updated:** 2026-05-22
+**Current focus:** v1.4.0 shipped (PR #13 merged, commit `d5f35ad`); v1.5.0 **Power Workflow** next up (per [v2.0 north-star vision](specs/2026-05-14-v2.0-ai-native-vision.md))
 **Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
 Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
@@ -18,6 +18,7 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 | v1.3.1 | 2026-04-14 | CLI patches (range fix, HSX/HOSE alias, price rounding, `-v` version, symbols full default) |
 | v1.3.2 | 2026-04-14 | History buffer fix for accurate `Change %` at window edge, CLI update notifier |
 | v1.3.3 | 2026-05-14 | **VCI REST migration** — Listing/Company/Financial từ GraphQL → Vietcap REST. **+ Module `news`** từ ttqteo/news-crawler. Plan: `plans/2026-05-14-v1.3.3-vci-rest-migration.md` |
+| v1.4.0 | 2026-05-22 | **AI-Native Foundation** (PR #13) — MCP server (11 tools bilingual) + Indicators v2 (MACD/Bollinger/ATR) + AI context layer (`aiContext` / `toAIPrompt`) + Easy-mode helpers + Watchlist + CLI multi-symbol shortcut. Plan: `plans/2026-05-14-v1.4.0-ai-native-foundation.md` |
 
 ---
 
@@ -27,8 +28,8 @@ Roadmap restructure theo [v2.0 north-star vision](specs/2026-05-14-v2.0-ai-nativ
 
 | Version | Phase | Theme | Status |
 |---|---|---|---|
-| v1.4.0 | 1 | **AI-Native Foundation** — MCP server + Indicators v2 + AI context + prompt helpers + Easy-mode + Watchlist | Next up |
-| v1.5.0 | 2 | **Power Workflow** — Patterns + Event/alerts + Portfolio + CLI fill-in + Config + Fundamentals + Screeners | After v1.4 |
+| v1.4.0 | 1 | **AI-Native Foundation** — MCP server + Indicators v2 + AI context + prompt helpers + Easy-mode + Watchlist | **Shipped 2026-05-22** |
+| v1.5.0 | 2 | **Power Workflow** — Patterns + Event/alerts + Portfolio + CLI fill-in + Config + Fundamentals + Screeners | Next up |
 | v1.6.0 | 3 | **Historical Reasoning** — Analog engine + similar setups + signal backtest light | After v1.5 |
 | v2.0.0 | 4 | **RAG Research Memory** — Vector store + ingestion (news/earnings/theses) — breaking | Major |
 
