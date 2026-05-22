@@ -6,6 +6,7 @@ import { Company } from "./company";
 import Screening from "./screening";
 import { StockDataAdapter } from "../../adapters/types";
 import { VciAdapter } from "../../adapters/vci";
+import { buildAIContext, formatAIPrompt, AIContext } from "./ai-context";
 
 export default class Stock {
   trading: Trading;
@@ -27,5 +28,17 @@ export default class Stock {
 
   company(ticker: string): Company {
     return new Company(ticker, this.adapter);
+  }
+
+  aiContext(symbol: string, options: { lookback?: number } = {}): Promise<AIContext> {
+    return buildAIContext(this.adapter, symbol, options);
+  }
+
+  async toAIPrompt(
+    symbol: string,
+    options: { lookback?: number; lang?: "vi" | "en" } = {}
+  ): Promise<string> {
+    const ctx = await buildAIContext(this.adapter, symbol, options);
+    return formatAIPrompt(ctx, options.lang ?? "vi");
   }
 }

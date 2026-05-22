@@ -1,5 +1,59 @@
 # Changelog
 
+## 1.4.0 — AI-Native Foundation
+
+Repositioning vnstock-js từ "VN stock SDK" sang "AI Research Toolkit cho cổ phiếu Việt Nam". Bundle MCP server + indicators v2 + AI context layer + easy-mode helpers + watchlist trong 1 release.
+
+### Thêm
+
+- **MCP server** (`vnstock mcp` subcommand) — stdio MCP server cho Claude Desktop / Cursor / VS Code. 11 tools bilingual (Vi + En):
+  - 8 data tools: `get_quote`, `get_history`, `search_symbols`, `list_symbols`, `top_movers`, `is_trade_day`, `get_trading_calendar`, `get_company_info`
+  - 3 AI primitives: `get_ai_context`, `to_ai_prompt`, `compare_symbols`
+  - Session cache (30s quote, 60s aiContext) giảm pressure VCI
+  - Dynamic import → CLI startup không bị regress
+- **Indicators v2** — bổ sung SMA/EMA/RSI có sẵn:
+  - `macd(candles, opts?)` — 12/26/9 default, configurable fast/slow/signal
+  - `bollinger(candles, opts?)` — 20-period 2-stddev, trả thêm `percentB` (0..1)
+  - `atr(candles, period?)` — Wilder smoothing, default 14-period
+- **AI context layer:**
+  - `vnstock.stock.aiContext(symbol)` — structured JSON: trend (bullish/bearish/neutral), indicators snapshot (RSI/MACD/SMA/EMA/Bollinger/ATR), pivot S/R, volume z-score, performance 1d/7d/30d/90d
+  - `vnstock.stock.toAIPrompt(symbol, { lang })` — plain-text format cho non-MCP LLM (GPT/Gemini/local)
+  - Trend classifier rules-based (EMA chain + slope)
+  - S/R bằng swing pivot points (5-day window)
+- **Easy-mode helpers** top-level:
+  - `vnstock.quickQuote("VCB")` — giá hiện tại + change %
+  - `vnstock.recentHistory("VCB", 30)` — N phiên gần nhất
+  - `vnstock.compareSymbols(["VCB","TCB"])` — side-by-side
+  - `vnstock.topMovers()` — gainers + losers cùng response
+- **Watchlist module** `vnstock.watchlist`:
+  - CRUD: `create/delete/add/remove/list/listAll/has`
+  - Persist Node: `~/.vnstock-js/watchlist.json` (atomic rename)
+  - Browser: no-op + warn, inject custom via `setStorage(adapter)`
+  - Auto-uppercase, dedup symbols
+
+### Nội bộ
+
+- Dependency mới: `@modelcontextprotocol/sdk@^1.29.0`
+- 83 new tests (24 indicators + 16 ai-context + 4 easy-mode + 12 watchlist + 27 mcp)
+- Pure-function indicators v2 (không network), AI context layer compose lại — testable mock-based
+
+### Migration notes
+
+Không breaking. v1.3.x code chạy y nguyên. Features mới opt-in.
+
+Cài MCP server vào Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "vnstock": {
+      "command": "npx",
+      "args": ["-y", "vnstock-js", "mcp"]
+    }
+  }
+}
+```
+
 ## 1.3.3
 
 ### Thêm
