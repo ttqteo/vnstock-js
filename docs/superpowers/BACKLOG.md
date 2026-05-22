@@ -1,7 +1,7 @@
 # vnstock-js — SDK Backlog
 
 **Last updated:** 2026-05-14
-**Current focus:** v1.3.3 shipped (PR #8 merged); v1.4 = MCP Server next up
+**Current focus:** v1.3.3 shipped (PR #8 merged); v1.4.0 = **AI-Native Foundation** next up (per [v2.0 north-star vision](specs/2026-05-14-v2.0-ai-native-vision.md))
 **Docs site roadmap:** xem [docs-site-roadmap.md](docs-site-roadmap.md) (track riêng, parallel với SDK)
 
 Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/distribution và infrastructure nằm ở cuối file như cross-cutting concerns.
@@ -23,14 +23,22 @@ Tài liệu này theo dõi **SDK/CLI feature roadmap** theo version. Content/dis
 
 ## SDK Release roadmap
 
-| Version | Theme | Status |
-|---|---|---|
-| v1.4.0 | **MCP server** (`vnstock mcp` subcommand, tools cho Claude Desktop / Cursor / VS Code) | Next up |
-| v1.5.0 | Easy-mode helpers + Watchlist + Portfolio basic | After v1.4 |
-| v1.6.0 | CLI fill-in commands + config | Backlog |
-| v1.7.0 | Fundamentals + Screeners | Backlog |
+Roadmap restructure theo [v2.0 north-star vision](specs/2026-05-14-v2.0-ai-native-vision.md) — "AI-Native VN Stock Research SDK". 4 phases, mỗi phase 1 release. Option B (3 minor + 1 major) đã chốt: bundle các features liên quan thành theme coherent thay vì 1 feature = 1 bump.
 
-**Rationale đẩy MCP lên v1.4:** distribution lever lớn nhất — ship sớm để test demand. Spec đã viết xong (`specs/2026-04-14-v1.4.0-mcp-server-design.md`), 8 tools wrap SDK hiện có, không block gì.
+| Version | Phase | Theme | Status |
+|---|---|---|---|
+| v1.4.0 | 1 | **AI-Native Foundation** — MCP server + Indicators v2 + AI context + prompt helpers + Easy-mode + Watchlist | Next up |
+| v1.5.0 | 2 | **Power Workflow** — Patterns + Event/alerts + Portfolio + CLI fill-in + Config + Fundamentals + Screeners | After v1.4 |
+| v1.6.0 | 3 | **Historical Reasoning** — Analog engine + similar setups + signal backtest light | After v1.5 |
+| v2.0.0 | 4 | **RAG Research Memory** — Vector store + ingestion (news/earnings/theses) — breaking | Major |
+
+**Rationale Option B (3 minor + 1 major):**
+- Tránh release explosion (6+ bumps theo plan cũ) — gộp features cùng theme.
+- Mỗi version 1.5-2 tuần dev cho solo maintainer, ship được.
+- v1.4 = "AI Foundation" có coherent launch story (MCP + indicators v2 + AI context cùng nhau là USP, không tách rời).
+- v1.5 = "Power Workflow" cluster các tool dev/trader dùng hằng ngày.
+- v1.6 = "Historical Reasoning" wow-factor riêng, deserve own release.
+- v2.0 = breaking infra (RAG dep, vector store).
 
 ### ~~CLI chat interactive~~ — Dropped
 
@@ -48,135 +56,118 @@ Nếu tương lai có nhu cầu rõ (vd. VCI rate-limit/blocking), revisit như 
 
 ---
 
-## v1.4.0 — MCP Server
+## v1.4.0 — AI-Native Foundation (Phase 1)
 
-**Theme:** Expose `vnstock-js` làm MCP (Model Context Protocol) server để Claude Desktop / Cursor / VS Code có thể query stock VN qua tool-calling. Distribution lever lớn nhất trong roadmap — audience Claude users rộng hơn terminal users nhiều lần. Đẩy lên v1.4 (từ v1.6) để test demand sớm.
+**Theme:** Launch vnstock-js là "AI Research Toolkit cho VN stock". Bundle MCP + AI primitives để có coherent launch story — không phải "thin SDK wrapper" mà là VN-native market intelligence pre-computed.
 
-**Spec reference:** `specs/2026-04-14-v1.4.0-mcp-server-design.md`
+**Spec reference:** [`specs/2026-04-14-v1.4.0-mcp-server-design.md`](specs/2026-04-14-v1.4.0-mcp-server-design.md) (revised 2026-05-14)
 
 ### In scope
 
-- **MCP server** — binary `vnstock mcp` (subcommand CLI hiện có). Chạy trên stdio theo spec MCP.
-- **Tools expose (~8 core):**
-  - `get_quote(symbol)` — priceBoard snapshot (giá, change, volume, trần/sàn)
-  - `get_history(symbol, from?, to?, range?, limit?)` — lịch sử OHLCV
-  - `search_symbols(query, limit?)` — directory fuzzy search
-  - `list_symbols(exchange?, limit?)` — liệt kê mã theo sàn
-  - `top_movers()` — gainers + losers combined
-  - `is_trade_day(date)` — calendar check
-  - `get_trading_calendar(year)` — danh sách ngày nghỉ
-  - `get_company_info(symbol)` — profile cơ bản (tên, sàn, ngành)
-- **Install flow:**
-  ```json
-  // claude_desktop_config.json
-  {
-    "mcpServers": {
-      "vnstock": {
-        "command": "npx",
-        "args": ["-y", "vnstock-js", "mcp"]
-      }
-    }
-  }
-  ```
-  Hoặc `npm i -g vnstock-js` rồi `command: "vnstock", args: ["mcp"]`.
-- **VN context trong tool descriptions:** mỗi tool có description tiếng Việt + tiếng Anh giải thích thuật ngữ (trần, sàn, ATO, bluechip...). Claude tự format câu trả lời tiếng Việt từ data return.
-- **Test strategy:** mock MCP transport, test mỗi tool với synthetic SDK response. Integration test riêng spawn server + client.
+- **MCP server** — `vnstock mcp` stdio subcommand, 11 tools (8 basic + 3 AI primitives)
+- **Indicators v2 expansion:** MACD, Bollinger Bands, ATR (bổ sung SMA/EMA/RSI v1)
+- **AI context layer:**
+  - `vnstock.stock.aiContext(symbol)` — structured JSON: trend, indicators snapshot, S/R pivot, volume signal, performance
+  - `vnstock.stock.toAIPrompt(symbol)` — plain-text format cho non-MCP LLM (GPT/Gemini/local)
+  - Trend classifier rules-based (EMA chain + slope)
+  - S/R bằng pivot points (swing high/low, 5-day window)
+- **Easy-mode helpers:** `quickQuote`, `recentHistory`, `compareSymbols`, `topMovers`
+- **Watchlist module:** CRUD + persist Node `~/.vnstock-js/watchlist.json`, browser opt-in adapter
+- **MCP AI tools:** `get_ai_context`, `to_ai_prompt`, `compare_symbols`
 
-### Tech dependencies
+### Out of scope (defer)
 
-- `@modelcontextprotocol/sdk` official TypeScript SDK
-- Reuse 100% SDK hiện có (Directory, stock.trading, stock.quote, market.calendar). Không logic riêng.
-
-### Out of scope
-
-- Advanced tools (screener, fundamentals) — đẩy sang v1.7 sau khi ship Fundamentals module
-- Watchlist tools — depend vào v1.5 watchlist, thêm vào MCP ở v1.5 release
-- Streaming/realtime qua MCP — MCP không support WebSocket natively
-
-### Open questions
-
-- Package layout: subcommand `vnstock mcp` trong same package, hay tách `@vnstock-js/mcp`? → Recommend: **subcommand** (user 1 lần install, dùng cả CLI + MCP)
-- Authentication: MCP có auth không? → Không cần cho public VCI API
-- Rate limit: Claude có thể spam tools fast. Dùng `rateLimitWait` từ v1.2 đủ.
+- Pattern detection sâu (Cup&Handle, Triangle, Flag/Wedge algorithmic) → v1.5
+- Event/alert system → v1.5
+- Portfolio P/L → v1.5
+- Fundamentals + Screeners → v1.5
+- Historical analog → v1.6
+- RAG/vector → v2.0
 
 ---
 
-## v1.5.0 — Easy-mode + Watchlist + Portfolio
+## v1.5.0 — Power Workflow (Phase 2)
 
-**Theme:** Mở rộng tệp user từ "JS/TS dev" sang "analyst / trader bán-kỹ thuật" — cung cấp helper one-liner và module đóng gói theo job-to-be-done. Sau khi v1.4 MCP ship, thêm watchlist/portfolio tools vào MCP ở release này.
-
-### In scope
-
-- **Easy-mode helpers** trên SDK default instance:
-  - `vnstock.quickQuote("VCB")` — giá mới nhất + change % (wrap `stock.priceBoard`)
-  - `vnstock.recentHistory("VCB", 30)` — N phiên gần nhất (wrap `stock.quote.history` + slice)
-  - `vnstock.compareSymbols(["VCB", "TCB", "MBB"])` — table giá + % change cho nhiều mã
-  - `vnstock.topMovers()` — wrap `topGainers` + `topLosers` trả về cả hai
-- **Watchlist module** — quản lý danh sách mã yêu thích:
-  - API: `watchlist.add`, `remove`, `list`, `quotes(name)`, `create`, `delete`
-  - Persist: Node/CLI → JSON file `~/.vnstock-js/watchlist.json`. Browser → để user lo (optional hook cho localStorage/IndexedDB)
-- **Portfolio basic** — tính giá trị danh mục:
-  - Input: positions `[{ symbol, quantity, avgCost }]`
-  - Output: marketValue, totalCost, P/L per position, total return %
-  - KHÔNG: Sharpe, drawdown, benchmarking — để v1.7+ nếu có nhu cầu
-- **MCP extension:** thêm `watchlist_*` tools + `portfolio_summary` tool vào MCP server v1.4
-
-### Out of scope
-
-- Alerts (cần scheduler infra, defer sang v1.6+)
-- Advanced portfolio analytics (Sharpe, drawdown)
-- Custom indicator builder beyond SMA/EMA/RSI (đã có trong v1.0)
-
----
-
-## v1.6.0 — CLI fill-in + Config
-
-**Theme:** Hoàn thiện CLI bằng các command còn thiếu và config-driven workflow.
+**Theme:** Hoàn thiện daily trader/analyst workflow. Patterns + alerts + screening + fundamentals + CLI commands còn thiếu.
 
 ### In scope
 
-- **Commands mới:**
-  - `vnstock gold` — giá vàng BTMC/SJC/GiaVangNet
-  - `vnstock market` — VN-Index, HNX-Index, UPCOM-Index snapshot
-  - `vnstock compare <S1> <S2> [<S3>...]` — bảng so sánh multi-symbol
-  - `vnstock watchlist <add|remove|list|quotes>` — wire vào v1.5 watchlist
-- **Config file** `~/.vnstock-js/config.json`:
-  - Default exchange, locale, output mode (table/json/csv)
-  - Cache dir, mirror URL (enterprise)
-  - Watchlist default
-- **Shell completions** — bash/zsh/fish auto-complete cho command + symbols (lazy load từ directory)
-- **Pipe-friendly improvements:** streaming output cho large result sets, exit code discipline
-
-### Out of scope
-
-- Fundamentals command (phụ thuộc v1.7 module)
-- Alert command (defer)
-
----
-
-## v1.7.0 — Fundamentals + Screeners
-
-**Theme:** Bổ sung domain "fundamental analysis" — báo cáo tài chính, ratios, screening.
-
-### In scope
-
+- **Pattern detection (rules-based):**
+  - Breakout (price > N-day high với volume spike)
+  - Support/Resistance algorithmic (extend pivot từ v1.4)
+  - Trend direction (slope ema20/ema50)
+  - Double top/bottom (light heuristic)
+  - Volume anomaly (z-score > 2)
+- **Event/alert system:** `stock.on("breakout", cb)` EventEmitter, persist subscription cho daemon
 - **Fundamentals module:**
-  - `stock.financial(symbol).incomeStatement()` — quý + năm
-  - `stock.financial(symbol).balanceSheet()`
-  - `stock.financial(symbol).cashFlow()`
-  - `stock.financial(symbol).ratios()` — P/E, P/B, ROE, ROA, EPS, dividend yield
-- **Screeners:**
-  - Composable filters: `screener.where({ pe: { lt: 15 }, marketCap: { gt: 1e12 } })`
-  - Common presets: `screener.valueStocks()`, `screener.growthStocks()`, `screener.dividendStocks()`
-  - CLI: `vnstock screener --pe '<15' --market-cap '>1T'`
-  - MCP tool: `screen_stocks(filters)` — extend v1.6 MCP
-- **Sector classification:** chuẩn hoá ngành/lĩnh vực cho lookup (dùng lại ICB từ v1.2)
+  - `stock.financials(symbol).balanceSheet/incomeStatement/cashFlow/ratios()`
+  - P/E, P/B, ROE, ROA, EPS, dividend yield
+- **Screener** composable filter (KHÔNG full DSL — YAGNI):
+  - `screener.where({ pe: { lt: 15 }, roe: { gt: 0.15 } })`
+  - Presets: `valueStocks()`, `growthStocks()`, `dividendStocks()`
+- **Portfolio basic:** positions → marketValue, totalCost, P/L %
+- **CLI fill-in:** `gold`, `market`, `compare`, `watchlist`, `screener` subcommands
+- **Config file** `~/.vnstock-js/config.json`
+- **MCP extension:** `find_patterns`, `screen_stocks`, `get_fundamentals`, `watchlist_*`, `portfolio_summary`
 
-### Open questions
+### Out of scope
 
-- VCI có đủ data fundamentals yearly + quarterly không? Reliability cho quarterly latest?
-- Cache strategy: fundamentals ít thay đổi (quý), TTL dài hơn remote data thường (7 ngày?)
-- Schema: dùng GAAP-like (debit/credit strict) hay đơn giản hoá (revenue/expense grouping)?
+- Cup&Handle/Triangle/Flag/Wedge algorithmic → v1.6
+- Analog engine → v1.6
+- DSL screener — drop
+- Custom indicator builder framework — drop
+
+---
+
+## v1.6.0 — Historical Reasoning (Phase 3)
+
+**Theme:** "Wow-factor" release. Historical analog engine — competitive moat vs TradingView. Find historical setups tương tự current condition.
+
+### In scope
+
+- **Analog engine:**
+  - `stock.similarSetups(symbol, opts?)` — return historical dates với condition khớp current
+  - Fingerprint: vector các indicator snapshot (RSI, MACD signal, volume z-score, trend slope)
+  - Similarity: cosine distance
+  - Output: top-N dates + outcome window (return 5d/30d/90d sau setup)
+- **Pattern detection advanced:** Cup&Handle, Triangle (ascending/descending/symmetric), Flag, Wedge
+- **Signal backtest light:**
+  - `stock.backtest(symbol, signalFn, opts?)` — apply signal, return entry/exit/PnL stats
+  - Long-only, fixed position size, no slippage/fees
+- **MCP extension:** `find_similar_setups`, `backtest_signal`
+
+### Out of scope
+
+- Multi-symbol portfolio backtest — out of scope
+- Optimization framework (param sweep) — out of scope
+- ML-based pattern detection — defer (rules-based đủ)
+
+---
+
+## v2.0.0 — RAG Research Memory (Phase 4, breaking)
+
+**Theme:** Build research memory layer. Ingest news/earnings/theses, expose semantic search + retrieval-augmented generation pipeline.
+
+### In scope
+
+- **Ingestion pipeline:** news (extend v1.3.3 `vnstock.news` full-text indexing), earnings PDF parse, theses + macro markdown
+- **Vector store integration:** adapter pattern — `pgvector`/`Qdrant`/`Weaviate`. Default in-memory toy use, opt-in remote.
+- **Embedding:** OpenAI/Cohere/local sentence-transformers (user choice)
+- **Semantic search API:**
+  - `research.search("Vietcombank Q3 earnings")` → ranked passages
+  - `research.context(symbol, query)` → blended structured + retrieved context cho LLM
+- **MCP tools:** `search_research`, `get_company_research_context`
+
+### Breaking changes
+
+- New optional peer deps (vector store clients)
+- `vnstock.news` API expand: persist + indexing (stateful)
+- Config schema migration
+
+### Out of scope
+
+- Research notebook UI — separate project, không phải SDK
+- Auto-summarize via LLM — user lo, SDK provide context
 
 ---
 
