@@ -4,3 +4,5 @@ export { rsi, type RsiResult } from "./rsi";
 export { macd, type MacdResult } from "./macd";
 export { bollinger, type BollingerResult } from "./bollinger";
 export { atr, type AtrResult } from "./atr";
+export { superTrend, type SuperTrendResult, type SuperTrendOptions } from "./supertrend";
+export { ichimoku, ichimokuFutureCloud, type IchimokuResult, type IchimokuOptions, type IchimokuFutureBar } from "./ichimoku";

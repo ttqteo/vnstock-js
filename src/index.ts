@@ -27,7 +27,7 @@ export const realtime = { create: createRealtime, parseData };
 export { RealtimeClient };
 export { Vnstock };
 export { init };
-export { sma, ema, rsi } from "./indicators";
+export { sma, ema, rsi, superTrend, ichimoku } from "./indicators";
 
 export type { ScreenFilter, ScreenOptions, ScreenResult } from "./models/screening";
 export type { StockDataAdapter } from "./adapters/types";

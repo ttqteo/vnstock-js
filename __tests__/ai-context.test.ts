@@ -59,6 +59,18 @@ describe("classifyTrend", () => {
     expect(r.direction).toBe("neutral");
     expect(r.strength).toBe(0);
   });
+
+  it("appends SuperTrend + Ichimoku confirmation to rationale on bullish uptrend", () => {
+    const r = classifyTrend(makeUptrend(220));
+    expect(r.direction).toBe("bullish");
+    expect(r.rationale).toMatch(/ST.*Ichimoku|Ichimoku.*ST/i);
+  });
+
+  it("appends SuperTrend + Ichimoku confirmation to rationale on bearish downtrend", () => {
+    const r = classifyTrend(makeDowntrend(220));
+    expect(r.direction).toBe("bearish");
+    expect(r.rationale).toMatch(/ST.*Ichimoku|Ichimoku.*ST/i);
+  });
 });
 
 describe("snapshotIndicators", () => {
@@ -70,6 +82,14 @@ describe("snapshotIndicators", () => {
     expect(snap.sma[200]).not.toBeNull();
     expect(snap.bollinger.percentB).not.toBeNull();
     expect(snap.atr14).not.toBeNull();
+    expect(snap.superTrend.value).not.toBeNull();
+    expect(snap.superTrend.direction).not.toBeNull();
+    expect(snap.ichimoku.tenkanSen).not.toBeNull();
+    expect(snap.ichimoku.kijunSen).not.toBeNull();
+    expect(snap.ichimoku.cloudTop).not.toBeNull();
+    expect(snap.ichimoku.cloudBottom).not.toBeNull();
+    expect(["above", "below", "inside", null]).toContain(snap.ichimoku.priceVsCloud);
+    expect(["bullish", "bearish", "none"]).toContain(snap.ichimoku.tkCross);
   });
 
   it("gracefully handles short data (< 200)", () => {
@@ -187,6 +207,9 @@ describe("formatAIPrompt", () => {
     expect(text).toContain("Support:");
     expect(text).toContain("Resistance:");
     expect(text).toContain("Change:");
+    expect(text).toContain("SuperTrend:");
+    expect(text).toContain("Ichimoku:");
+    expect(text).toContain("TK cross:");
   });
 
   it("en output contains English labels", async () => {
@@ -197,5 +220,8 @@ describe("formatAIPrompt", () => {
     const text = formatAIPrompt(ctx, "en");
     expect(text).toContain("Trend:");
     expect(text).toContain("Bollinger %B:");
+    expect(text).toContain("SuperTrend:");
+    expect(text).toContain("Ichimoku:");
+    expect(text).toContain("TK cross:");
   });
 });

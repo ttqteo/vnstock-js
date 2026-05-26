@@ -35,7 +35,18 @@ export class GoldService {
     return rawData?.data || rawData || [];
   }
 
+  /**
+   * @deprecated Since v1.4.1. SJC endpoint returns HTTP 403 from non-Vietnam IPs
+   *             (Cloudflare/WAF block). Use `goldPriceBTMC()` or `goldPriceGiaVangNet()` instead.
+   *             Method retained for backwards compat; may be removed in v2.0.
+   */
   async goldPriceSJC(): Promise<GoldPriceSjc[]> {
+    if (typeof console !== "undefined" && console.warn) {
+      console.warn(
+        "[vnstock-js] goldPriceSJC() is deprecated: SJC endpoint returns 403 from non-VN IPs. " +
+        "Use goldPriceBTMC() or goldPriceGiaVangNet() instead."
+      );
+    }
     const rawData = await fetchWithRetry<any>({
       url: "https://sjc.com.vn/GoldPrice/Services/PriceService.ashx",
       method: "GET",

@@ -121,7 +121,7 @@ export const tools: ToolSchema[] = [
     name: "get_ai_context",
     description:
       "Lấy bối cảnh phân tích kỹ thuật cho 1 mã, dạng structured JSON. " +
-      "Bao gồm trend (bullish/bearish/neutral), indicators (RSI, MACD, SMA20/50/200, ATR, Bollinger), " +
+      "Bao gồm trend (bullish/bearish/neutral), indicators (RSI, MACD, SMA20/50/200, EMA, ATR, Bollinger, SuperTrend, Ichimoku Cloud), " +
       "support/resistance pivot, volume signal, %change 1d/7d/30d/90d. " +
       "Dùng khi user hỏi 'phân tích kỹ thuật VCB', 'VCB đang xu hướng gì'. " +
       "EN: Get pre-computed technical analysis context for a Vietnam stock symbol.",
@@ -138,6 +138,7 @@ export const tools: ToolSchema[] = [
     name: "to_ai_prompt",
     description:
       "Tương tự get_ai_context nhưng trả plain-text format optimize cho LLM context window. " +
+      "Include: trend, RSI, MACD, SMA/EMA, ATR, Bollinger, SuperTrend, Ichimoku Cloud, support/resistance, volume, performance. " +
       "Dùng khi user export context để dán vào GPT/Gemini bên ngoài. " +
       "EN: Same as get_ai_context but returns plain-text formatted for LLM context window.",
     inputSchema: {

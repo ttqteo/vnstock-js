@@ -77,8 +77,60 @@ function tsToDate(ts: number | string | null | undefined): string {
   return d.toISOString().substring(0, 10);
 }
 
+export interface VciAdapterOptions {
+  cache?: boolean;
+}
+
+interface CacheEntry {
+  data: any;
+  expiresAt: number;
+}
+
+const CACHE_TTL_METRICS = 60 * 60 * 1000;
+const CACHE_TTL_ICB = 60 * 60 * 1000;
+const CACHE_TTL_SEARCH_BAR = 30 * 60 * 1000;
+
 export class VciAdapter implements StockDataAdapter {
   readonly name = "VCI";
+
+  private cacheEnabled: boolean;
+  private cache: Map<string, CacheEntry> = new Map();
+
+  constructor(options: VciAdapterOptions = {}) {
+    this.cacheEnabled = options.cache !== false;
+  }
+
+  private cacheGet(key: string): any | undefined {
+    if (!this.cacheEnabled) return undefined;
+    const entry = this.cache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() >= entry.expiresAt) {
+      this.cache.delete(key);
+      return undefined;
+    }
+    return entry.data;
+  }
+
+  private cacheSet(key: string, data: any, ttlMs: number): void {
+    if (!this.cacheEnabled) return;
+    this.cache.set(key, { data, expiresAt: Date.now() + ttlMs });
+  }
+
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  private async fetchMetricsCached(symbol: string): Promise<any> {
+    const cacheKey = `metrics:${symbol}`;
+    const cached = this.cacheGet(cacheKey);
+    if (cached !== undefined) return cached;
+    const fresh = await fetchWithRetry<any>({
+      url: `${VCI_COMPANY_URL}/${symbol}/financial-statement/metrics`,
+      method: "GET",
+    }).catch(() => null);
+    if (fresh !== null) this.cacheSet(cacheKey, fresh, CACHE_TTL_METRICS);
+    return fresh;
+  }
 
   private async ensureHandshake(): Promise<void> {
     if (handshakeDone) return;
@@ -208,11 +260,16 @@ export class VciAdapter implements StockDataAdapter {
   async fetchSymbolsByIndustries(lang: string = "vi"): Promise<IndustryInfo[]> {
     await this.ensureHandshake();
     const language = lang === "en" ? 2 : 1;
-    const response = await fetchWithRetry<any>({
-      url: `${VCI_IQ_URL}/v2/company/search-bar`,
-      method: "GET",
-      params: { language },
-    });
+    const cacheKey = `search-bar:${language}`;
+    let response = this.cacheGet(cacheKey);
+    if (response === undefined) {
+      response = await fetchWithRetry<any>({
+        url: `${VCI_IQ_URL}/v2/company/search-bar`,
+        method: "GET",
+        params: { language },
+      });
+      this.cacheSet(cacheKey, response, CACHE_TTL_SEARCH_BAR);
+    }
 
     const items: any[] = Array.isArray(response) ? response : (response && response.data) || [];
     return items.map((t: any) => {
@@ -241,10 +298,15 @@ export class VciAdapter implements StockDataAdapter {
 
   async fetchIndustriesIcb(): Promise<IndustryClassification[]> {
     await this.ensureHandshake();
-    const response = await fetchWithRetry<any>({
-      url: `${VCI_IQ_URL}/v1/sectors/icb-codes`,
-      method: "GET",
-    });
+    const cacheKey = "icb-codes";
+    let response = this.cacheGet(cacheKey);
+    if (response === undefined) {
+      response = await fetchWithRetry<any>({
+        url: `${VCI_IQ_URL}/v1/sectors/icb-codes`,
+        method: "GET",
+      });
+      this.cacheSet(cacheKey, response, CACHE_TTL_ICB);
+    }
 
     const items: any[] = Array.isArray(response) ? response : (response && response.data) || [];
     return items.map((i: any) => ({
@@ -293,10 +355,7 @@ export class VciAdapter implements StockDataAdapter {
         method: "GET",
         params: { period: periodCode },
       }).catch(() => null),
-      fetchWithRetry<any>({
-        url: `${VCI_COMPANY_URL}/${symbol}/financial-statement/metrics`,
-        method: "GET",
-      }).catch(() => null),
+      this.fetchMetricsCached(symbol),
     ]);
 
     const statementData = (statementResp && statementResp.data) || null;
