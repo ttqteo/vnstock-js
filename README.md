@@ -15,11 +15,10 @@ Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng kho�
 - **Tài chính** -- Bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ
 - **Niêm yết** -- Danh sách mã theo sàn, ngành ICB, nhóm (VN30, HNX30...)
 - **Sàng lọc** -- Lọc cổ phiếu theo PE, ROE, vốn hóa...
-- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI
-- **Hàng hóa** -- Giá vàng (BTMC, SJC, GiaVang.net), tỷ giá VCB
+- **Hàng hóa** -- Giá vàng (BTMC, GiaVang.net; SJC deprecated do 403), tỷ giá VCB
 - **Tin tức** -- Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
 - **Realtime** -- WebSocket dữ liệu giá trực tiếp (SSI)
-- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI, MACD, Bollinger Bands, ATR
+- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI, MACD, Bollinger Bands, ATR, SuperTrend, Ichimoku Cloud
 - **AI context** -- `aiContext()` trả structured trend/RSI/MACD/S-R/volume cho LLM reasoning
 - **MCP server** -- `vnstock mcp` cho Claude Desktop / Cursor / VS Code
 - **Watchlist** -- quản lý danh sách mã yêu thích, persist `~/.vnstock-js/watchlist.json`

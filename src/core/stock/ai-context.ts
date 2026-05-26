@@ -6,6 +6,8 @@ import { rsi } from "../../indicators/rsi";
 import { macd } from "../../indicators/macd";
 import { bollinger } from "../../indicators/bollinger";
 import { atr } from "../../indicators/atr";
+import { superTrend } from "../../indicators/supertrend";
+import { ichimoku } from "../../indicators/ichimoku";
 import { detectPivots, PivotLevels } from "./pivot";
 
 export interface TrendInfo {
@@ -21,6 +23,18 @@ export interface IndicatorSnapshot {
   ema: { 20: number | null; 50: number | null; 200: number | null };
   bollinger: { upper: number | null; middle: number | null; lower: number | null; percentB: number | null };
   atr14: number | null;
+  superTrend: {
+    value: number | null;
+    direction: "bullish" | "bearish" | null;
+  };
+  ichimoku: {
+    tenkanSen: number | null;
+    kijunSen: number | null;
+    cloudTop: number | null;
+    cloudBottom: number | null;
+    priceVsCloud: "above" | "below" | "inside" | null;
+    tkCross: "bullish" | "bearish" | "none";
+  };
 }
 
 export interface VolumeInfo {
@@ -131,6 +145,31 @@ export function snapshotIndicators(data: QuoteHistory[]): IndicatorSnapshot {
   const lastBoll = bollSeries.length > 0 ? bollSeries[bollSeries.length - 1] : null;
   const lastAtr = atrSeries.length > 0 ? atrSeries[atrSeries.length - 1].atr : null;
 
+  const stSeries = superTrend(data);
+  const lastST = stSeries.length > 0 ? stSeries[stSeries.length - 1] : null;
+
+  const ichiSeries = ichimoku(data);
+  const lastIchi = ichiSeries.length > 0 ? ichiSeries[ichiSeries.length - 1] : null;
+  const prevIchi = ichiSeries.length > 1 ? ichiSeries[ichiSeries.length - 2] : null;
+
+  const lastClose = data.length > 0 ? data[data.length - 1].close : null;
+  let priceVsCloud: "above" | "below" | "inside" | null = null;
+  if (lastClose !== null && lastIchi && lastIchi.cloudTop !== null && lastIchi.cloudBottom !== null) {
+    if (lastClose > lastIchi.cloudTop) priceVsCloud = "above";
+    else if (lastClose < lastIchi.cloudBottom) priceVsCloud = "below";
+    else priceVsCloud = "inside";
+  }
+
+  let tkCross: "bullish" | "bearish" | "none" = "none";
+  if (
+    lastIchi && prevIchi &&
+    lastIchi.tenkanSen !== null && lastIchi.kijunSen !== null &&
+    prevIchi.tenkanSen !== null && prevIchi.kijunSen !== null
+  ) {
+    if (lastIchi.tenkanSen > lastIchi.kijunSen && prevIchi.tenkanSen <= prevIchi.kijunSen) tkCross = "bullish";
+    else if (lastIchi.tenkanSen < lastIchi.kijunSen && prevIchi.tenkanSen >= prevIchi.kijunSen) tkCross = "bearish";
+  }
+
   let crossover: "bullish" | "bearish" | "none" = "none";
   if (lastMacd && prevMacd && lastMacd.histogram !== null && prevMacd.histogram !== null) {
     if (prevMacd.histogram <= 0 && lastMacd.histogram > 0) crossover = "bullish";
@@ -154,6 +193,18 @@ export function snapshotIndicators(data: QuoteHistory[]): IndicatorSnapshot {
       percentB: lastBoll?.percentB ?? null,
     },
     atr14: lastAtr,
+    superTrend: {
+      value: lastST ? lastST.superTrend : null,
+      direction: lastST ? lastST.direction : null,
+    },
+    ichimoku: {
+      tenkanSen: lastIchi ? lastIchi.tenkanSen : null,
+      kijunSen: lastIchi ? lastIchi.kijunSen : null,
+      cloudTop: lastIchi ? lastIchi.cloudTop : null,
+      cloudBottom: lastIchi ? lastIchi.cloudBottom : null,
+      priceVsCloud,
+      tkCross,
+    },
   };
 }
 
@@ -240,6 +291,18 @@ export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi"): string
     lines.push(`EMA: 20=${ind.ema[20]?.toFixed(2) ?? "n/a"}, 50=${ind.ema[50]?.toFixed(2) ?? "n/a"}, 200=${ind.ema[200]?.toFixed(2) ?? "n/a"}`);
     lines.push(`Bollinger %B: ${ind.bollinger.percentB?.toFixed(2) ?? "n/a"} (upper=${ind.bollinger.upper?.toFixed(2) ?? "n/a"}, lower=${ind.bollinger.lower?.toFixed(2) ?? "n/a"})`);
     lines.push(`ATR(14): ${ind.atr14?.toFixed(3) ?? "n/a"}`);
+    const stVi = ind.superTrend;
+    const stArrowVi = stVi.direction === "bullish" ? "▲ TĂNG" : stVi.direction === "bearish" ? "▼ GIẢM" : "n/a";
+    lines.push(`SuperTrend: ${stVi.value?.toFixed(2) ?? "n/a"} (${stArrowVi})`);
+    const ichiVi = ind.ichimoku;
+    const cloudStrVi = ichiVi.cloudBottom !== null && ichiVi.cloudTop !== null
+      ? `[${ichiVi.cloudBottom.toFixed(2)} – ${ichiVi.cloudTop.toFixed(2)}]`
+      : "n/a";
+    const priceVsVi = ichiVi.priceVsCloud === "above" ? "TRÊN mây"
+                    : ichiVi.priceVsCloud === "below" ? "DƯỚI mây"
+                    : ichiVi.priceVsCloud === "inside" ? "TRONG mây"
+                    : "n/a";
+    lines.push(`Ichimoku: TK ${ichiVi.tenkanSen?.toFixed(2) ?? "n/a"} / KJ ${ichiVi.kijunSen?.toFixed(2) ?? "n/a"} · Cloud ${cloudStrVi} · Giá ${priceVsVi} · TK cross: ${ichiVi.tkCross}`);
     lines.push(`Volume: ${ctx.volume.today.toLocaleString()} (avg ${ctx.volume.avg20.toLocaleString()}, z-score ${ctx.volume.zscore.toFixed(2)}, ${ctx.volume.signal})`);
     lines.push(`Support: ${ctx.levels.support.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
     lines.push(`Resistance: ${ctx.levels.resistance.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
@@ -255,6 +318,13 @@ export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi"): string
     lines.push(`SMA: 20=${ind.sma[20]?.toFixed(2) ?? "n/a"}, 50=${ind.sma[50]?.toFixed(2) ?? "n/a"}, 200=${ind.sma[200]?.toFixed(2) ?? "n/a"}`);
     lines.push(`Bollinger %B: ${ind.bollinger.percentB?.toFixed(2) ?? "n/a"}`);
     lines.push(`ATR(14): ${ind.atr14?.toFixed(3) ?? "n/a"}`);
+    const stEn = ind.superTrend;
+    lines.push(`SuperTrend: ${stEn.value?.toFixed(2) ?? "n/a"} (${stEn.direction ?? "n/a"})`);
+    const ichiEn = ind.ichimoku;
+    const cloudStrEn = ichiEn.cloudBottom !== null && ichiEn.cloudTop !== null
+      ? `[${ichiEn.cloudBottom.toFixed(2)} – ${ichiEn.cloudTop.toFixed(2)}]`
+      : "n/a";
+    lines.push(`Ichimoku: TK ${ichiEn.tenkanSen?.toFixed(2) ?? "n/a"} / KJ ${ichiEn.kijunSen?.toFixed(2) ?? "n/a"} · Cloud ${cloudStrEn} · Price ${ichiEn.priceVsCloud ?? "n/a"} cloud · TK cross: ${ichiEn.tkCross}`);
     lines.push(`Volume: ${ctx.volume.today} (z-score ${ctx.volume.zscore.toFixed(2)}, ${ctx.volume.signal})`);
     lines.push(`Support: ${ctx.levels.support.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
     lines.push(`Resistance: ${ctx.levels.resistance.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);

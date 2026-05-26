@@ -10,12 +10,27 @@ function isRetryable(error: any): boolean {
   return false;
 }
 
+function isCloudflareRateLimit(error: any): boolean {
+  if (!error.response) return false;
+  var headers = error.response.headers || {};
+  var hasCfRay = !!(headers["cf-ray"] || headers["CF-RAY"]);
+  if (!hasCfRay) return false;
+  var body = error.response.data;
+  if (typeof body !== "string") return false;
+  if (body.indexOf("Error 1015") !== -1) return true;
+  if (body.indexOf("cloudflare") !== -1 && error.response.status >= 400) return true;
+  return false;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function wrapError(error: any): never {
   if (error.response) {
+    if (isCloudflareRateLimit(error)) {
+      throw new RateLimitError("Cloudflare Error 1015 (rate limited)", error);
+    }
     const status: number = error.response.status;
     if (status === 429) {
       throw new RateLimitError(undefined, error);
@@ -81,6 +96,11 @@ export async function fetchWithRetry<T = unknown>(
         var retryAfter = parseInt(error.response.headers && error.response.headers["retry-after"], 10);
         var waitMs = retryAfter > 0 ? Math.min(retryAfter * 1000, rateLimitWait) : rateLimitWait;
         await sleep(waitMs);
+        continue;
+      }
+      if (isCloudflareRateLimit(error) && attempt < retries) {
+        var cfWait = 30000 * Math.pow(2, attempt);
+        await sleep(cfWait);
         continue;
       }
       if (attempt < retries && isRetryable(error)) {
