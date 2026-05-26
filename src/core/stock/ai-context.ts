@@ -106,6 +106,19 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
     return { direction: "neutral", strength: 0, rationale: "Không đủ dữ liệu indicator" };
   }
 
+  const stLast = superTrend(data);
+  const stDir = stLast.length > 0 ? stLast[stLast.length - 1].direction : null;
+
+  const ichiSeries = ichimoku(data);
+  const lastIchi = ichiSeries.length > 0 ? ichiSeries[ichiSeries.length - 1] : null;
+  const lastClose = data[data.length - 1].close;
+  let priceVsCloud: "above" | "below" | "inside" | null = null;
+  if (lastIchi && lastIchi.cloudTop !== null && lastIchi.cloudBottom !== null) {
+    if (lastClose > lastIchi.cloudTop) priceVsCloud = "above";
+    else if (lastClose < lastIchi.cloudBottom) priceVsCloud = "below";
+    else priceVsCloud = "inside";
+  }
+
   let direction: "bullish" | "bearish" | "neutral";
   let rationale: string;
   let strength = 0;
@@ -122,6 +135,47 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
     direction = "neutral";
     rationale = "EMA chuỗi không nhất quán hoặc slope flat — sideway";
     strength = 0.3;
+  }
+
+  if (stDir !== null || priceVsCloud !== null) {
+    const stBull = stDir === "bullish";
+    const stBear = stDir === "bearish";
+    const cloudBull = priceVsCloud === "above";
+    const cloudBear = priceVsCloud === "below";
+
+    if (direction === "bullish") {
+      if (stBull && cloudBull) {
+        strength = Math.min(1, strength + 0.2);
+        rationale += " · ST + Ichimoku confirm bullish";
+      } else if (stBear && cloudBear) {
+        strength = strength * 0.5;
+        rationale += " · ST + Ichimoku contradict (bearish)";
+      } else if (stBear || cloudBear) {
+        strength = strength * 0.8;
+        rationale += " · ST/Ichimoku mixed";
+      }
+    } else if (direction === "bearish") {
+      if (stBear && cloudBear) {
+        strength = Math.min(1, strength + 0.2);
+        rationale += " · ST + Ichimoku confirm bearish";
+      } else if (stBull && cloudBull) {
+        strength = strength * 0.5;
+        rationale += " · ST + Ichimoku contradict (bullish)";
+      } else if (stBull || cloudBull) {
+        strength = strength * 0.8;
+        rationale += " · ST/Ichimoku mixed";
+      }
+    } else {
+      if (stBull && cloudBull) {
+        direction = "bullish";
+        strength = 0.4;
+        rationale = "EMA flat nhưng ST + Ichimoku đồng thuận bullish";
+      } else if (stBear && cloudBear) {
+        direction = "bearish";
+        strength = 0.4;
+        rationale = "EMA flat nhưng ST + Ichimoku đồng thuận bearish";
+      }
+    }
   }
 
   return { direction, strength, rationale };

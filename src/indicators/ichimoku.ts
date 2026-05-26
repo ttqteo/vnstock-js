@@ -18,6 +18,14 @@ export interface IchimokuResult {
   cloudBottom: number | null;
 }
 
+export interface IchimokuFutureBar {
+  offset: number;
+  senkouSpanA: number;
+  senkouSpanB: number;
+  cloudTop: number;
+  cloudBottom: number;
+}
+
 function donchian(data: QuoteHistory[], end: number, period: number): number | null {
   if (end + 1 < period) return null;
   var hi = -Infinity;
@@ -91,4 +99,41 @@ export function ichimoku(
   }
 
   return results;
+}
+
+export function ichimokuFutureCloud(
+  data: QuoteHistory[],
+  options: IchimokuOptions = {}
+): IchimokuFutureBar[] {
+  var tenkanP = options.tenkan == null ? 9 : options.tenkan;
+  var kijunP = options.kijun == null ? 26 : options.kijun;
+  var senkouP = options.senkou == null ? 52 : options.senkou;
+  var displacement = options.displacement == null ? 26 : options.displacement;
+
+  if (tenkanP < 1 || kijunP < 1 || senkouP < 1 || displacement < 1) {
+    throw new Error("Period must be >= 1");
+  }
+  if (data.length === 0) return [];
+
+  var n = data.length;
+  var future: IchimokuFutureBar[] = [];
+
+  for (var k = 1; k <= displacement; k++) {
+    var src = n - 1 - displacement + k;
+    if (src < 0) continue;
+    var tenkanVal = donchian(data, src, tenkanP);
+    var kijunVal = donchian(data, src, kijunP);
+    var spanBVal = donchian(data, src, senkouP);
+    if (tenkanVal === null || kijunVal === null || spanBVal === null) continue;
+    var spanA = (tenkanVal + kijunVal) / 2;
+    future.push({
+      offset: k,
+      senkouSpanA: spanA,
+      senkouSpanB: spanBVal,
+      cloudTop: spanA > spanBVal ? spanA : spanBVal,
+      cloudBottom: spanA < spanBVal ? spanA : spanBVal,
+    });
+  }
+
+  return future;
 }

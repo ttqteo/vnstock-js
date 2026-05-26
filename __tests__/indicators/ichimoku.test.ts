@@ -1,4 +1,4 @@
-import { ichimoku } from "../../src/indicators/ichimoku";
+import { ichimoku, ichimokuFutureCloud } from "../../src/indicators/ichimoku";
 import { QuoteHistory } from "../../src/models/normalized";
 
 function bar(date: string, open: number, high: number, low: number, close: number): QuoteHistory {
@@ -123,5 +123,51 @@ describe("ichimoku", () => {
     expect(r1[60].tenkanSen).toBeCloseTo(r2[60].tenkanSen as number);
     expect(r1[60].kijunSen).toBeCloseTo(r2[60].kijunSen as number);
     expect(r1[60].senkouSpanA).toBeCloseTo(r2[60].senkouSpanA as number);
+  });
+});
+
+describe("ichimokuFutureCloud", () => {
+  it("returns empty for empty input", () => {
+    expect(ichimokuFutureCloud([])).toEqual([]);
+  });
+
+  it("throws on invalid period", () => {
+    expect(() => ichimokuFutureCloud(makeLinearRamp(60), { tenkan: 0 })).toThrow();
+  });
+
+  it("returns up to displacement bars when enough data", () => {
+    const data = makeLinearRamp(100);
+    const fc = ichimokuFutureCloud(data);
+    expect(fc.length).toBeGreaterThan(0);
+    expect(fc.length).toBeLessThanOrEqual(26);
+  });
+
+  it("offsets are 1..displacement (no zero, no negatives)", () => {
+    const data = makeLinearRamp(100);
+    const fc = ichimokuFutureCloud(data);
+    for (const b of fc) {
+      expect(b.offset).toBeGreaterThanOrEqual(1);
+      expect(b.offset).toBeLessThanOrEqual(26);
+    }
+  });
+
+  it("cloudTop >= cloudBottom", () => {
+    const data = makeLinearRamp(100);
+    const fc = ichimokuFutureCloud(data);
+    for (const b of fc) {
+      expect(b.cloudTop).toBeGreaterThanOrEqual(b.cloudBottom);
+    }
+  });
+
+  it("first future bar (offset=1) extends from current senkouSpanA at index n", () => {
+    // For offset=1, src = n-1-26+1 = n-26
+    // senkouSpanA = (tenkan[n-26] + kijun[n-26]) / 2
+    const data = makeLinearRamp(100);
+    const r = ichimoku(data);
+    const fc = ichimokuFutureCloud(data);
+    const first = fc[0];
+    const t = r[data.length - 26].tenkanSen as number;
+    const k = r[data.length - 26].kijunSen as number;
+    expect(first.senkouSpanA).toBeCloseTo((t + k) / 2);
   });
 });

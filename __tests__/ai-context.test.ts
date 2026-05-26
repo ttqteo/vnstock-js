@@ -59,6 +59,18 @@ describe("classifyTrend", () => {
     expect(r.direction).toBe("neutral");
     expect(r.strength).toBe(0);
   });
+
+  it("appends SuperTrend + Ichimoku confirmation to rationale on bullish uptrend", () => {
+    const r = classifyTrend(makeUptrend(220));
+    expect(r.direction).toBe("bullish");
+    expect(r.rationale).toMatch(/ST.*Ichimoku|Ichimoku.*ST/i);
+  });
+
+  it("appends SuperTrend + Ichimoku confirmation to rationale on bearish downtrend", () => {
+    const r = classifyTrend(makeDowntrend(220));
+    expect(r.direction).toBe("bearish");
+    expect(r.rationale).toMatch(/ST.*Ichimoku|Ichimoku.*ST/i);
+  });
 });
 
 describe("snapshotIndicators", () => {

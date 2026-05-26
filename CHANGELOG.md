@@ -1,34 +1,44 @@
 # Changelog
 
-## 1.4.1 — Indicators Expansion + Network Resilience
+## 1.4.1 — Indicators Expansion + Network Resilience + Stability
 
-Bổ sung 2 indicator mới (SuperTrend + Ichimoku Cloud), gia tăng độ ổn định khi gặp Cloudflare rate-limit, deprecate endpoint SJC bị 403.
+Bổ sung 2 indicator mới (SuperTrend + Ichimoku Cloud), gia tăng độ ổn định khi gặp Cloudflare rate-limit, deprecate endpoint SJC bị 403, gate integration tests sau env `INTEGRATION=1`, TTL cache cho VCI static endpoints.
 
 ### Thêm
 
 - **`superTrend(candles, opts?)`** — trend-following indicator (default `period=10, multiplier=3`, chuẩn TradingView/pandas_ta). Trả `superTrend`, `direction` (`bullish`/`bearish`), `upperBand`, `lowerBand` cho từng bar. Dùng ATR module có sẵn.
 - **`ichimoku(candles, opts?)`** — Ichimoku Cloud (default `tenkan=9, kijun=26, senkou=52, displacement=26`). Convention: `senkouSpanA[i]` / `senkouSpanB[i]` là **giá trị cloud hiện tại tại i** (đã shift forward từ i-26), tiện cho so sánh `close[i]` vs cloud. `chikouSpan[i] = close[i+26]`, null cho 26 bars cuối.
+- **`ichimokuFutureCloud(candles, opts?)`** — projection cloud 26 phiên tới (chart use case). Trả `IchimokuFutureBar[]` với `offset` 1..26, `senkouSpanA/B`, `cloudTop/Bottom`. Không include trong `aiContext` (chỉ historical).
 - **AI context layer extended** — `vnstock.stock.aiContext(symbol)` và `toAIPrompt(symbol)` nay include:
   - `superTrend: { value, direction }`
   - `ichimoku: { tenkanSen, kijunSen, cloudTop, cloudBottom, priceVsCloud, tkCross }`
   - `formatAIPrompt` output thêm dòng `SuperTrend:` và `Ichimoku:` cho cả `vi` lẫn `en`.
+- **`classifyTrend()` ảnh hưởng bởi SuperTrend + Ichimoku** — EMA trend được confirm/contradict bởi 2 indicator mới:
+  - Bullish EMA + ST bullish + price above cloud → strength + 0.2
+  - Bullish EMA nhưng ST bearish + price below cloud → strength × 0.5
+  - Neutral EMA + ST & Ichimoku đồng thuận → upgrade direction (strength=0.4)
 - **MCP tool descriptions** — `get_ai_context` và `to_ai_prompt` cập nhật mention SuperTrend + Ichimoku.
-- **Root export** — `superTrend` và `ichimoku` exposed ở `src/index.ts` cho user import trực tiếp.
+- **Root export** — `superTrend`, `ichimoku` exposed ở `src/index.ts` cho user import trực tiếp.
+- **`VciAdapter({ cache })` option** — TTL in-memory cache cho 3 endpoints static-ish: `icb-codes` (1h), `search-bar` (30 min), `financial-statement/metrics` per symbol (1h). Default `cache: true`. Opt-out: `new VciAdapter({ cache: false })`. Public method `clearCache()` để invalidate manual.
 
 ### Sửa
 
 - **Cloudflare Error 1015 detection** (issue #10) — `pipeline/fetch.ts` nay detect Cloudflare rate-limit qua `cf-ray` header + body chứa `Error 1015` hoặc `cloudflare` (cho HTTP 4xx). Throw `RateLimitError` thay vì `ApiError`, retry với exponential backoff 30s → 60s → 120s.
 - **`goldPriceSJC()` deprecated** (issue #12) — SJC endpoint trả 403 từ non-VN IPs (đã skip test từ v1.3.3). Method giờ log `console.warn` redirect sang `goldPriceBTMC()` / `goldPriceGiaVangNet()`. Giữ method cho backwards compat, sẽ remove ở v2.0.
+- **Tests gate `INTEGRATION=1`** (issue #9) — `listing.test.ts`, `company.test.ts`, `financial.test.ts` skip real-API blocks mặc định. Chạy full integration: `INTEGRATION=1 npm test`. Default CI nay mock-based, không hit Vietcap → tránh rate-limit/Cloudflare 1015 trong dev loop.
 
 ### Nội bộ
 
-- 34 new tests (12 supertrend + 16 ichimoku + 6 cloudflare-1015) + extend ai-context test.
+- 60+ new tests (12 supertrend + 22 ichimoku + 6 cloudflare-1015 + 5 vci-cache + extends ai-context + mock-based listing/company/financial).
+- 45 test suites, 383 pass / 18 skip (skip ~ integration-gated).
 - ATR + Bollinger + MACD vẫn dùng subpath import (`vnstock-js/dist/indicators/*`) — không backfill root export trong patch này.
 
 ### Migration notes
 
 - Không breaking. Existing `aiContext` consumer chỉ thấy thêm 2 field mới trong `indicators` (`superTrend`, `ichimoku`); JSON nay lớn hơn ~200 bytes.
 - `goldPriceSJC()` deprecated nhưng vẫn callable; chuyển sang `goldPriceBTMC()` để remove console.warn.
+- `VciAdapter` mặc định bật cache. Nếu code cũ phụ thuộc fresh API mỗi call cho `icb-codes`/`search-bar`/`metrics`, pass `{ cache: false }` hoặc gọi `clearCache()`.
+- Tests cần real-API verification: chạy `INTEGRATION=1 npm test` thay vì `npm test`.
 
 ## 1.4.0 — AI-Native Foundation
 
