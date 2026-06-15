@@ -164,6 +164,30 @@ export async function handleGetCompanyInfo(args: any): Promise<McpToolResponse> 
   }
 }
 
+export async function handleGetDividends(args: any): Promise<McpToolResponse> {
+  var symbol = String(args.symbol || "").toUpperCase().trim();
+  if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
+  try {
+    var dividends = await vnstock.stock.company(symbol).dividends();
+    var summary = `${symbol} — ${dividends.length} sự kiện cổ tức`;
+    return textResponse(summary, dividends);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy cổ tức ${symbol}: ${e.message || e}`);
+  }
+}
+
+export async function handleGetCorporateEvents(args: any): Promise<McpToolResponse> {
+  var symbol = String(args.symbol || "").toUpperCase().trim();
+  if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
+  try {
+    var events = await vnstock.stock.company(symbol).events();
+    var summary = `${symbol} — ${events.length} sự kiện doanh nghiệp`;
+    return textResponse(summary, events);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy sự kiện ${symbol}: ${e.message || e}`);
+  }
+}
+
 export async function handleGetAIContext(args: any): Promise<McpToolResponse> {
   var symbol = String(args.symbol || "").toUpperCase().trim();
   if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
@@ -218,6 +242,8 @@ export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> =
   is_trade_day: handleIsTradeDay,
   get_trading_calendar: handleGetTradingCalendar,
   get_company_info: handleGetCompanyInfo,
+  get_dividends: handleGetDividends,
+  get_corporate_events: handleGetCorporateEvents,
   get_ai_context: handleGetAIContext,
   to_ai_prompt: handleToAIPrompt,
   compare_symbols: handleCompareSymbols,

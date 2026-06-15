@@ -13,6 +13,7 @@ jest.mock("../../../src/runtime", () => {
     },
     aiContext: jest.fn(),
     toAIPrompt: jest.fn(),
+    company: jest.fn(),
     adapter: mockAdapter,
   };
   return {
@@ -169,6 +170,56 @@ describe("MCP handlers — group A (basic data tools)", () => {
       });
       const res = await handlers.get_company_info({ symbol: "VCB" });
       expect(res.isError).toBeUndefined();
+    });
+  });
+
+  describe("get_dividends", () => {
+    it("returns error if symbol missing", async () => {
+      const res = await handlers.get_dividends({});
+      expect(res.isError).toBe(true);
+    });
+
+    it("returns dividend events via company().dividends()", async () => {
+      const dividendsFn = jest.fn().mockResolvedValueOnce([
+        { eventType: "DIVIDEND_CASH", ratio: 0.1, exRightDate: "2026-06-20", recordDate: "2026-06-23" },
+      ]);
+      stockMock.company.mockReturnValueOnce({ dividends: dividendsFn });
+      const res = await handlers.get_dividends({ symbol: "acb" });
+      expect(res.isError).toBeUndefined();
+      expect(stockMock.company).toHaveBeenCalledWith("ACB");
+      expect(dividendsFn).toHaveBeenCalled();
+      expect(res.content[0].text).toContain("ACB");
+      const data = JSON.parse(res.content[1].text);
+      expect(data.length).toBe(1);
+    });
+
+    it("returns error response when company call throws", async () => {
+      stockMock.company.mockReturnValueOnce({
+        dividends: jest.fn().mockRejectedValueOnce(new Error("boom")),
+      });
+      const res = await handlers.get_dividends({ symbol: "ACB" });
+      expect(res.isError).toBe(true);
+      expect(res.content[0].text).toContain("boom");
+    });
+  });
+
+  describe("get_corporate_events", () => {
+    it("returns error if symbol missing", async () => {
+      const res = await handlers.get_corporate_events({});
+      expect(res.isError).toBe(true);
+    });
+
+    it("returns all events via company().events()", async () => {
+      const eventsFn = jest.fn().mockResolvedValueOnce([
+        { eventType: "AGM", title: "ĐHCĐ 2026" },
+        { eventType: "DIVIDEND_STOCK", ratio: 0.15 },
+      ]);
+      stockMock.company.mockReturnValueOnce({ events: eventsFn });
+      const res = await handlers.get_corporate_events({ symbol: "vcb" });
+      expect(res.isError).toBeUndefined();
+      expect(stockMock.company).toHaveBeenCalledWith("VCB");
+      const data = JSON.parse(res.content[1].text);
+      expect(data.length).toBe(2);
     });
   });
 });
