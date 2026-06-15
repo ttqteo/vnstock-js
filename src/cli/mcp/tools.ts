@@ -118,6 +118,36 @@ export const tools: ToolSchema[] = [
     },
   },
   {
+    name: "get_dividends",
+    description:
+      "Lấy lịch sử & lịch chia cổ tức của 1 mã (tiền mặt + cổ phiếu). " +
+      "Trả về loại cổ tức, tỉ lệ/giá trị, ngày giao dịch không hưởng quyền (GDKHQ/exRightDate), ngày chốt danh sách (recordDate). " +
+      "Dùng khi user hỏi 'ACB chia cổ tức khi nào', 'lịch cổ tức VNM', 'cổ tức năm nay của FPT'. " +
+      "EN: Get dividend history & schedule (cash + stock) for a Vietnam stock: type, ratio, ex-rights date, record date.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu" },
+      },
+      required: ["symbol"],
+    },
+  },
+  {
+    name: "get_corporate_events",
+    description:
+      "Lấy tất cả sự kiện doanh nghiệp của 1 mã: cổ tức, ĐHCĐ, phát hành thêm, niêm yết, giao dịch nội bộ... " +
+      "Mỗi sự kiện gồm loại (eventType), tiêu đề, ngày GDKHQ, ngày chốt quyền, tỉ lệ/giá trị. " +
+      "Dùng khi user hỏi 'sự kiện sắp tới của HPG', 'lịch ĐHCĐ VCB', 'VCB có sự kiện gì'. " +
+      "EN: Get all corporate events for a Vietnam stock: dividends, AGM, issuance, insider deals, with ex-rights/record dates.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu" },
+      },
+      required: ["symbol"],
+    },
+  },
+  {
     name: "get_ai_context",
     description:
       "Lấy bối cảnh phân tích kỹ thuật cho 1 mã, dạng structured JSON. " +

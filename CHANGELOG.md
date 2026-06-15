@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.4.2 — Dividend MCP Tools + Indicator Export Fix
+
+Patch thuần additive, không breaking. Expose lịch cổ tức/sự kiện doanh nghiệp qua MCP và backfill root export cho indicators v2.
+
+### Thêm
+
+- **MCP tool `get_dividends`** — wrap `company(symbol).dividends()`. Trả lịch sử & lịch chia cổ tức (tiền mặt + cổ phiếu): `eventType`, `ratio`, `value`, `exRightDate` (GDKHQ), `recordDate`. Daily-report pipeline qua MCP nay thấy được lịch cổ tức (vd. ACB) thay vì mù.
+- **MCP tool `get_corporate_events`** — wrap `company(symbol).events()`. Trả tất cả sự kiện doanh nghiệp (cổ tức, ĐHCĐ, phát hành, niêm yết, giao dịch nội bộ).
+- MCP server nay đăng ký **13 tools** (trước 11). Cả 2 tool bilingual (Vi + En).
+
+### Sửa
+
+- **Root export thiếu `macd` / `bollinger` / `atr`** — 3 indicator v2 đã có trong `src/indicators/index.ts` từ v1.4.0 nhưng `src/index.ts` quên re-export, buộc user import từ `vnstock-js/dist/indicators/*`. Nay export thẳng từ root: `import { macd, bollinger, atr } from "vnstock-js"`. Bổ sung luôn `ichimokuFutureCloud`. Fix này cũng làm đúng ví dụ import trong docs indicators (vốn đã ghi import từ root nhưng trước đó chạy lỗi).
+
+### Nội bộ
+
+- +5 test MCP handler (get_dividends + get_corporate_events). Schema test 11 → 13 tools.
+
+### Migration notes
+
+- Không breaking. Nếu trước đây import `macd`/`bollinger`/`atr` từ subpath `vnstock-js/dist/indicators/*`, vẫn chạy; nay có thể chuyển sang root import.
+
 ## 1.4.1 — Indicators Expansion + Network Resilience + Stability
 
 Bổ sung 2 indicator mới (SuperTrend + Ichimoku Cloud), gia tăng độ ổn định khi gặp Cloudflare rate-limit, deprecate endpoint SJC bị 403, gate integration tests sau env `INTEGRATION=1`, TTL cache cho VCI static endpoints.

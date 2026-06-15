@@ -1,8 +1,8 @@
 import { tools } from "../../../src/cli/mcp/tools";
 
 describe("MCP tool schemas", () => {
-  it("registers exactly 11 tools", () => {
-    expect(tools.length).toBe(11);
+  it("registers exactly 13 tools", () => {
+    expect(tools.length).toBe(13);
   });
 
   it("expected tool names present", () => {
@@ -17,6 +17,8 @@ describe("MCP tool schemas", () => {
         "is_trade_day",
         "get_trading_calendar",
         "get_company_info",
+        "get_dividends",
+        "get_corporate_events",
         "get_ai_context",
         "to_ai_prompt",
         "compare_symbols",
