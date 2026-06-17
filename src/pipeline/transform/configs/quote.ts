@@ -19,12 +19,14 @@ export const quoteTransformConfig: TransformConfig = {
 };
 
 export function transformQuoteHistory(raw: {
+  symbol?: string;
   o: number[];
   h: number[];
   l: number[];
   c: number[];
   v: number[];
   t: number[];
+  accumulatedValue?: number[];
   [key: string]: unknown;
 }): QuoteHistory[] {
   const length = raw.t?.length ?? 0;
@@ -32,12 +34,14 @@ export function transformQuoteHistory(raw: {
 
   for (let i = 0; i < length; i++) {
     result.push({
+      symbol: raw.symbol,
       date: format(fromUnixTime(raw.t[i]), "yyyy-MM-dd"),
       open: raw.o[i] / 1000,
       high: raw.h[i] / 1000,
       low: raw.l[i] / 1000,
       close: raw.c[i] / 1000,
       volume: raw.v[i],
+      value: raw.accumulatedValue?.[i],
     });
   }
 

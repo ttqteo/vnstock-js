@@ -1,11 +1,13 @@
 
 export interface QuoteHistory {
+  symbol?: string;  // mã CK của bar; chỉ có ý nghĩa khi history() gọi batch nhiều mã 1 request
   date: string;
   open: number;
   high: number;
   low: number;
   close: number;
   volume: number;
+  value?: number;   // giá trị giao dịch của bar (accumulatedValue từ VCI), đơn vị TRIỆU VND
 }
 
 
