@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.4.3 — Giá trị giao dịch theo bar + history batch nhiều mã
+
+Patch thuần additive, không breaking. Bổ sung giá trị giao dịch (turnover) cho từng bar và mở khóa batch nhiều mã trong `quote.history()`.
+
+### Thêm
+
+- **`QuoteHistory.value`** — trường optional mới, ánh xạ từ `accumulatedValue` của VCI. **Đơn vị: TRIỆU VND** (giữ nguyên raw, không scale như giá). Có mặt trên mọi bar khi VCI trả về; tự động xuất hiện trong output MCP `get_history` và CLI `history` vì cùng dùng `QuoteHistory`. Khi VCI không trả `accumulatedValue`, `value` là `undefined`.
+- **`QuoteHistory.symbol`** — trường optional mới, mang mã CK của từng bar. Endpoint chart VCI vốn nhận mảng `symbols` và trả về trong **1 request**, nhưng trước đây transform vứt mất `symbol` nên kết quả batch không phân biệt được mã nào. Nay `quote.history({ symbols: ["VCI","FPT",...] })` trả mảng phẳng vẫn demux được theo `symbol` → gọi 1 request cho cả danh sách thay vì N request (giảm tải, tránh 429). Khuyến nghị batch ở mức hợp lý (vài chục mã/call) để tránh payload lớn timeout 15s.
+
+### Nội bộ
+
+- +4 test transform: ánh xạ `accumulatedValue → value` (đúng độ lớn, không scale), `value` undefined khi thiếu field, `symbol` mang theo mỗi bar để demux batch, và `symbol` undefined khi raw không có.
+
+### Migration notes
+
+- Không breaking. `value` và `symbol` đều optional; code cũ không đụng tới chúng vẫn chạy như trước.
+
 ## 1.4.2 — Dividend MCP Tools + Indicator Export Fix
 
 Patch thuần additive, không breaking. Expose lịch cổ tức/sự kiện doanh nghiệp qua MCP và backfill root export cho indicators v2.
