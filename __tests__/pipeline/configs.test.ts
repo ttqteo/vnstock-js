@@ -55,6 +55,41 @@ describe("transformQuoteHistory", () => {
     expect(merged.map((r) => r.symbol)).toEqual(["VCI", "FPT"]);
   });
 
+  it("keeps index values in points instead of dividing by 1000", () => {
+    // VN-Index trades around 1680 points, not 1.68. Prices are VND and get the
+    // /1000 treatment; indices are points and must not.
+    const result = transformQuoteHistory({
+      symbol: "VNINDEX",
+      o: [1694.78], h: [1700.69], l: [1667.66], c: [1680.62],
+      v: [635422543], t: [1705276800],
+    });
+
+    expect(result[0].close).toBe(1680.62);
+    expect(result[0].open).toBe(1694.78);
+    expect(result[0].high).toBe(1700.69);
+    expect(result[0].low).toBe(1667.66);
+  });
+
+  it("matches index symbols case-insensitively", () => {
+    // INDEX_SYMBOLS mixes casing (VNINDEX vs HNXIndex) and callers pass whatever
+    // they typed, so a case slip must not silently scale an index by 1000.
+    for (const sym of ["vnindex", "VnIndex", "hnxindex", "HNXIndex", "VN30"]) {
+      const result = transformQuoteHistory({
+        symbol: sym,
+        o: [1000], h: [1000], l: [1000], c: [1000], v: [1], t: [1705276800],
+      });
+      expect(result[0].close).toBe(1000);
+    }
+  });
+
+  it("still divides ordinary stock prices by 1000", () => {
+    const result = transformQuoteHistory({
+      symbol: "VCB",
+      o: [54200], h: [54700], l: [54000], c: [54600], v: [1], t: [1705276800],
+    });
+    expect(result[0].close).toBe(54.6);
+  });
+
   it("leaves symbol undefined when raw has no symbol field", () => {
     const result = transformQuoteHistory({
       o: [25500], h: [26000], l: [25000], c: [25800], v: [1000000], t: [1705276800],

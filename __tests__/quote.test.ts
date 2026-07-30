@@ -49,5 +49,10 @@ describeIntegration("Quote (integration — INTEGRATION=1)", () => {
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("date");
     expect(data[0]).toHaveProperty("close");
+
+    // Guards the /1000 bug: the index is quoted in points, so a plausible range
+    // catches it being scaled like a VND price. Asserting existence alone missed it.
+    expect(data[0].close).toBeGreaterThan(100);
+    expect(data[0].close).toBeLessThan(5000);
   }, 30000);
 });
