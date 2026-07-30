@@ -25,10 +25,11 @@ export function applyFilters<T extends Record<string, unknown>>(
   );
 
   if (options.sortBy) {
+    const sortBy = options.sortBy;
     const dir = options.order === "asc" ? 1 : -1;
     result.sort((a, b) => {
-      const aVal = a[options.sortBy!] as number;
-      const bVal = b[options.sortBy!] as number;
+      const aVal = a[sortBy] as number;
+      const bVal = b[sortBy] as number;
       return (aVal - bVal) * dir;
     });
   }

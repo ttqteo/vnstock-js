@@ -1,12 +1,5 @@
-const path = require("path");
-
 module.exports = {
   preset: "ts-jest/presets/js-with-ts",
-  globals: {
-    "ts-jest": {
-      tsConfig: path.resolve("jest.tsconfig.json"),
-    },
-  },
   reporters: [
     "default",
     ["<rootDir>/scripts/jest-markdown-reporter.js", { outputDir: "docs/reports" }],
@@ -17,11 +10,9 @@ module.exports = {
       moduleDirectories: ["<rootDir>/src/", "node_modules"],
       moduleFileExtensions: ["ts", "js"],
       resetMocks: true,
-      // setupFiles: ["dotenv/config"],
-      // setupFilesAfterEnv: ["jest-expect-message", "jest-extended"],
       testRegex: ".*\\.(test|spec)\\.(ts)$",
       transform: {
-        ".(ts)": "ts-jest",
+        "^.+\\.ts$": ["ts-jest", { tsconfig: "<rootDir>/jest.tsconfig.json" }],
       },
     },
   ],

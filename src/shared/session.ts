@@ -34,7 +34,7 @@ export function getUserAgent(): string {
 }
 
 function domainOf(url: string): string {
-  var m = url.match(/^https?:\/\/([^\/]+)/);
+  var m = url.match(/^https?:\/\/([^/]+)/);
   return m ? m[1] : "";
 }
 
