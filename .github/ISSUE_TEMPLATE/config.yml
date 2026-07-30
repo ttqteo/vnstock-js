@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Tài liệu
+    url: https://vnstock-js-docs.vercel.app
+    about: Hướng dẫn sử dụng, ví dụ, và tham chiếu API
+  - name: Câu hỏi sử dụng
+    url: https://github.com/ttqteo/vnstock-js/discussions
+    about: Hỏi cách dùng thư viện tại Discussions, không mở issue

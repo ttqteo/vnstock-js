@@ -1,0 +1,47 @@
+name: Đề xuất tính năng
+description: Đề xuất API mới, nguồn dữ liệu mới, hoặc chỉ báo kỹ thuật mới
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Vấn đề cần giải quyết
+      description: Bạn đang gặp khó khăn gì mà tính năng này giải quyết được?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Loại đề xuất
+      options:
+        - Chỉ báo kỹ thuật mới (indicator)
+        - Nguồn dữ liệu mới
+        - API/method mới
+        - Cải thiện CLI
+        - Cải thiện MCP tools
+        - Khác
+    validations:
+      required: true
+
+  - type: textarea
+    id: api
+    attributes:
+      label: API mong muốn
+      description: Bạn hình dung sẽ gọi nó như thế nào?
+      render: typescript
+      placeholder: |
+        const result = await vnstock.stock.quote.intraday({ symbol: "VCI" });
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Nguồn dữ liệu
+      description: Nếu đề xuất nguồn mới, cho biết endpoint hoặc trang web lấy dữ liệu
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Đóng góp
+      options:
+        - label: Tôi sẵn sàng tự implement tính năng này

@@ -1,0 +1,68 @@
+name: Báo lỗi
+description: Báo cáo lỗi hoặc dữ liệu trả về sai
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Cảm ơn bạn đã báo lỗi. Điền càng đủ thông tin thì càng nhanh xử lý được.
+
+  - type: input
+    id: version
+    attributes:
+      label: Phiên bản vnstock-js
+      description: Chạy `npm list vnstock-js` để xem
+      placeholder: "1.4.3"
+    validations:
+      required: true
+
+  - type: input
+    id: node
+    attributes:
+      label: Phiên bản Node.js
+      description: Chạy `node -v`
+      placeholder: "v20.11.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Chuyện gì xảy ra?
+      description: Mô tả lỗi, và bạn mong đợi kết quả thế nào
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Code tái hiện lỗi
+      description: Đoạn code ngắn nhất tái hiện được lỗi. Ghi rõ mã CK và khoảng thời gian nếu có.
+      render: typescript
+      placeholder: |
+        import vnstock from "vnstock-js";
+
+        const data = await vnstock.stock.quote.history({
+          symbols: ["VCI"],
+          start: "2024-01-01",
+          end: "2024-01-31",
+          timeFrame: "1D",
+        });
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Thông báo lỗi
+      description: Dán nguyên văn error/stack trace nếu có
+      render: shell
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Kiểm tra trước
+      options:
+        - label: Tôi đã tìm trong các issue đang mở và không thấy trùng
+          required: true
+        - label: Tôi đang dùng phiên bản vnstock-js mới nhất

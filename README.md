@@ -1,6 +1,8 @@
 # vnstock-js
 
+[![CI](https://github.com/ttqteo/vnstock-js/actions/workflows/ci.yml/badge.svg)](https://github.com/ttqteo/vnstock-js/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/vnstock-js.svg)](https://www.npmjs.com/package/vnstock-js)
+[![npm downloads](https://img.shields.io/npm/dm/vnstock-js.svg)](https://www.npmjs.com/package/vnstock-js)
 [![license](https://img.shields.io/npm/l/vnstock-js.svg)](https://github.com/ttqteo/vnstock-js/blob/master/LICENSE)
 
 Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng khoán Việt Nam. Output chuẩn hóa, sẵn sàng cho web.
@@ -9,21 +11,21 @@ Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng kho�
 
 ## Tính năng
 
-- **Báo giá** -- Dữ liệu giá lịch sử OHLCV, nhiều timeframe (1m, 5m, 1H, 1D, 1W, 1M)
-- **Giao dịch** -- Bảng giá, top tăng/giảm
-- **Công ty** -- Thông tin, cổ đông, ban lãnh đạo, sự kiện, tin tức, cổ tức
-- **Tài chính** -- Bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ
-- **Niêm yết** -- Danh sách mã theo sàn, ngành ICB, nhóm (VN30, HNX30...)
-- **Sàng lọc** -- Lọc cổ phiếu theo PE, ROE, vốn hóa...
-- **Hàng hóa** -- Giá vàng (BTMC, GiaVang.net; SJC deprecated do 403), tỷ giá VCB
-- **Tin tức** -- Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
-- **Realtime** -- WebSocket dữ liệu giá trực tiếp (SSI)
-- **Chỉ báo kỹ thuật** -- SMA, EMA, RSI, MACD, Bollinger Bands, ATR, SuperTrend, Ichimoku Cloud
-- **AI context** -- `aiContext()` trả structured trend/RSI/MACD/S-R/volume cho LLM reasoning
-- **MCP server** -- `vnstock mcp` cho Claude Desktop / Cursor / VS Code
-- **Watchlist** -- quản lý danh sách mã yêu thích, persist `~/.vnstock-js/watchlist.json`
-- **CLI** -- Command-line tool `vnstock` cho terminal users
-- **TypeScript** -- Đầy đủ type definitions
+- **Báo giá**: Dữ liệu giá lịch sử OHLCV, nhiều timeframe (1m, 5m, 1H, 1D, 1W, 1M)
+- **Giao dịch**: Bảng giá, top tăng/giảm
+- **Công ty**: Thông tin, cổ đông, ban lãnh đạo, sự kiện, tin tức, cổ tức
+- **Tài chính**: Bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ
+- **Niêm yết**: Danh sách mã theo sàn, ngành ICB, nhóm (VN30, HNX30...)
+- **Sàng lọc**: Lọc cổ phiếu theo PE, ROE, vốn hóa...
+- **Hàng hóa**: Giá vàng (BTMC, GiaVang.net; SJC deprecated do 403), tỷ giá VCB
+- **Tin tức**: Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
+- **Realtime**: WebSocket dữ liệu giá trực tiếp (SSI)
+- **Chỉ báo kỹ thuật**: SMA, EMA, RSI, MACD, Bollinger Bands, ATR, SuperTrend, Ichimoku Cloud
+- **AI context**: `aiContext()` trả structured trend/RSI/MACD/S-R/volume cho LLM reasoning
+- **MCP server**: `vnstock mcp` cho Claude Desktop / Cursor / VS Code
+- **Watchlist**: quản lý danh sách mã yêu thích, persist `~/.vnstock-js/watchlist.json`
+- **CLI**: Command-line tool `vnstock` cho terminal users
+- **TypeScript**: Đầy đủ type definitions
 
 ## Cài đặt
 
@@ -38,7 +40,7 @@ npm install -g vnstock-js
 npx vnstock-js quote VCB
 ```
 
-## CLI — Command-line tool
+## CLI
 
 Sau khi cài `-g`, bạn có command `vnstock` trong terminal:
 
@@ -94,9 +96,9 @@ Tất cả tính theo múi giờ Việt Nam (UTC+7).
 
 ### Flags chung
 
-- `--json`, `--csv` — format output (suppress màu + bảng)
-- `--no-color` — tắt màu
-- `--verbose` — hiện thêm chi tiết (`-v` dành cho `--version`)
+- `--json`, `--csv`: format output (suppress màu + bảng)
+- `--no-color`: tắt màu
+- `--verbose`: hiện thêm chi tiết (`-v` dành cho `--version`)
 - Non-TTY stdout tự động tắt màu + spinner (pipe-friendly)
 
 ## Sử dụng nhanh
@@ -152,12 +154,12 @@ const rates = await commodity.exchange();
 Gọi một lần lúc startup trước khi sử dụng symbol lookup hay calendar APIs. Tải danh sách mã và ngày lễ từ GitHub (lưu cache cục bộ trong `~/.vnstock-js/cache/` trong 24h).
 
 Tùy chọn:
-- `symbolsUrl`, `holidaysUrl` — ghi đè URL GitHub mặc định
-- `ttl` — thời gian cache tính bằng ms (mặc định 24h)
-- `force` — bỏ qua cache và tải lại
-- `cacheDir` — ghi đè vị trí cache
-- `noCache` — tắt cache trên disk (chỉ dùng bộ nhớ)
-- `timeout` — timeout tải dữ liệu tính bằng ms (mặc định 10s)
+- `symbolsUrl`, `holidaysUrl`: ghi đè URL GitHub mặc định
+- `ttl`: thời gian cache tính bằng ms (mặc định 24h)
+- `force`: bỏ qua cache và tải lại
+- `cacheDir`: ghi đè vị trí cache
+- `noCache`: tắt cache trên disk (chỉ dùng bộ nhớ)
+- `timeout`: timeout tải dữ liệu tính bằng ms (mặc định 10s)
 
 ## Chỉ báo kỹ thuật
 
@@ -174,7 +176,7 @@ const bb = bollinger(history, { period: 20, stddev: 2 });
 const atr14 = atr(history, 14);
 ```
 
-## AI context — phân tích kỹ thuật cho LLM (v1.4+)
+## AI context (v1.4+)
 
 ```ts
 import vnstock from 'vnstock-js';
@@ -189,7 +191,7 @@ console.log(ctx.levels);    // { support: [...], resistance: [...] }
 const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
 ```
 
-## MCP server — hỏi Claude về cổ phiếu VN (v1.4+)
+## MCP server (v1.4+)
 
 vnstock-js đi kèm MCP (Model Context Protocol) server expose 11 tools cho Claude:
 
@@ -314,18 +316,18 @@ const vcbNews = await vnstock.news.search('VCB');           // search title+summ
 
 Tất cả dữ liệu được chuẩn hóa:
 
-- **Array of Objects** -- sẵn sàng cho React, Vue, table, chart
-- **camelCase** -- tên field tiếng Anh nhất quán
-- **Giá chia 1000** -- đơn vị nghìn VND (25.5 = 25,500 VND)
-- **Ngày ISO** -- "2024-01-15"
-- **Phần trăm dạng decimal** -- 0.15 = 15%
+- **Array of Objects**: sẵn sàng cho React, Vue, table, chart
+- **camelCase**: tên field tiếng Anh nhất quán
+- **Giá chia 1000**: đơn vị nghìn VND (25.5 = 25,500 VND)
+- **Ngày ISO**: "2024-01-15"
+- **Phần trăm dạng decimal**: 0.15 = 15%
 
 ## Nguồn dữ liệu
 
-- **Cổ phiếu / Công ty / Tài chính / Niêm yết** -- [VietCap](https://trading.vietcap.com.vn) REST API (từ v1.3.3, trước đó dùng GraphQL).
-- **Realtime** -- [SSI](https://iboard.ssi.com.vn) WebSocket.
-- **Vàng / Tỷ giá** -- BTMC, SJC, GiaVang.net, Vietcombank.
-- **Tin tức** -- [ttqteo/news-crawler](https://github.com/ttqteo/news-crawler) daily JSON aggregator.
+- **Cổ phiếu / Công ty / Tài chính / Niêm yết**: [VietCap](https://trading.vietcap.com.vn) REST API (từ v1.3.3, trước đó dùng GraphQL).
+- **Realtime**: [SSI](https://iboard.ssi.com.vn) WebSocket.
+- **Vàng / Tỷ giá**: BTMC, SJC, GiaVang.net, Vietcombank.
+- **Tin tức**: [ttqteo/news-crawler](https://github.com/ttqteo/news-crawler) daily JSON aggregator.
 
 Không cần xác thực.
 
@@ -335,8 +337,26 @@ Chi tiết và ví dụ: [vnstock-js-docs.vercel.app](https://vnstock-js-docs.ve
 
 ## Lấy cảm hứng từ
 
-[thinh-vu/vnstock](https://github.com/thinh-vu/vnstock) -- thư viện Python cho dữ liệu chứng khoán Việt Nam.
+[thinh-vu/vnstock](https://github.com/thinh-vu/vnstock), thư viện Python cho dữ liệu chứng khoán Việt Nam.
+
+## Đóng góp
+
+Rất hoan nghênh đóng góp. Bắt đầu nhanh:
+
+```bash
+git clone https://github.com/ttqteo/vnstock-js.git
+cd vnstock-js
+npm install
+npm run test:unit
+```
+
+Đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết cấu trúc dự án, quy ước code và quy
+trình gửi PR. Dự án tuân theo [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
+
+Chưa biết bắt đầu từ đâu? Xem các issue gắn nhãn
+[good first issue](https://github.com/ttqteo/vnstock-js/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
+hoặc thêm một chỉ báo kỹ thuật mới (CONTRIBUTING.md có sẵn ví dụ đầy đủ).
 
 ## Giấy phép
 
-[Apache 2.0](LICENSE) -- ttqteo
+[Apache 2.0](LICENSE) © ttqteo
