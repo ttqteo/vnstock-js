@@ -51,7 +51,8 @@ describeIntegration("Simple API (integration — INTEGRATION=1)", () => {
       const data = await commodity.gold.priceBTMC();
       expect(Array.isArray(data)).toBe(true);
       expect(data[0]).toHaveProperty("buyPrice");
-    }, 30000);
+      // 60s: BTMC hangs intermittently; fetchWithRetry worst case is 3x15s + backoff (~48s)
+    }, 60000);
 
     // Skipped: sjc.com.vn upstream returns 403. See issue tracker.
     it.skip("commodity.gold.priceSJC returns normalized data", async () => {

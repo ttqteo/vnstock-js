@@ -1,9 +1,31 @@
 import { fetchWithRetry } from "../../pipeline/fetch";
 import { applyTransform } from "../../pipeline/transform";
-import { goldBtmcTransformConfig, goldSjcTransformConfig } from "../../pipeline/transform/configs/commodity";
-import { GoldPriceBtmc, GoldPriceSjc } from "../../models/normalized";
+import { goldBtmcTransformConfig, goldGiaVangTransformConfig, goldSjcTransformConfig } from "../../pipeline/transform/configs/commodity";
+import { GoldPriceBtmc, GoldPriceGiaVang, GoldPriceSjc } from "../../models/normalized";
+
+export type GoldPriceSource = "btmc" | "giavangnet";
+
+export interface GoldPriceResult {
+  source: GoldPriceSource;
+  data: GoldPriceBtmc[] | GoldPriceGiaVang[];
+}
 
 export class GoldService {
+  async goldPrice(options?: { source?: GoldPriceSource | "auto" }): Promise<GoldPriceResult> {
+    var source = (options && options.source) || "auto";
+    if (source === "btmc") {
+      return { source: "btmc", data: await this.goldPriceBTMC() };
+    }
+    if (source === "giavangnet") {
+      return { source: "giavangnet", data: await this.goldPriceGiaVangNet() };
+    }
+    try {
+      return { source: "btmc", data: await this.goldPriceBTMC() };
+    } catch (error) {
+      return { source: "giavangnet", data: await this.goldPriceGiaVangNet() };
+    }
+  }
+
   async goldPriceBTMC(): Promise<GoldPriceBtmc[]> {
     const rawData = await fetchWithRetry<any>({
       url: "http://api.btmc.vn/api/BTMCAPI/getpricebtmc?key=3kd8ub1llcg9t45hnoh8hmn7t5kc2v",
@@ -25,14 +47,17 @@ export class GoldService {
     });
   }
 
-  async goldPriceGiaVangNet(): Promise<any[]> {
+  async goldPriceGiaVangNet(): Promise<GoldPriceGiaVang[]> {
     const codes = ["XAUUSD","USDX","SJL1L10","DOHNL","DOHCML","BTSJC","PQHNVM","VNGSJC","VIETTINMSJC","VNGN","BT9999NTT","PQHN24NTT","DOJINHTV","SJ9999"];
     const codesParam = codes.map(c => `codes[]=${c}`).join("&");
     const rawData = await fetchWithRetry<any>({
       url: `https://api2.giavang.net/v1/gold/last-price?${codesParam}`,
       method: "GET",
     });
-    return rawData?.data || rawData || [];
+    const dataList = rawData?.data || [];
+    return (Array.isArray(dataList) ? dataList : []).map(
+      (item: any) => applyTransform(item, goldGiaVangTransformConfig) as unknown as GoldPriceGiaVang
+    );
   }
 
   /**
