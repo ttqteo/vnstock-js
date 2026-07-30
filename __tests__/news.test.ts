@@ -1,6 +1,9 @@
 import vnstock from "../src";
 
-describe("News", () => {
+const RUN_INTEGRATION = process.env.INTEGRATION === "1";
+const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
+
+describeIntegration("News (integration — INTEGRATION=1)", () => {
   it("should fetch news for a recent date", async () => {
     const data = await vnstock.news.byDate("2026-05-14");
     expect(Array.isArray(data)).toBe(true);
@@ -36,7 +39,9 @@ describe("News", () => {
       expect(hay).toContain("vn-index");
     }
   }, 30000);
+});
 
+describe("News validation", () => {
   it("should throw on invalid date format", async () => {
     await expect(vnstock.news.byDate("14/05/2026")).rejects.toThrow(/Invalid date format/);
   });

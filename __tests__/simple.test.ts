@@ -1,6 +1,9 @@
 import { stock, commodity, quickQuote, recentHistory, compareSymbols, topMovers } from "../src";
 
-describe("Simple API", () => {
+const RUN_INTEGRATION = process.env.INTEGRATION === "1";
+const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
+
+describeIntegration("Simple API (integration — INTEGRATION=1)", () => {
   describe("stock", () => {
     it("stock.quote returns normalized data", async () => {
       const data = await stock.quote({ ticker: "VCI", start: "2024-01-01", end: "2024-01-31" });

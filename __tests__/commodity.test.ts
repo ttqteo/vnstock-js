@@ -1,6 +1,9 @@
 import vnstock from "../src";
 
-describe("Commodity", () => {
+const RUN_INTEGRATION = process.env.INTEGRATION === "1";
+const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
+
+describeIntegration("Commodity (integration — INTEGRATION=1)", () => {
   it("should return normalized BTMC gold prices", async () => {
     const data = await vnstock.commodity.goldPriceBTMC();
     expect(Array.isArray(data)).toBe(true);
