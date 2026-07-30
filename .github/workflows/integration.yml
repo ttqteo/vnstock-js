@@ -12,6 +12,9 @@ jobs:
   integration:
     name: Live API tests
     runs-on: ubuntu-latest
+    # Upstream sources hang rather than refuse from non-VN IPs, so cap the run
+    # instead of letting a stuck request burn the default 6h budget.
+    timeout-minutes: 15
     permissions:
       contents: read
       issues: write
