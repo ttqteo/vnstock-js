@@ -216,6 +216,16 @@ export interface GoldPriceBtmc {
   updatedAt: string;
 }
 
+export interface GoldPriceGiaVang {
+  code: string;
+  name: string;
+  buyPrice: number;
+  sellPrice: number;
+  buyChange: number;
+  sellChange: number;
+  updatedAt: string;
+}
+
 export interface GoldPriceSjc {
   id: number;
   type: string;

@@ -1,4 +1,4 @@
-import { GoldService } from "./gold";
+import { GoldService, GoldPriceResult, GoldPriceSource } from "./gold";
 import { ExchangeService } from "./exchange";
 
 export default class Commodity {
@@ -8,6 +8,17 @@ export default class Commodity {
   constructor() {
     this.goldService = new GoldService();
     this.exchangeService = new ExchangeService();
+  }
+
+  /**
+   * Fetches the latest gold price with explicit source fallback:
+   * tries BTMC first, falls back to giavang.net when BTMC is unreachable.
+   * Result carries a `source` field so callers know where data came from.
+   * Lấy giá vàng với fallback tường minh: thử BTMC trước, lỗi thì chuyển
+   * sang giavang.net; kết quả có field `source` cho biết nguồn dữ liệu.
+   */
+  async goldPrice(options?: { source?: GoldPriceSource | "auto" }): Promise<GoldPriceResult> {
+    return this.goldService.goldPrice(options);
   }
 
   /**

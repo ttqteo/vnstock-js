@@ -30,6 +30,21 @@ export const goldSjcTransformConfig: TransformConfig = {
   percentFields: [],
 };
 
+export const goldGiaVangTransformConfig: TransformConfig = {
+  fieldMap: {
+    type_code: "code",
+    type: "name",
+    buy: "buyPrice",
+    sell: "sellPrice",
+    alter_buy: "buyChange",
+    alter_sell: "sellChange",
+    update_time: "updatedAt",
+  },
+  priceFields: [],
+  dateFields: ["updatedAt"],
+  percentFields: [],
+};
+
 export const exchangeRateTransformConfig: TransformConfig = {
   fieldMap: {
     CurrencyCode: "currencyCode",

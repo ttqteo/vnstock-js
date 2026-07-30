@@ -14,13 +14,25 @@ describeIntegration("Commodity (integration — INTEGRATION=1)", () => {
     expect(data[0]).toHaveProperty("karat");
     expect(data[0]).not.toHaveProperty("kara");
     expect(data[0]).not.toHaveProperty("buy");
-  }, 30000);
+    // 60s: BTMC hangs intermittently; fetchWithRetry worst case is 3x15s + backoff (~48s)
+  }, 60000);
 
-  it("should return GiaVangNet gold prices", async () => {
+  it("should return normalized GiaVangNet gold prices", async () => {
     const data = await vnstock.commodity.goldPriceGiaVangNet();
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("code");
+    expect(data[0]).toHaveProperty("buyPrice");
+    expect(data[0]).not.toHaveProperty("type_code");
   }, 30000);
+
+  it("goldPrice auto returns data with a source field", async () => {
+    const result = await vnstock.commodity.goldPrice();
+    expect(["btmc", "giavangnet"]).toContain(result.source);
+    expect(Array.isArray(result.data)).toBe(true);
+    expect(result.data.length).toBeGreaterThan(0);
+    // 60s: same fetchWithRetry worst-case budget as the BTMC test above
+  }, 60000);
 
   // Skipped: sjc.com.vn/GoldPrice/Services/PriceService.ashx returns 403 from
   // CI/external IPs. Upstream blocked, no auth bypass. See issue tracker.

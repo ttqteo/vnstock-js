@@ -108,6 +108,7 @@ export function createEasyMode(vnstock: Vnstock) {
 export function createCommodityAPI(vnstock: Vnstock) {
   return {
     gold: {
+      price: (options?: Parameters<typeof vnstock.commodity.goldPrice>[0]) => vnstock.commodity.goldPrice(options),
       priceBTMC: () => vnstock.commodity.goldPriceBTMC(),
       priceGiaVangNet: () => vnstock.commodity.goldPriceGiaVangNet(),
       priceSJC: () => vnstock.commodity.goldPriceSJC(),
