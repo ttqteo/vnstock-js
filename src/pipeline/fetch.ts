@@ -26,22 +26,46 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Axios attaches the live request and socket to its errors, and those objects
+// reference each other (socket -> _httpMessage -> socket). Anything that
+// serializes the error then dies on a circular structure: JSON.stringify,
+// structured loggers, worker IPC. Keep the fields worth debugging, drop the
+// transport internals.
+function toSerializableCause(error: any): Error {
+  if (!error) return new Error("Unknown error");
+  if (!error.isAxiosError && !error.config && !error.request) return error;
+
+  var cause: any = new Error(error.message || "Request failed");
+  cause.name = error.name || "AxiosError";
+  if (error.code) cause.code = error.code;
+  if (error.config) {
+    cause.url = error.config.url;
+    cause.method = error.config.method;
+  }
+  if (error.response) {
+    cause.status = error.response.status;
+    cause.statusText = error.response.statusText;
+  }
+  return cause;
+}
+
 function wrapError(error: any): never {
+  var cause = toSerializableCause(error);
   if (error.response) {
     if (isCloudflareRateLimit(error)) {
-      throw new RateLimitError("Cloudflare Error 1015 (rate limited)", error);
+      throw new RateLimitError("Cloudflare Error 1015 (rate limited)", cause);
     }
     const status: number = error.response.status;
     if (status === 429) {
-      throw new RateLimitError(undefined, error);
+      throw new RateLimitError(undefined, cause);
     }
     throw new ApiError(
       `HTTP ${status}: ${error.response.statusText || "Request failed"}`,
       status,
-      error
+      cause
     );
   }
-  throw new NetworkError(error.message || "Network error", error);
+  throw new NetworkError(error.message || "Network error", cause);
 }
 
 function isVietcapUrl(url: string): boolean {
