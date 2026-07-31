@@ -27,6 +27,7 @@ Yêu cầu: Node.js >= 18, npm >= 8.
 | --- | --- |
 | `npm run test:unit` | Unit tests, toàn bộ đều mock — không gọi mạng, chạy ~13s |
 | `npm run test:integration` | Gọi API thật của VCI và các nguồn hàng hoá |
+| `npm run test:integration:vn` | Như trên, kèm các test cần IP Việt Nam |
 | `npm run lint` | ESLint. Phải sạch lỗi trước khi tạo PR |
 | `npm run lint:fix` | Tự sửa những lỗi sửa được |
 | `npm run format` | Prettier cho file bạn đang sửa |
@@ -39,8 +40,21 @@ Test gọi API thật được tách riêng sau biến môi trường `INTEGRATI
 chúng bị skip. Lý do: khi VCI rate-limit, đổi response, hoặc thị trường đóng cửa,
 PR của bạn không bị đỏ oan.
 
-CI chỉ chạy unit test. Integration test chạy theo lịch hàng ngày trên repo chính,
-và tự mở issue nếu API nguồn thay đổi.
+CI chỉ chạy unit test. Integration test chạy theo lịch các ngày trong tuần trên
+repo chính, và tự mở issue nếu API nguồn thay đổi.
+
+### Test cần IP Việt Nam
+
+Một số nguồn chặn hoặc treo với IP nước ngoài, nên không chạy được trên GitHub
+Actions: BTMC treo tới hết hạn 15 giây, SJC trả 403. Chúng nằm sau cổng thứ hai
+`INTEGRATION_VN=1`.
+
+Nếu bạn ở Việt Nam, chạy `npm run test:integration:vn` để bao luôn phần này. Ở
+nước ngoài thì chúng tự bỏ qua, không phải lỗi của bạn.
+
+Đây là lý do `commodity.goldPrice()` có cơ chế dự phòng: BTMC hỏng thì chuyển
+sang GiaVangNet. Test cho đường dự phòng đó **không** bị gate, vì chính môi
+trường không có BTMC mới là nơi cần kiểm chứng nó.
 
 Nếu bạn sửa phần gọi API, hãy chạy thêm `npm run test:integration` ở máy local và
 ghi kết quả vào phần mô tả PR.

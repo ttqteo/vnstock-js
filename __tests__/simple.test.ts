@@ -3,6 +3,11 @@ import { stock, commodity, quickQuote, recentHistory, compareSymbols, topMovers 
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
+// BTMC times out from non-VN IPs. See the note in commodity.test.ts.
+// Run with: npm run test:integration:vn
+const RUN_VN = RUN_INTEGRATION && process.env.INTEGRATION_VN === "1";
+const itVN = RUN_VN ? it : it.skip;
+
 describeIntegration("Simple API (integration — INTEGRATION=1)", () => {
   describe("stock", () => {
     it("stock.quote returns normalized data", async () => {
@@ -47,7 +52,7 @@ describeIntegration("Simple API (integration — INTEGRATION=1)", () => {
   });
 
   describe("commodity", () => {
-    it("commodity.gold.priceBTMC returns normalized data", async () => {
+    itVN("commodity.gold.priceBTMC returns normalized data (needs VN IP)", async () => {
       const data = await commodity.gold.priceBTMC();
       expect(Array.isArray(data)).toBe(true);
       expect(data[0]).toHaveProperty("buyPrice");
