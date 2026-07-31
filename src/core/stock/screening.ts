@@ -1,5 +1,6 @@
 import { fetchWithRetry } from "../../pipeline/fetch";
 import { GRAPHQL_URL } from "../../shared/constants";
+import { DataUnavailableError } from "../../errors";
 import { ScreenFilter, ScreenOptions, ScreenResult } from "../../models/screening";
 
 export { ScreenFilter };
@@ -61,6 +62,17 @@ export default class Screening {
     });
 
     const listings = listingResponse.data?.CompaniesListingInfo || [];
+
+    // The GraphQL endpoint this module depends on now answers 200 with an empty
+    // body, so an empty listing means the source is gone, not that the market
+    // has no tickers. Returning [] here would read as "no stock matches your
+    // filter", which is a lie. Fail loudly instead.
+    if (listings.length === 0) {
+      throw new DataUnavailableError(
+        "screening (VCI GraphQL endpoint returns an empty response; the source has been retired)"
+      );
+    }
+
     const listingMap: Record<string, any> = {};
     for (const item of listings) {
       listingMap[item.ticker] = item;

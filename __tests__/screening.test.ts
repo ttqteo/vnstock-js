@@ -73,3 +73,29 @@ describe("applyFilters", () => {
     expect(result).toHaveLength(2);
   });
 });
+
+jest.mock("../src/pipeline/fetch", () => ({
+  fetchWithRetry: jest.fn(),
+}));
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { fetchWithRetry } = require("../src/pipeline/fetch");
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const Screening = require("../src/core/stock/screening").default;
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { DataUnavailableError } = require("../src/errors");
+
+describe("Screening.screen when the upstream is gone", () => {
+  // The VCI GraphQL endpoint this module depends on now answers 200 with an
+  // empty body. Returning [] would read as "no stock matches your filter",
+  // which is a lie, so it has to fail loudly instead.
+  it("throws instead of reporting an empty result set", async () => {
+    fetchWithRetry.mockResolvedValueOnce({});
+    await expect(new Screening().screen({})).rejects.toThrow(DataUnavailableError);
+  });
+
+  it("names the retired source in the message", async () => {
+    fetchWithRetry.mockResolvedValueOnce({ data: { CompaniesListingInfo: [] } });
+    await expect(new Screening().screen({})).rejects.toThrow(/GraphQL/);
+  });
+});
