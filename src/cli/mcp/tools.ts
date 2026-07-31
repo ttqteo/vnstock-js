@@ -160,6 +160,11 @@ export const tools: ToolSchema[] = [
       properties: {
         symbol: { type: "string", description: "Mã cổ phiếu" },
         lookback: { type: "number", description: "Số phiên lịch sử (mặc định 200)" },
+        as_of: {
+          type: "string",
+          description:
+            "YYYY-MM-DD. Tính chỉ báo như thể đang đứng ở cuối phiên đó, dùng khi viết báo cáo trễ ngày. Mặc định: phiên gần nhất",
+        },
       },
       required: ["symbol"],
     },
@@ -176,6 +181,10 @@ export const tools: ToolSchema[] = [
       properties: {
         symbol: { type: "string", description: "Mã cổ phiếu" },
         lang: { type: "string", description: "vi (mặc định) hoặc en" },
+        as_of: {
+          type: "string",
+          description: "YYYY-MM-DD. Tính như thể đang đứng ở cuối phiên đó. Mặc định: phiên gần nhất",
+        },
       },
       required: ["symbol"],
     },
@@ -196,6 +205,60 @@ export const tools: ToolSchema[] = [
         },
       },
       required: ["symbols"],
+    },
+  },
+  {
+    name: "get_market_breadth",
+    description:
+      "Độ rộng thị trường một sàn: số mã tăng / giảm / đứng giá / trần / sàn, và tỷ lệ tăng-giảm. " +
+      "Dùng khi user hỏi 'thị trường hôm nay thế nào', 'bao nhiêu mã tăng', 'độ rộng thị trường'. " +
+      "EN: Market breadth for one exchange: advancing / declining / unchanged / ceiling / floor counts.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exchange: {
+          type: "string",
+          description: "HOSE (mặc định), HNX, UPCOM, hoặc ALL cho cả ba sàn",
+        },
+      },
+    },
+  },
+  {
+    name: "get_foreign_flow",
+    description:
+      "Giao dịch khối ngoại. Không truyền symbol thì trả mức thị trường: tổng mua/bán/ròng theo tỷ VND, " +
+      "kèm top mã mua ròng và bán ròng. Truyền symbol thì trả riêng mã đó. " +
+      "Dùng khi user hỏi 'khối ngoại mua bán gì', 'nước ngoài bán ròng bao nhiêu', 'khối ngoại với VCB'. " +
+      "LƯU Ý: chỉ có phiên hiện tại, nguồn dữ liệu không cung cấp lịch sử khối ngoại theo ngày. " +
+      "EN: Foreign investor flow, current session only. Market-wide with top net buy/sell, or a single symbol.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu. Bỏ trống để lấy mức thị trường" },
+        exchange: { type: "string", description: "HOSE (mặc định), HNX, UPCOM, ALL" },
+        top: { type: "number", description: "Số mã trong top mua/bán ròng (mặc định 10)" },
+      },
+    },
+  },
+  {
+    name: "get_market_context",
+    description:
+      "Bối cảnh thị trường dạng structured JSON cho AI reasoning, tương đương get_ai_context nhưng ở mức thị trường. " +
+      "Gồm: chỉ số VN-Index (đơn vị điểm), regime (trending_up/trending_down/sideways), " +
+      "thanh khoản phiên so với trung bình 20 phiên, độ rộng thị trường, khối ngoại. " +
+      "Dùng khi user hỏi 'thị trường đang thế nào', 'nên vào tiền chưa', 'bối cảnh vĩ mô thị trường'. " +
+      "EN: Market-level context for AI reasoning: index, regime, liquidity vs 20-session norm, breadth, foreign flow.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exchange: { type: "string", description: "HOSE (mặc định), HNX, UPCOM, ALL" },
+        index: { type: "string", description: "VNINDEX (mặc định), VN30, HNXIndex..." },
+        as_of: {
+          type: "string",
+          description:
+            "YYYY-MM-DD. Lưu ý: với ngày quá khứ thì độ rộng và khối ngoại trả null, vì nguồn chỉ có phiên hiện tại",
+        },
+      },
     },
   },
 ];

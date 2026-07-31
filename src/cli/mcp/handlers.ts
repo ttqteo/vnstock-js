@@ -66,7 +66,7 @@ export async function handleGetHistory(args: any): Promise<McpToolResponse> {
       timeFrame: "1D",
     });
     var sliced = rows.slice(-limit);
-    var summary = `${symbol} từ ${from} đến ${to} — ${sliced.length} phiên`;
+    var summary = `${symbol} từ ${from} đến ${to}: ${sliced.length} phiên`;
     return textResponse(summary, sliced);
   } catch (e: any) {
     return errorResponse(`Lỗi khi lấy lịch sử ${symbol}: ${e.message || e}`);
@@ -157,7 +157,7 @@ export async function handleGetCompanyInfo(args: any): Promise<McpToolResponse> 
     if (!info) {
       return errorResponse(`Không tìm thấy mã "${symbol}". Hãy thử search_symbols.`);
     }
-    var summary = `${symbol} — ${info.companyName} · ${info.exchange}`;
+    var summary = `${symbol}: ${info.companyName} · ${info.exchange}`;
     return textResponse(summary, info);
   } catch (e: any) {
     return errorResponse(`Lỗi: ${e.message || e}`);
@@ -169,7 +169,7 @@ export async function handleGetDividends(args: any): Promise<McpToolResponse> {
   if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
   try {
     var dividends = await vnstock.stock.company(symbol).dividends();
-    var summary = `${symbol} — ${dividends.length} sự kiện cổ tức`;
+    var summary = `${symbol}: ${dividends.length} sự kiện cổ tức`;
     return textResponse(summary, dividends);
   } catch (e: any) {
     return errorResponse(`Lỗi khi lấy cổ tức ${symbol}: ${e.message || e}`);
@@ -181,7 +181,7 @@ export async function handleGetCorporateEvents(args: any): Promise<McpToolRespon
   if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
   try {
     var events = await vnstock.stock.company(symbol).events();
-    var summary = `${symbol} — ${events.length} sự kiện doanh nghiệp`;
+    var summary = `${symbol}: ${events.length} sự kiện doanh nghiệp`;
     return textResponse(summary, events);
   } catch (e: any) {
     return errorResponse(`Lỗi khi lấy sự kiện ${symbol}: ${e.message || e}`);
@@ -192,15 +192,18 @@ export async function handleGetAIContext(args: any): Promise<McpToolResponse> {
   var symbol = String(args.symbol || "").toUpperCase().trim();
   if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
   var lookback = typeof args.lookback === "number" ? args.lookback : 200;
-  var key = symbol + "|" + lookback;
+  var asOf = args.as_of ? String(args.as_of) : undefined;
+  // asOf is part of the cache key: the same symbol at two different dates is
+  // two different answers.
+  var key = symbol + "|" + lookback + "|" + (asOf || "latest");
   var cached = aiCache.get(key);
   if (cached) {
     return textResponse(`AI context cho ${symbol} (cached)`, cached);
   }
   try {
-    var ctx = await vnstock.stock.aiContext(symbol, { lookback });
+    var ctx = await vnstock.stock.aiContext(symbol, { lookback, asOf });
     aiCache.set(key, ctx);
-    var summary = `${symbol} — trend ${ctx.trend.direction} (${(ctx.trend.strength * 100).toFixed(0)}%)`;
+    var summary = `${symbol}: trend ${ctx.trend.direction} (${(ctx.trend.strength * 100).toFixed(0)}%)`;
     return textResponse(summary, ctx);
   } catch (e: any) {
     return errorResponse(`Lỗi khi build AI context ${symbol}: ${e.message || e}`);
@@ -212,7 +215,10 @@ export async function handleToAIPrompt(args: any): Promise<McpToolResponse> {
   if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
   var lang: "vi" | "en" = args.lang === "en" ? "en" : "vi";
   try {
-    var text = await vnstock.stock.toAIPrompt(symbol, { lang });
+    var text = await vnstock.stock.toAIPrompt(symbol, {
+      lang,
+      asOf: args.as_of ? String(args.as_of) : undefined,
+    });
     return textResponse(text);
   } catch (e: any) {
     return errorResponse(`Lỗi: ${e.message || e}`);
@@ -233,6 +239,75 @@ export async function handleCompareSymbols(args: any): Promise<McpToolResponse> 
   }
 }
 
+type ExchangeArg = "HOSE" | "HNX" | "UPCOM" | "ALL";
+const EXCHANGE_ARGS: ExchangeArg[] = ["HOSE", "HNX", "UPCOM", "ALL"];
+
+function parseExchange(raw: any): ExchangeArg | null {
+  if (raw === undefined || raw === null || raw === "") return "HOSE";
+  var up = String(raw).toUpperCase().trim();
+  if (up === "HSX") up = "HOSE";
+  return EXCHANGE_ARGS.indexOf(up as ExchangeArg) === -1 ? null : (up as ExchangeArg);
+}
+
+export async function handleGetMarketBreadth(args: any): Promise<McpToolResponse> {
+  var exchange = parseExchange(args.exchange);
+  if (!exchange) return errorResponse(`Sàn không hợp lệ. Chọn: ${EXCHANGE_ARGS.join(", ")}.`);
+  try {
+    var b = await vnstock.market.breadth({ exchange });
+    var summary =
+      `${b.exchange} ${b.date}: tăng ${b.advancing}, giảm ${b.declining}, đứng giá ${b.unchanged}` +
+      ` (trần ${b.ceiling}, sàn ${b.floor}) trên ${b.total} mã có giao dịch`;
+    return textResponse(summary, b);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy độ rộng thị trường: ${e.message || e}`);
+  }
+}
+
+export async function handleGetForeignFlow(args: any): Promise<McpToolResponse> {
+  var symbol = args.symbol ? String(args.symbol).toUpperCase().trim() : "";
+  try {
+    if (symbol) {
+      var one = await vnstock.stock.foreignFlow(symbol);
+      var verb = one.netValue >= 0 ? "mua ròng" : "bán ròng";
+      return textResponse(
+        `${one.symbol} ${one.date}: khối ngoại ${verb} ${Math.abs(one.netValue)} tỷ VND`,
+        one
+      );
+    }
+
+    var exchange = parseExchange(args.exchange);
+    if (!exchange) return errorResponse(`Sàn không hợp lệ. Chọn: ${EXCHANGE_ARGS.join(", ")}.`);
+    var top = typeof args.top === "number" ? args.top : 10;
+    var flow = await vnstock.market.foreignFlow({ exchange, top });
+    var side = flow.netValue >= 0 ? "mua ròng" : "bán ròng";
+    var summary =
+      `${flow.exchange} ${flow.date}: khối ngoại ${side} ${Math.abs(flow.netValue)} tỷ VND ` +
+      `(mua ${flow.buyValue}, bán ${flow.sellValue})`;
+    return textResponse(summary, flow);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy dữ liệu khối ngoại: ${e.message || e}`);
+  }
+}
+
+export async function handleGetMarketContext(args: any): Promise<McpToolResponse> {
+  var exchange = parseExchange(args.exchange);
+  if (!exchange) return errorResponse(`Sàn không hợp lệ. Chọn: ${EXCHANGE_ARGS.join(", ")}.`);
+  try {
+    var ctx = await vnstock.market.aiContext({
+      exchange,
+      index: args.index ? String(args.index) : undefined,
+      asOf: args.as_of ? String(args.as_of) : undefined,
+    });
+    var summary =
+      `${ctx.index.symbol} ${ctx.date}: ${ctx.index.close} điểm ` +
+      `(${ctx.index.changePercent === null ? "n/a" : ctx.index.changePercent + "%"}), ` +
+      `regime ${ctx.regime}, thanh khoản ${ctx.liquidity.value} tỷ (${ctx.liquidity.signal})`;
+    return textResponse(summary, ctx);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi build bối cảnh thị trường: ${e.message || e}`);
+  }
+}
+
 export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> = {
   get_quote: handleGetQuote,
   get_history: handleGetHistory,
@@ -247,4 +322,7 @@ export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> =
   get_ai_context: handleGetAIContext,
   to_ai_prompt: handleToAIPrompt,
   compare_symbols: handleCompareSymbols,
+  get_market_breadth: handleGetMarketBreadth,
+  get_foreign_flow: handleGetForeignFlow,
+  get_market_context: handleGetMarketContext,
 };

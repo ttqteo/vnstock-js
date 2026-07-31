@@ -1,8 +1,9 @@
 import { tools } from "../../../src/cli/mcp/tools";
+import { handlers } from "../../../src/cli/mcp/handlers";
 
 describe("MCP tool schemas", () => {
-  it("registers exactly 13 tools", () => {
-    expect(tools.length).toBe(13);
+  it("registers exactly 16 tools", () => {
+    expect(tools.length).toBe(16);
   });
 
   it("expected tool names present", () => {
@@ -22,8 +23,23 @@ describe("MCP tool schemas", () => {
         "get_ai_context",
         "to_ai_prompt",
         "compare_symbols",
+        "get_market_breadth",
+        "get_foreign_flow",
+        "get_market_context",
       ])
     );
+  });
+
+  it("every registered tool has a handler behind it", () => {
+    const names = tools.map((t) => t.name).sort();
+    expect(Object.keys(handlers).sort()).toEqual(names);
+  });
+
+  it("point-in-time tools accept as_of", () => {
+    for (const name of ["get_ai_context", "to_ai_prompt", "get_market_context"]) {
+      const tool = tools.find((t) => t.name === name);
+      expect(tool?.inputSchema.properties).toHaveProperty("as_of");
+    }
   });
 
   it("each tool has type object schema", () => {

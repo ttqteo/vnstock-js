@@ -4,6 +4,9 @@ import { handleQuote, meta as quoteMeta } from "./commands/quote";
 import { handleHistory, meta as historyMeta } from "./commands/history";
 import { handleSearch, meta as searchMeta } from "./commands/search";
 import { handleSymbols, meta as symbolsMeta } from "./commands/symbols";
+import { handleMarket, meta as marketMeta } from "./commands/market";
+import { handleForeign, meta as foreignMeta } from "./commands/foreign";
+import { injectDefaultCommand } from "./argv";
 import { checkForUpdate, printUpdateBanner } from "./update-check";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 var pkg = require("../../package.json");
@@ -221,6 +224,68 @@ function buildProgram(): Command {
     });
 
   program
+    .command("market")
+    .description("Market overview: index, liquidity, breadth, foreign flow")
+    .option("--exchange <ex>", "HOSE (default), HNX, UPCOM, ALL")
+    .option("--index <symbol>", "VNINDEX (default), VN30, HNXIndex")
+    .option("--json", "output JSON")
+    .option("--csv", "output CSV")
+    .option("--no-color", "disable color")
+    .option("--quiet", "suppress non-error logs")
+    .option("--verbose", "show top foreign net buy/sell")
+    .action(function (options: any) {
+      var out = resolveOutputOpts(options);
+      return runCommand(
+        marketMeta,
+        function () {
+          return handleMarket({
+            exchange: options.exchange,
+            index: options.index,
+            json: out.json,
+            csv: out.csv,
+            color: out.color,
+            quiet: out.quiet,
+            verbose: out.verbose,
+          });
+        },
+        options
+      );
+    });
+
+  program
+    .command("foreign")
+    .description("Foreign investor flow, current session (market-wide or one symbol)")
+    .argument("[symbol]", "symbol; omit for market-wide")
+    .option("--exchange <ex>", "HOSE (default), HNX, UPCOM, ALL")
+    .option("--top <n>", "rows in top net buy/sell (default 10)", function (v: string) {
+      return parseInt(v, 10);
+    })
+    .option("--json", "output JSON")
+    .option("--csv", "output CSV")
+    .option("--no-color", "disable color")
+    .option("--quiet", "suppress non-error logs")
+    .option("--verbose", "show more details")
+    .action(function (symbol: string | undefined, options: any) {
+      var out = resolveOutputOpts(options);
+      return runCommand(
+        foreignMeta,
+        function () {
+          return handleForeign({
+            symbol: symbol,
+            exchange: options.exchange,
+            top: typeof options.top === "number" && !isNaN(options.top) ? options.top : 10,
+            json: out.json,
+            csv: out.csv,
+            color: out.color,
+            quiet: out.quiet,
+            verbose: out.verbose,
+          });
+        },
+        options
+      );
+    });
+
+  program
     .command("mcp")
     .description("Start MCP server (stdio) for Claude Desktop / Cursor / VS Code")
     .action(async function () {
@@ -231,23 +296,14 @@ function buildProgram(): Command {
   return program;
 }
 
-// Default-to-quote shortcut: `vnstock MBB` → `vnstock quote MBB`.
-// If first positional looks like a symbol (uppercase letters/digits/comma)
-// and not a known subcommand or flag, inject `quote`.
-var KNOWN_COMMANDS = ["quote", "history", "search", "symbols", "mcp", "help"];
-var argv = process.argv.slice();
-if (argv.length >= 3) {
-  var first = argv[2];
-  var isKnown = KNOWN_COMMANDS.indexOf(first) !== -1;
-  var isFlag = first.charAt(0) === "-";
-  var looksLikeSymbols = /^[A-Za-z][A-Za-z0-9,]*$/.test(first);
-  if (!isKnown && !isFlag && looksLikeSymbols) {
-    argv.splice(2, 0, "quote");
-  }
-}
-
 var program = buildProgram();
-program.parseAsync(argv).catch(function (err: any) {
+var commandNames = program.commands
+  .map(function (c) {
+    return c.name();
+  })
+  .concat(["help"]);
+
+program.parseAsync(injectDefaultCommand(process.argv, commandNames)).catch(function (err: any) {
   process.stderr.write("Fatal: " + (err && err.message) + "\n");
   process.exit(2);
 });
