@@ -4,6 +4,7 @@ import { Directory } from "../../core/listing/directory";
 import { calendar } from "../../core/market";
 import { textResponse, errorResponse, McpToolResponse } from "./formatters";
 import { TTLCache, QUOTE_TTL_MS, AI_CONTEXT_TTL_MS } from "./cache";
+import { Watchlist } from "../../watchlist";
 
 var initialized = false;
 async function ensureData() {
@@ -15,6 +16,7 @@ async function ensureData() {
 const vnstock = new Vnstock();
 const quoteCache = new TTLCache<any>(QUOTE_TTL_MS);
 const aiCache = new TTLCache<any>(AI_CONTEXT_TTL_MS);
+const watchlist = new Watchlist();
 
 function todayISO(): string {
   return new Date().toISOString().substring(0, 10);
@@ -308,6 +310,149 @@ export async function handleGetMarketContext(args: any): Promise<McpToolResponse
   }
 }
 
+export async function handleGetNews(args: any): Promise<McpToolResponse> {
+  var date = args.date ? String(args.date) : undefined;
+  var limit = typeof args.limit === "number" ? args.limit : 20;
+  try {
+    var items;
+    if (args.keyword) {
+      items = await vnstock.news.search(String(args.keyword), date);
+    } else if (args.source) {
+      items = await vnstock.news.bySource(String(args.source), date);
+    } else {
+      items = await vnstock.news.byDate(date);
+    }
+    var sliced = items.slice(0, limit);
+    var filter = args.keyword
+      ? ` khớp "${args.keyword}"`
+      : args.source
+        ? ` từ ${args.source}`
+        : "";
+    if (sliced.length === 0) {
+      return textResponse(`Không có tin${filter} cho ngày ${date || "hôm nay"}.`, []);
+    }
+    return textResponse(`${sliced.length} tin${filter} ngày ${date || "hôm nay"}`, sliced);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy tin tức: ${e.message || e}`);
+  }
+}
+
+const REPORTS: Record<string, "balanceSheet" | "incomeStatement" | "cashFlow"> = {
+  balance_sheet: "balanceSheet",
+  income_statement: "incomeStatement",
+  cash_flow: "cashFlow",
+};
+
+export async function handleGetFinancials(args: any): Promise<McpToolResponse> {
+  var symbol = String(args.symbol || "").toUpperCase().trim();
+  if (!symbol) return errorResponse("Thiếu tham số 'symbol'.");
+
+  var reportArg = String(args.report || "balance_sheet").toLowerCase();
+  var method = REPORTS[reportArg];
+  if (!method) {
+    return errorResponse(`Loại báo cáo không hợp lệ. Chọn: ${Object.keys(REPORTS).join(", ")}.`);
+  }
+  var period = args.period === "year" ? "year" : "quarter";
+
+  try {
+    var result = await vnstock.stock.financials[method]({ symbol, period });
+    return textResponse(`${symbol}: ${reportArg} theo ${period}`, result);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy báo cáo tài chính ${symbol}: ${e.message || e}`);
+  }
+}
+
+export async function handleGetGoldPrice(args: any): Promise<McpToolResponse> {
+  var source = args.source ? String(args.source).toLowerCase() : "auto";
+  if (["auto", "btmc", "giavangnet"].indexOf(source) === -1) {
+    return errorResponse("Nguồn không hợp lệ. Chọn: auto, btmc, giavangnet.");
+  }
+  try {
+    var result = await vnstock.commodity.goldPrice({ source: source as any });
+    return textResponse(`Giá vàng từ ${result.source}: ${result.data.length} loại`, result.data);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy giá vàng: ${e.message || e}`);
+  }
+}
+
+export async function handleGetExchangeRate(args: any): Promise<McpToolResponse> {
+  try {
+    var rates: any[] = await vnstock.commodity.exchangeRates(
+      args.date ? String(args.date) : undefined
+    );
+    if (args.currency) {
+      var want = String(args.currency).toUpperCase();
+      rates = rates.filter(function (r: any) {
+        return String(r.currencyCode || "").toUpperCase() === want;
+      });
+      if (rates.length === 0) {
+        return errorResponse(`Không tìm thấy tỷ giá cho "${args.currency}".`);
+      }
+    }
+    return textResponse(`Tỷ giá Vietcombank: ${rates.length} loại tiền`, rates);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi lấy tỷ giá: ${e.message || e}`);
+  }
+}
+
+export async function handleWatchlist(args: any): Promise<McpToolResponse> {
+  var action = String(args.action || "").toLowerCase().trim();
+  var name = args.name ? String(args.name) : "";
+  var symbols: string[] = Array.isArray(args.symbols)
+    ? args.symbols.map(function (s: any) {
+        return String(s).toUpperCase();
+      })
+    : [];
+
+  // Every action except list_all operates on one named list.
+  if (action !== "list_all" && !name) {
+    return errorResponse("Thiếu tham số 'name'.");
+  }
+
+  try {
+    switch (action) {
+      case "list_all": {
+        var all = await watchlist.listAll();
+        return textResponse(`${all.length} danh sách theo dõi`, all);
+      }
+      case "list": {
+        var items = await watchlist.list(name);
+        return textResponse(`${name}: ${items.length} mã`, items);
+      }
+      case "create":
+        await watchlist.create(name);
+        return textResponse(`Đã tạo danh sách "${name}".`);
+      case "delete":
+        await watchlist.delete(name);
+        return textResponse(`Đã xoá danh sách "${name}".`);
+      case "add": {
+        if (symbols.length === 0) return errorResponse("Thiếu tham số 'symbols'.");
+        await watchlist.add(name, symbols);
+        return textResponse(`Đã thêm ${symbols.join(", ")} vào "${name}".`, await watchlist.list(name));
+      }
+      case "remove": {
+        if (symbols.length === 0) return errorResponse("Thiếu tham số 'symbols'.");
+        for (var i = 0; i < symbols.length; i++) {
+          await watchlist.remove(name, symbols[i]);
+        }
+        return textResponse(`Đã bỏ ${symbols.join(", ")} khỏi "${name}".`, await watchlist.list(name));
+      }
+      case "quote": {
+        var list = await watchlist.list(name);
+        if (list.length === 0) return textResponse(`Danh sách "${name}" đang trống.`, []);
+        var board = await vnstock.stock.trading.priceBoard(list);
+        return textResponse(`${name}: giá ${board.length} mã`, board);
+      }
+      default:
+        return errorResponse(
+          "Hành động không hợp lệ. Chọn: list_all, list, create, delete, add, remove, quote."
+        );
+    }
+  } catch (e: any) {
+    return errorResponse(`Lỗi watchlist: ${e.message || e}`);
+  }
+}
+
 export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> = {
   get_quote: handleGetQuote,
   get_history: handleGetHistory,
@@ -325,4 +470,9 @@ export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> =
   get_market_breadth: handleGetMarketBreadth,
   get_foreign_flow: handleGetForeignFlow,
   get_market_context: handleGetMarketContext,
+  get_news: handleGetNews,
+  get_financials: handleGetFinancials,
+  get_gold_price: handleGetGoldPrice,
+  get_exchange_rate: handleGetExchangeRate,
+  watchlist: handleWatchlist,
 };

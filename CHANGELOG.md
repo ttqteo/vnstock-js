@@ -24,7 +24,7 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 
 ### Thêm: MCP và CLI
 
-- 3 MCP tool: `get_market_breadth`, `get_foreign_flow`, `get_market_context`. Thêm `as_of` cho `get_ai_context` và `to_ai_prompt`. MCP server nay có 16 tool (trước 13).
+- 8 MCP tool mới. Nhóm thị trường: `get_market_breadth`, `get_foreign_flow`, `get_market_context`. Lấp các module SDK trước đây chưa lộ ra MCP: `get_news`, `get_financials`, `get_gold_price`, `get_exchange_rate`, `watchlist`. Thêm `as_of` cho `get_ai_context` và `to_ai_prompt`. MCP server nay có 21 tool (trước 13).
 - `vnstock market`: tổng quan thị trường. Cờ `--exchange`, `--index`, `--verbose`.
 - `vnstock foreign [symbol]`: khối ngoại toàn sàn hoặc một mã. Cờ `--top`.
 
@@ -44,6 +44,11 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 - **Chỉ số bị chia 1000.** `transformQuoteHistory` chia OHLC cho 1000 không phân biệt loại mã. Đúng cho giá VND, sai cho chỉ số tính bằng điểm. Nay dùng `priceDivisorFor()`, so khớp không phân biệt hoa thường vì `INDEX_SYMBOLS` trộn kiểu viết (`VNINDEX` và `HNXIndex`).
 - **`asOf` lệch một ngày.** Biên `end` của endpoint là loại trừ, nên `asOf` ban đầu bỏ mất chính phiên được hỏi. Nay cộng một ngày khi chuyển đổi.
 - **CLI nuốt lệnh mới.** Lối tắt `vnstock MBB` dùng danh sách lệnh cứng, nên `vnstock market` bị coi là mã chứng khoán và trả dòng rỗng. Danh sách nay đọc từ commander.
+- **`screening` hỏng âm thầm.** Endpoint GraphQL của VCI mà module này phụ thuộc nay trả HTTP 200 với body rỗng, nên `screen()` trả mảng rỗng và người dùng đọc thành "không mã nào khớp điều kiện". Nay ném `DataUnavailableError` nói rõ nguồn đã bị ngừng. Tính năng vẫn hỏng cho tới khi chuyển sang REST, nhưng ít nhất không nói dối. Vì vậy không có MCP tool cho screening.
+
+### Nội bộ thêm
+
+- `.gitattributes` chuẩn hoá xuống dòng về LF. Trước đó `core.autocrlf` trên Windows cảnh báo mỗi lần `git add`, và mỗi nền tảng sinh ra một kiểu xuống dòng khác nhau nên PR dễ mang diff toàn whitespace.
 
 ### Nội bộ
 

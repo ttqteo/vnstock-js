@@ -261,4 +261,91 @@ export const tools: ToolSchema[] = [
       },
     },
   },
+  {
+    name: "get_news",
+    description:
+      "Tin tức tài chính Việt Nam theo ngày, tổng hợp từ Vietstock, VnExpress, Tin Nhanh Chứng Khoán và các nguồn khác. " +
+      "Lọc được theo nguồn hoặc từ khóa. Dùng khi user hỏi 'tin tức hôm nay', 'có tin gì về VCB', 'thị trường có gì mới'. " +
+      "EN: Vietnamese financial news for a given date, filterable by source or keyword.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        date: { type: "string", description: "YYYY-MM-DD. Mặc định: hôm nay" },
+        source: { type: "string", description: "Lọc theo nguồn, ví dụ Vietstock" },
+        keyword: { type: "string", description: "Lọc theo từ khóa trong tiêu đề và tóm tắt" },
+        limit: { type: "number", description: "Số tin tối đa (mặc định 20)" },
+      },
+    },
+  },
+  {
+    name: "get_financials",
+    description:
+      "Báo cáo tài chính của một mã: bảng cân đối kế toán, kết quả kinh doanh, hoặc lưu chuyển tiền tệ. " +
+      "Dùng khi user hỏi 'doanh thu VCB', 'lợi nhuận FPT quý này', 'tài sản của HPG', 'dòng tiền MWG'. " +
+      "EN: Financial statements for a Vietnam stock: balance sheet, income statement, or cash flow.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu" },
+        report: {
+          type: "string",
+          description:
+            "balance_sheet (mặc định), income_statement, hoặc cash_flow",
+        },
+        period: { type: "string", description: "quarter (mặc định) hoặc year" },
+      },
+      required: ["symbol"],
+    },
+  },
+  {
+    name: "get_gold_price",
+    description:
+      "Giá vàng trong nước. Tự dự phòng nguồn: thử BTMC trước, lỗi thì chuyển GiaVang.net. " +
+      "Dùng khi user hỏi 'giá vàng hôm nay', 'vàng SJC bao nhiêu'. " +
+      "EN: Vietnam gold prices with automatic source fallback.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        source: { type: "string", description: "auto (mặc định), btmc, hoặc giavangnet" },
+      },
+    },
+  },
+  {
+    name: "get_exchange_rate",
+    description:
+      "Tỷ giá ngoại tệ Vietcombank: mua tiền mặt, mua chuyển khoản, bán. " +
+      "Dùng khi user hỏi 'tỷ giá USD hôm nay', '1 euro bao nhiêu tiền Việt'. " +
+      "EN: Vietcombank foreign exchange rates.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        currency: { type: "string", description: "Lọc theo mã tiền tệ, ví dụ USD. Bỏ trống là tất cả" },
+        date: { type: "string", description: "YYYY-MM-DD. Mặc định: hôm nay" },
+      },
+    },
+  },
+  {
+    name: "watchlist",
+    description:
+      "Quản lý danh sách mã theo dõi, lưu tại ~/.vnstock-js/watchlist.json. " +
+      "Hành động: list_all (liệt kê các danh sách), list (xem mã trong một danh sách), create, delete, add, remove, quote (lấy giá tất cả mã trong danh sách). " +
+      "Dùng khi user nói 'thêm VCB vào danh sách theo dõi', 'danh mục của tôi thế nào'. " +
+      "EN: Manage watchlists persisted on disk, and quote every symbol in one.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: {
+          type: "string",
+          description: "list_all, list, create, delete, add, remove, quote",
+        },
+        name: { type: "string", description: "Tên danh sách. Bắt buộc trừ action list_all" },
+        symbols: {
+          type: "array",
+          items: { type: "string" },
+          description: "Mã cần thêm hoặc bỏ, dùng với action add và remove",
+        },
+      },
+      required: ["action"],
+    },
+  },
 ];
