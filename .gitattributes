@@ -1,0 +1,9 @@
+# Normalise line endings: LF in the repository and in every checkout.
+#
+# Without this, core.autocrlf on Windows rewrites files to CRLF on checkout and
+# Git warns on every add. Worse for contributors: each platform produces a
+# different ending, so pull requests carry diffs that are nothing but line
+# endings. Pinning eol=lf keeps every checkout identical.
+#
+# The shell hooks in .husky/ and the bin/vnstock shebang also need LF to run.
+* text=auto eol=lf
