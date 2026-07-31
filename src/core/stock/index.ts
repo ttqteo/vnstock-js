@@ -25,7 +25,7 @@ export default class Stock {
     this.quote = new Quote(this.adapter);
     this.listing = new Listing(this.adapter);
     this.financials = new Financials(this.adapter);
-    this.screening = new Screening();
+    this.screening = new Screening(this.adapter);
   }
 
   company(ticker: string): Company {

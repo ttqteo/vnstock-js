@@ -1,7 +1,10 @@
 import { fetchWithRetry } from "../../pipeline/fetch";
-import { GRAPHQL_URL } from "../../shared/constants";
-import { DataUnavailableError } from "../../errors";
+import { VCI_COMPANY_URL } from "../../shared/constants";
+import { InvalidParameterError } from "../../errors";
 import { ScreenFilter, ScreenOptions, ScreenResult } from "../../models/screening";
+import { StockDataAdapter } from "../../adapters/types";
+import { VciAdapter } from "../../adapters/vci";
+import { PriceBoardItem } from "../../models/normalized";
 
 export { ScreenFilter };
 
@@ -42,113 +45,218 @@ export function applyFilters<T extends Record<string, unknown>>(
   return result;
 }
 
-const BATCH_SIZE = 50;
+/**
+ * Fields the price board already carries, so filtering on them costs nothing
+ * extra. Everything else needs one request per symbol, which is what makes the
+ * upstream answer 429.
+ */
+const BOARD_FIELDS = [
+  "price",
+  "priceChange",
+  "changePercent",
+  "volume",
+  "value",
+  "exchange",
+  "symbol",
+];
+
+/** Ratios are quarterly figures, so an hour-old answer is still the same answer. */
+const RATIO_TTL_MS = 60 * 60 * 1000;
+const ratioCache: Record<string, { at: number; data: any }> = {};
+
+const DEFAULT_CONCURRENCY = 5;
+
+export function isBoardField(field: string): boolean {
+  return BOARD_FIELDS.indexOf(field) !== -1;
+}
+
+/** Runs `fn` over `items` with at most `size` in flight. */
+export async function pool<T, R>(
+  items: T[],
+  size: number,
+  fn: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const index = cursor++;
+      out[index] = await fn(items[index]);
+    }
+  }
+
+  const workers = [];
+  for (let i = 0; i < Math.max(1, Math.min(size, items.length)); i++) {
+    workers.push(worker());
+  }
+  await Promise.all(workers);
+  return out;
+}
+
+export function boardToResult(item: PriceBoardItem): ScreenResult {
+  const change = item.price - item.referencePrice;
+  return {
+    symbol: item.symbol,
+    companyName: item.companyName || "",
+    companyNameEn: item.companyNameEn || "",
+    industry: "",
+    industryEn: "",
+    exchange: item.exchange || "",
+    price: item.price,
+    priceChange: round(change),
+    changePercent: item.referencePrice > 0 ? round((change / item.referencePrice) * 100) : 0,
+    volume: item.totalVolume || 0,
+    // totalValue is trieu VND; market-level money in this library is ty VND.
+    value: round((item.totalValue || 0) / 1000),
+    marketCap: 0,
+    pe: null,
+    pb: null,
+    ps: null,
+    roe: null,
+    roa: null,
+    roic: null,
+    debtToEquity: null,
+    dividendYield: null,
+    grossMargin: null,
+    currentRatio: null,
+  };
+}
+
+function round(n: number): number {
+  return Math.round(n * 1000) / 1000;
+}
 
 export default class Screening {
-  async screen(options: ScreenOptions = {}): Promise<ScreenResult[]> {
-    const { exchange, filters = [], sortBy, order = "desc", limit } = options;
+  private adapter: StockDataAdapter;
 
-    // Step 1: Get all tickers with industry info
-    const listingQuery = `query CompaniesListingInfo {
-      CompaniesListingInfo {
-        ticker organName enOrganName icbName3 enIcbName3
-      }
-    }`;
-
-    const listingResponse = await fetchWithRetry<any>({
-      url: GRAPHQL_URL,
-      method: "POST",
-      data: { query: listingQuery },
-    });
-
-    const listings = listingResponse.data?.CompaniesListingInfo || [];
-
-    // The GraphQL endpoint this module depends on now answers 200 with an empty
-    // body, so an empty listing means the source is gone, not that the market
-    // has no tickers. Returning [] here would read as "no stock matches your
-    // filter", which is a lie. Fail loudly instead.
-    if (listings.length === 0) {
-      throw new DataUnavailableError(
-        "screening (VCI GraphQL endpoint returns an empty response; the source has been retired)"
-      );
-    }
-
-    const listingMap: Record<string, any> = {};
-    for (const item of listings) {
-      listingMap[item.ticker] = item;
-    }
-
-    const tickers = listings.map((item: any) => item.ticker as string);
-
-    // Step 2: Batch fetch financial data using GraphQL aliases
-    const allPriceInfo: Record<string, any> = {};
-
-    for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
-      const batch = tickers.slice(i, i + BATCH_SIZE);
-      const aliases = batch
-        .map((t: string, j: number) => {
-          const alias = `t${i + j}`;
-          return `${alias}: TickerPriceInfo(ticker: "${t}") { ticker exchange matchPrice closePrice totalVolume priceChange percentPriceChange financialRatio { pe pb eps roe roa de le revenue netProfit issueShare ev ps pcf bvps } }`;
-        })
-        .join("\n");
-
-      const batchQuery = `query { ${aliases} }`;
-
-      try {
-        const response = await fetchWithRetry<any>({
-          url: GRAPHQL_URL,
-          method: "POST",
-          data: { query: batchQuery },
-        });
-
-        if (response.data) {
-          for (const key of Object.keys(response.data)) {
-            const info = response.data[key];
-            if (info?.ticker) {
-              allPriceInfo[info.ticker] = info;
-            }
-          }
-        }
-      } catch {
-        // Skip failed batches
-      }
-    }
-
-    // Step 3: Combine listing + price info
-    let stocks: ScreenResult[] = tickers
-      .filter((t: string) => allPriceInfo[t]?.financialRatio)
-      .map((t: string) => {
-        const listing = listingMap[t] || {};
-        const info = allPriceInfo[t];
-        const fr = info.financialRatio;
-        return {
-          symbol: t,
-          companyName: listing.organName || "",
-          companyNameEn: listing.enOrganName || "",
-          industry: listing.icbName3 || "",
-          industryEn: listing.enIcbName3 || "",
-          exchange: info.exchange || "",
-          pe: fr.pe,
-          pb: fr.pb,
-          eps: fr.eps,
-          roe: fr.roe,
-          roa: fr.roa,
-          marketCap: fr.issueShare && info.matchPrice
-            ? (fr.issueShare * info.matchPrice) / 1000000000
-            : 0,
-          price: info.matchPrice ? info.matchPrice / 1000 : 0,
-          priceChange: info.priceChange ? info.priceChange / 1000 : 0,
-          volume: info.totalVolume || 0,
-          revenue: fr.revenue,
-          netProfit: fr.netProfit,
-          debtToEquity: fr.de,
-        } as ScreenResult;
-      });
-
-    if (exchange) {
-      stocks = stocks.filter((s) => s.exchange === exchange);
-    }
-
-    return applyFilters(stocks, filters, { sortBy, order, limit });
+  constructor(adapter?: StockDataAdapter) {
+    this.adapter = adapter || new VciAdapter();
   }
+
+  /**
+   * Screens one listing group or exchange. A universe is required rather than
+   * defaulted to the whole market: ratios cost one request per symbol, and
+   * ~2000 of them in a burst is what draws a 429.
+   *
+   * Load is kept down in four ways:
+   *   1. the universe is explicit and usually small
+   *   2. the price board answers for every symbol in a single request
+   *   3. filters on price-board fields run first, so ratios are only fetched
+   *      for symbols that already survived
+   *   4. ratios are cached for an hour, which is far shorter than the quarter
+   *      they actually change on
+   */
+  async screen(options: ScreenOptions = {}): Promise<ScreenResult[]> {
+    const { filters = [], sortBy, order = "desc", limit } = options;
+    const universe = options.group || options.exchange;
+
+    if (!universe) {
+      throw new InvalidParameterError("group|exchange", "undefined", [
+        "VN30",
+        "HNX30",
+        "HOSE",
+        "HNX",
+        "UPCOM",
+      ]);
+    }
+
+    const listed = await this.adapter.fetchSymbolsByGroup(universe);
+    const symbols = listed.map((s) => s.symbol);
+    if (symbols.length === 0) return [];
+
+    const board = await this.adapter.fetchPriceBoard(symbols);
+    let rows = board.filter((b) => b.symbol).map(boardToResult);
+
+    // Split the filters so the cheap ones can shrink the set before any ratio
+    // request goes out.
+    const boardFilters = filters.filter((f) => isBoardField(f.field));
+    const ratioFilters = filters.filter((f) => !isBoardField(f.field));
+
+    if (boardFilters.length > 0) {
+      rows = applyFilters(rows as unknown as Record<string, unknown>[], boardFilters) as unknown as ScreenResult[];
+    }
+
+    // Ratios are only worth fetching when something actually needs them.
+    const needsRatios =
+      ratioFilters.length > 0 || (sortBy !== undefined && !isBoardField(sortBy));
+
+    if (needsRatios && rows.length > 0) {
+      const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
+      const ratios = await pool(rows, concurrency, (r) => this.fetchRatios(r.symbol));
+      for (let i = 0; i < rows.length; i++) {
+        mergeRatios(rows[i], ratios[i]);
+      }
+    }
+
+    const industries = await this.industryMap();
+    for (const row of rows) {
+      const info = industries[row.symbol];
+      if (info) {
+        row.industry = info.industry || "";
+        row.industryEn = info.industryEn || "";
+      }
+    }
+
+    return applyFilters(
+      rows as unknown as Record<string, unknown>[],
+      ratioFilters,
+      { sortBy, order, limit }
+    ) as unknown as ScreenResult[];
+  }
+
+  private async industryMap(): Promise<Record<string, { industry: string; industryEn: string }>> {
+    const list = await this.adapter.fetchSymbolsByIndustries();
+    const map: Record<string, { industry: string; industryEn: string }> = {};
+    for (const item of list as any[]) {
+      map[item.symbol] = { industry: item.industry, industryEn: item.industryEn };
+    }
+    return map;
+  }
+
+  private async fetchRatios(symbol: string): Promise<any | null> {
+    const hit = ratioCache[symbol];
+    if (hit && Date.now() - hit.at < RATIO_TTL_MS) return hit.data;
+
+    try {
+      const res = await fetchWithRetry<any>({
+        url: `${VCI_COMPANY_URL}/${symbol}/statistics-financial`,
+        method: "GET",
+      });
+      const rows = res?.data || [];
+      // The endpoint returns a history; the newest row is the current ratio set.
+      const latest = rows.length > 0 ? rows[rows.length - 1] : null;
+      ratioCache[symbol] = { at: Date.now(), data: latest };
+      return latest;
+    } catch {
+      // One unreachable symbol should not sink the whole screen; it simply has
+      // no ratios and therefore fails any ratio filter.
+      return null;
+    }
+  }
+}
+
+export function mergeRatios(row: ScreenResult, ratio: any): void {
+  if (!ratio) return;
+  row.pe = num(ratio.pe);
+  row.pb = num(ratio.pb);
+  row.ps = num(ratio.ps);
+  row.roe = num(ratio.roe);
+  row.roa = num(ratio.roa);
+  row.roic = num(ratio.roic);
+  row.debtToEquity = num(ratio.debtToEquity ?? ratio.debtPerEquity);
+  row.dividendYield = num(ratio.dividendYield);
+  row.grossMargin = num(ratio.grossMargin);
+  row.currentRatio = num(ratio.currentRatio);
+  // marketCap arrives in VND; the library reports market-level money in ty VND.
+  row.marketCap = ratio.marketCap ? round(ratio.marketCap / 1e9) : 0;
+}
+
+function num(v: unknown): number | null {
+  return typeof v === "number" && isFinite(v) ? v : null;
+}
+
+/** Exposed for tests; clears the hour-long ratio cache. */
+export function clearRatioCache(): void {
+  for (const k of Object.keys(ratioCache)) delete ratioCache[k];
 }
