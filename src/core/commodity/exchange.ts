@@ -16,7 +16,7 @@ function parseVcbExcel(base64: string): Record<string, string>[] {
     bytes[i] = binary.charCodeAt(i);
   }
 
-  // Extract strings from the binary — VCB Excel has simple structure
+  // Extract strings from the binary. VCB Excel has simple structure
   // Look for readable text patterns: currency codes and names
   const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
 

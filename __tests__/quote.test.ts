@@ -3,7 +3,7 @@ import vnstock from "../src";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Quote (integration — INTEGRATION=1)", () => {
+describeIntegration("Quote (integration, INTEGRATION=1)", () => {
   it("should return normalized history for a symbol", async () => {
     const data = await vnstock.stock.quote.history({
       symbols: ["VCI"],

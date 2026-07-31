@@ -4,7 +4,7 @@ import { VciAdapter } from "../src/adapters/vci";
 jest.mock("axios");
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-// Handshake is a module-level singleton — gets set true after first test. Mock it
+// Handshake is a module-level singleton that gets set true after first test. Mock it
 // generously so any handshake call still resolves, but don't assert its count.
 function setupMocks(icbData: any[] = [{ name: "01", icbLevel: 1, viSector: "X", enSector: "X" }]) {
   mockedAxios.request.mockResolvedValue({

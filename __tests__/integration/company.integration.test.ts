@@ -5,7 +5,7 @@ import { Company } from "../../src/core/stock/company";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Company (integration — INTEGRATION=1)", () => {
+describeIntegration("Company (integration, INTEGRATION=1)", () => {
   let company: Company;
 
   beforeAll(() => {

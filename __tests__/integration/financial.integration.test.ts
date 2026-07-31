@@ -5,7 +5,7 @@ import vnstock from "../../src";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Financial (integration — INTEGRATION=1)", () => {
+describeIntegration("Financial (integration, INTEGRATION=1)", () => {
   it("should return normalized balance sheet", async () => {
     const data = await vnstock.stock.financials.balanceSheet({
       symbol: "VCI",

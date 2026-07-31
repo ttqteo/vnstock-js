@@ -3,7 +3,7 @@ import vnstock from "../src";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Trading (integration — INTEGRATION=1)", () => {
+describeIntegration("Trading (integration, INTEGRATION=1)", () => {
   it("should return normalized price board", async () => {
     const data = await vnstock.stock.trading.priceBoard(["VCI"]);
 

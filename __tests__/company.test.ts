@@ -22,7 +22,7 @@ describe("Company (mocked)", () => {
 
   function mockOverviewDetails(detailsPayload: any) {
     // details endpoint returns `{ data: { organCode, sectorVn, ... } }`,
-    // others return arrays — call mockImplementation to differentiate by URL.
+    // others return arrays, so use mockImplementation to differentiate by URL.
     mockedAxios.request.mockImplementation((config: any) => {
       if (typeof config.url === "string" && config.url.indexOf("/details") !== -1) {
         return Promise.resolve({ data: detailsPayload, headers: {} });

@@ -54,7 +54,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("MCP handlers — group A (basic data tools)", () => {
+describe("MCP handlers: group A (basic data tools)", () => {
   describe("get_quote", () => {
     it("returns error if symbol missing", async () => {
       const res = await handlers.get_quote({});
@@ -224,7 +224,7 @@ describe("MCP handlers — group A (basic data tools)", () => {
   });
 });
 
-describe("MCP handlers — group B (AI primitives)", () => {
+describe("MCP handlers: group B (AI primitives)", () => {
   describe("get_ai_context", () => {
     it("returns error if symbol missing", async () => {
       const res = await handlers.get_ai_context({});
