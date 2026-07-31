@@ -1,5 +1,46 @@
 # Changelog
 
+## 1.5.0 — Sửa đơn vị chỉ số + nguồn giá vàng dự phòng
+
+Sửa một lỗi dữ liệu sai âm thầm: giá chỉ số bị chia 1000. Kèm theo nguồn giá vàng dự phòng, chuẩn hoá GiaVangNet, và hạ tầng đóng góp cho repo.
+
+Đánh số minor thay vì patch vì có thêm API công khai mới cùng hai thay đổi hành vi, dù phần lõi là sửa lỗi.
+
+### Breaking
+
+Hai thay đổi dưới đây làm giá trị trả về khác trước. Bản chất là sửa dữ liệu sai, nhưng nếu bạn đã tự bù trừ thì phải bỏ phần bù đó đi.
+
+- **Giá chỉ số không còn bị chia 1000.** `quote.history()` với mã chỉ số (`VNINDEX`, `VN30`, `VN100`, `HNXIndex`, `HNX30`, `HNXUpcomIndex`) trước đây trả `close: 1.66901` cho VN-Index, nay trả đúng `1669.01` điểm. Ảnh hưởng cả `stock.index()`, CLI `history VNINDEX`, và MCP `get_history`. **Nếu code của bạn đang nhân 1000 để bù, hãy bỏ đi.** Chỉ báo dạng tỷ lệ (RSI, MACD) không bị ảnh hưởng vì bất biến theo thang, nhưng mọi mức giá tuyệt đối trước đây đều sai 1000 lần.
+- **`goldPriceGiaVangNet()` nay trả dữ liệu đã chuẩn hoá.** Trước trả thẳng raw từ API (`Promise<any[]>`), nay trả `GoldPriceGiaVang[]` với field đổi tên: `type_code` → `code`, `type` → `name`, `buy` → `buyPrice`, `sell` → `sellPrice`, thêm `buyChange`, `sellChange`, `updatedAt`. Ai đang đọc field raw cần đổi sang tên mới.
+
+### Thêm
+
+- **`commodity.goldPrice(options?)`** — lấy giá vàng có dự phòng nguồn. `{ source: "btmc" | "giavangnet" | "auto" }`, mặc định `auto`: thử BTMC trước, lỗi thì chuyển sang GiaVangNet. Trả `{ source, data }` để biết dữ liệu đến từ đâu. Cũng có ở API đơn giản: `commodity.gold.price()`.
+- **Kiểu `GoldPriceGiaVang`** — `code`, `name`, `buyPrice`, `sellPrice`, `buyChange`, `sellChange`, `updatedAt`.
+
+### Sửa
+
+- **Lỗi ném ra không serialize được** — mọi lỗi mạng đều mang `cause` là đối tượng lỗi axios nguyên bản, mà axios gắn kèm socket đang sống với `socket._httpMessage` trỏ ngược lại chính nó. Hệ quả: `JSON.stringify(err)` ném `Converting circular structure to JSON`, log có cấu trúc (Sentry, pino, winston) hỏng, và truyền lỗi qua worker hay child process thì sập. Nay `cause` chỉ giữ phần đáng để chẩn đoán: `message`, `code`, `url`, `method`, `status`, `statusText`. Lỗi này lộ ra khi jest worker sập lúc báo cáo kết quả, che mất lỗi upstream thật bên dưới.
+- **Chỉ số bị chia 1000** — `transformQuoteHistory` chia OHLC cho 1000 vô điều kiện. Quy tắc đó đúng cho giá cổ phiếu tính bằng VND, sai cho chỉ số tính bằng điểm. Hằng số `INDEX_SYMBOLS` đã tồn tại từ trước nhưng chỉ dùng để validate đầu vào ở `simple.ts`, không hề dùng khi scale. Nay có `priceDivisorFor()` trả 1 cho mã chỉ số. So khớp không phân biệt hoa thường, vì `INDEX_SYMBOLS` trộn kiểu viết (`VNINDEX` và `HNXIndex`) nên viết sai hoa thường mà vẫn im lặng chia 1000 là bẫy.
+
+### Nội bộ
+
+- **Hạ tầng đóng góp** — thêm CI chạy lint, typecheck, build và unit test trên Node 18/20/22 cho mọi PR. Test gọi API thật tách sang lịch chạy hàng ngày để sự cố phía nguồn không làm đỏ PR của người đóng góp. Thêm issue template, PR template, CODE_OF_CONDUCT.
+- **ESLint và Prettier nay chạy được thật** — trước đó có file cấu hình nhưng chưa hề được cài. Chỉnh rule cho khớp quy ước dự án (ES5 dùng `var`, `!= null`, `require()` nạp trễ), từ 936 lỗi về 0.
+- **Sửa `jest.tsconfig.json`** — file này kế thừa `./tsconfig.base` vốn không tồn tại, và dùng key `tsConfig` viết hoa sai nên ts-jest bỏ qua toàn bộ, im lặng.
+- **Sửa cổng `INTEGRATION=1`** — `jest.mock("axios")` được hoist lên đầu file, nên các block integration nằm chung file với nó đang gọi mock rỗng thay vì gọi mạng. Chúng fail trong 3ms và chưa từng chạy thật kể từ khi viết ở v1.4.1. Đã tách sang `__tests__/integration/`.
+- **`engines` lên `>=18`** — trước khai `>=16` trong khi `@modelcontextprotocol/sdk` và `commander` đều yêu cầu `>=18`.
+- Commit `package-lock.json`, bỏ `pnpm-lock.yaml` đã cũ, để `npm ci` chạy được trong CI.
+- **Test cần IP Việt Nam tách sau cổng `INTEGRATION_VN=1`** — BTMC treo tới hết hạn 15 giây từ IP nước ngoài (SJC thì 403), nên không chạy được trên GitHub Actions và mỗi lần đốt hết ngân sách retry 3×15 giây. Chạy đầy đủ bằng `npm run test:integration:vn`. Riêng test đường dự phòng của `goldPrice()` **không** bị gate, vì môi trường không có BTMC mới đúng là nơi cần kiểm chứng nó.
+- Integration chạy tuần tự (`--runInBand`) để không dội request song song vào VCI và BTMC, kèm giới hạn 15 phút cho job.
+- Test cho lỗi chỉ số: 3 unit test (chỉ số giữ điểm, khớp không phân biệt hoa thường, cổ phiếu vẫn chia 1000) và siết test integration VNINDEX từ "có field" thành khoảng hợp lý 100–5000 điểm. Test cũ chỉ kiểm tra field tồn tại, nên lỗi lọt qua.
+
+### Migration notes
+
+- Đang nhân 1000 để bù giá chỉ số: bỏ đi.
+- Đang đọc field raw từ `goldPriceGiaVangNet()`: đổi sang `code`/`name`/`buyPrice`/`sellPrice`.
+- Không dùng chỉ số và không dùng GiaVangNet: không cần làm gì.
+
 ## 1.4.3 — Giá trị giao dịch theo bar + history batch nhiều mã
 
 Patch thuần additive, không breaking. Bổ sung giá trị giao dịch (turnover) cho từng bar và mở khóa batch nhiều mã trong `quote.history()`.

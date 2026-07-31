@@ -1,6 +1,6 @@
 {
   "name": "vnstock-js",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -9,7 +9,8 @@
   "files": [
     "dist/**/*",
     "bin/**/*",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "prepare": "husky",
@@ -18,7 +19,8 @@
     "dev": "tsc --watch",
     "test": "jest",
     "test:unit": "jest",
-    "test:integration": "cross-env INTEGRATION=1 jest",
+    "test:integration": "cross-env INTEGRATION=1 jest --runInBand",
+    "test:integration:vn": "cross-env INTEGRATION=1 INTEGRATION_VN=1 jest --runInBand",
     "test:coverage": "jest --coverage",
     "lint": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "lint:fix": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\" --fix",

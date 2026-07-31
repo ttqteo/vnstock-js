@@ -129,4 +129,69 @@ describe("fetchWithRetry", () => {
     expect(call.headers).not.toHaveProperty("Referer");
     expect(call.headers).not.toHaveProperty("Device-Id");
   });
+
+  describe("thrown errors stay serializable", () => {
+    // Axios errors carry a live socket whose _httpMessage points back at it.
+    // Retaining one as `cause` breaks JSON.stringify, structured loggers, and
+    // any worker IPC boundary, which is how this first surfaced: jest workers
+    // crashed reporting results instead of showing the real upstream failure.
+    function axiosErrorWithCircularSocket(overrides: Record<string, unknown> = {}) {
+      const socket: Record<string, unknown> = {};
+      const httpMessage: Record<string, unknown> = { socket };
+      socket._httpMessage = httpMessage;
+
+      return Object.assign(
+        new Error("connect ETIMEDOUT"),
+        {
+          isAxiosError: true,
+          code: "ETIMEDOUT",
+          config: { url: "https://example.com/api", method: "get" },
+          request: { socket },
+        },
+        overrides
+      );
+    }
+
+    function failingFetch(): Promise<any> {
+      return fetchWithRetry(
+        { url: "https://example.com/api", method: "GET" },
+        { retries: 0, retryDelay: 0 }
+      ).catch((e) => e);
+    }
+
+    it("strips the circular request off a network error", async () => {
+      mockedAxios.request.mockRejectedValue(axiosErrorWithCircularSocket());
+
+      const err = await failingFetch();
+
+      expect(() => JSON.stringify(err)).not.toThrow();
+      expect(() => JSON.stringify(err.cause)).not.toThrow();
+      expect(err.cause).not.toHaveProperty("request");
+    });
+
+    it("keeps the diagnostic fields worth debugging", async () => {
+      mockedAxios.request.mockRejectedValue(axiosErrorWithCircularSocket());
+
+      const err = await failingFetch();
+
+      expect(err.cause.message).toBe("connect ETIMEDOUT");
+      expect(err.cause.code).toBe("ETIMEDOUT");
+      expect(err.cause.url).toBe("https://example.com/api");
+      expect(err.cause.method).toBe("get");
+    });
+
+    it("strips the circular request off an HTTP error response", async () => {
+      mockedAxios.request.mockRejectedValue(
+        axiosErrorWithCircularSocket({
+          response: { status: 503, statusText: "Service Unavailable", headers: {}, data: "" },
+        })
+      );
+
+      const err = await failingFetch();
+
+      expect(() => JSON.stringify(err)).not.toThrow();
+      expect(err.cause.status).toBe(503);
+      expect(err.cause).not.toHaveProperty("request");
+    });
+  });
 });
