@@ -237,3 +237,71 @@ describe("Screening.screen universe", () => {
     expect(adapter.fetchPriceBoard).not.toHaveBeenCalled();
   });
 });
+
+import { isPrebuiltField, mergePrebuilt, needsUpstream } from "../src/core/stock/screening";
+import { SymbolRatios } from "../src/models/ratios";
+
+describe("needsUpstream", () => {
+  // Deciding this wrong is what turns a screen into 2000 requests.
+  it("never charges for a price-board field", () => {
+    expect(needsUpstream("price", false)).toBe(false);
+    expect(needsUpstream("volume", false)).toBe(false);
+  });
+
+  it("charges for quarterly fundamentals when the prebuilt file is absent", () => {
+    expect(needsUpstream("roe", false)).toBe(true);
+  });
+
+  it("stops charging for them once the file is loaded", () => {
+    expect(needsUpstream("roe", true)).toBe(false);
+    expect(isPrebuiltField("roe")).toBe(true);
+  });
+
+  // These move with the price, so a prebuilt copy would be stale and they must
+  // stay on the paid path whether the file is loaded or not.
+  it("always charges for price-derived ratios", () => {
+    for (const f of ["pe", "pb", "ps", "marketCap"]) {
+      expect(needsUpstream(f, true)).toBe(true);
+      expect(isPrebuiltField(f)).toBe(false);
+    }
+  });
+});
+
+describe("mergePrebuilt", () => {
+  const ratios: SymbolRatios = {
+    symbol: "VCB",
+    period: "2026Q2",
+    roe: 0.16,
+    roa: 0.015,
+    roic: 0,
+    grossMargin: 0.65,
+    ebitMargin: 0,
+    currentRatio: 0,
+    quickRatio: 0,
+    debtToEquity: 9.9,
+    dividendYield: 0,
+    shares: 8_355_675_094,
+  };
+
+  it("copies the quarterly figures onto the row", () => {
+    const row = boardToResult(boardItem({ symbol: "VCB" }));
+    mergePrebuilt(row, ratios);
+    expect(row.roe).toBe(0.16);
+    expect(row.shares).toBe(8_355_675_094);
+    expect(row.ratioPeriod).toBe("2026Q2");
+  });
+
+  it("leaves price-derived ratios untouched", () => {
+    const row = boardToResult(boardItem({ symbol: "VCB" }));
+    mergePrebuilt(row, ratios);
+    expect(row.pe).toBeNull();
+    expect(row.pb).toBeNull();
+    expect(row.marketCap).toBe(0);
+  });
+
+  it("does nothing for a symbol missing from the file", () => {
+    const row = boardToResult(boardItem({ symbol: "XYZ" }));
+    mergePrebuilt(row, undefined);
+    expect(row.roe).toBeNull();
+  });
+});

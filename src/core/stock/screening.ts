@@ -5,6 +5,8 @@ import { ScreenFilter, ScreenOptions, ScreenResult } from "../../models/screenin
 import { StockDataAdapter } from "../../adapters/types";
 import { VciAdapter } from "../../adapters/vci";
 import { PriceBoardItem } from "../../models/normalized";
+import { SymbolRatios } from "../../models/ratios";
+import { getRatios } from "../../data";
 
 export { ScreenFilter };
 
@@ -60,6 +62,26 @@ const BOARD_FIELDS = [
   "symbol",
 ];
 
+/**
+ * Quarterly fundamentals. When init({ ratios: true }) has loaded the prebuilt
+ * file, filtering on these costs nothing either.
+ *
+ * PE, PB, PS and marketCap are absent on purpose: they move with the price, so
+ * a prebuilt copy would be stale. They still cost one request per symbol.
+ */
+const PREBUILT_FIELDS = [
+  "roe",
+  "roa",
+  "roic",
+  "grossMargin",
+  "ebitMargin",
+  "currentRatio",
+  "quickRatio",
+  "debtToEquity",
+  "dividendYield",
+  "shares",
+];
+
 /** Ratios are quarterly figures, so an hour-old answer is still the same answer. */
 const RATIO_TTL_MS = 60 * 60 * 1000;
 const ratioCache: Record<string, { at: number; data: any }> = {};
@@ -68,6 +90,20 @@ const DEFAULT_CONCURRENCY = 5;
 
 export function isBoardField(field: string): boolean {
   return BOARD_FIELDS.indexOf(field) !== -1;
+}
+
+export function isPrebuiltField(field: string): boolean {
+  return PREBUILT_FIELDS.indexOf(field) !== -1;
+}
+
+/**
+ * True when the field can only come from a per-symbol request: it is neither on
+ * the price board nor covered by the prebuilt file, or the file is not loaded.
+ */
+export function needsUpstream(field: string, hasPrebuilt: boolean): boolean {
+  if (isBoardField(field)) return false;
+  if (hasPrebuilt && isPrebuiltField(field)) return false;
+  return true;
 }
 
 /** Runs `fn` over `items` with at most `size` in flight. */
@@ -168,18 +204,23 @@ export default class Screening {
     const board = await this.adapter.fetchPriceBoard(symbols);
     let rows = board.filter((b) => b.symbol).map(boardToResult);
 
-    // Split the filters so the cheap ones can shrink the set before any ratio
-    // request goes out.
-    const boardFilters = filters.filter((f) => isBoardField(f.field));
-    const ratioFilters = filters.filter((f) => !isBoardField(f.field));
-
-    if (boardFilters.length > 0) {
-      rows = applyFilters(rows as unknown as Record<string, unknown>[], boardFilters) as unknown as ScreenResult[];
+    // Merge the prebuilt fundamentals first, so filters on them can also run
+    // before any per-symbol request goes out.
+    const prebuilt = getRatios();
+    if (prebuilt) {
+      for (const row of rows) mergePrebuilt(row, prebuilt[row.symbol]);
     }
 
-    // Ratios are only worth fetching when something actually needs them.
+    // Split the filters so everything free runs before anything paid.
+    const freeFilters = filters.filter((f) => !needsUpstream(f.field, !!prebuilt));
+    const paidFilters = filters.filter((f) => needsUpstream(f.field, !!prebuilt));
+
+    if (freeFilters.length > 0) {
+      rows = applyFilters(rows as unknown as Record<string, unknown>[], freeFilters) as unknown as ScreenResult[];
+    }
+
     const needsRatios =
-      ratioFilters.length > 0 || (sortBy !== undefined && !isBoardField(sortBy));
+      paidFilters.length > 0 || (sortBy !== undefined && needsUpstream(sortBy, !!prebuilt));
 
     if (needsRatios && rows.length > 0) {
       const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
@@ -200,7 +241,7 @@ export default class Screening {
 
     return applyFilters(
       rows as unknown as Record<string, unknown>[],
-      ratioFilters,
+      paidFilters,
       { sortBy, order, limit }
     ) as unknown as ScreenResult[];
   }
@@ -234,6 +275,22 @@ export default class Screening {
       return null;
     }
   }
+}
+
+/** Applies the prebuilt quarterly figures; leaves price-derived ones alone. */
+export function mergePrebuilt(row: ScreenResult, r: SymbolRatios | undefined): void {
+  if (!r) return;
+  row.roe = r.roe;
+  row.roa = r.roa;
+  row.roic = r.roic;
+  row.grossMargin = r.grossMargin;
+  row.ebitMargin = r.ebitMargin;
+  row.currentRatio = r.currentRatio;
+  row.quickRatio = r.quickRatio;
+  row.debtToEquity = r.debtToEquity;
+  row.dividendYield = r.dividendYield;
+  row.shares = r.shares;
+  row.ratioPeriod = r.period;
 }
 
 export function mergeRatios(row: ScreenResult, ratio: any): void {

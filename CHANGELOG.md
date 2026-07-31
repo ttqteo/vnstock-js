@@ -37,6 +37,7 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 
 - **Giá chỉ số không còn chia 1000.** `quote.history()` với `VNINDEX`, `VN30`, `VN100`, `HNXIndex`, `HNX30`, `HNXUpcomIndex` trước trả `1.66901`, nay trả `1669.01` điểm. Ảnh hưởng `stock.index()`, CLI `history VNINDEX`, MCP `get_history`. Nếu code đang nhân 1000 để bù thì bỏ đi. RSI và MACD không đổi vì bất biến theo thang.
 - **`goldPriceGiaVangNet()` trả dữ liệu đã chuẩn hoá.** Trước là raw `Promise<any[]>`, nay là `GoldPriceGiaVang[]`. Field đổi tên: `type_code` thành `code`, `type` thành `name`, `buy` thành `buyPrice`, `sell` thành `sellPrice`.
+- **`screening.screen()` bắt buộc có phạm vi.** Phải truyền `group` (VN30, HNX30...) hoặc `exchange` (HOSE, HNX, UPCOM), không thì ném `InvalidParameterError`. Chỉ số tài chính lấy theo từng mã nên quét cả 2089 mã một lần là chắc chắn ăn 429. Kết quả cũng bỏ `eps`, `revenue`, `netProfit`; dùng `stock.financials` nếu cần số tuyệt đối. Chi tiết ở mục Sửa bên dưới.
 
 ### Sửa
 
@@ -51,6 +52,22 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
   Bốn tầng giảm tải: phạm vi bắt buộc và thường nhỏ; bảng giá trả một lần cho cả rổ; bộ lọc trên trường bảng giá (`price`, `volume`, `value`, `changePercent`) chạy trước nên chỉ mã sống sót mới cần gọi chỉ số; chỉ số cache 1 giờ, ngắn hơn nhiều so với chu kỳ quý mà chúng thực sự đổi. Số luồng song song mặc định 5, chỉnh bằng `concurrency`.
 
   Bộ chỉ số nay giàu hơn GraphQL cũ: thêm `ps`, `roic`, `grossMargin`, `currentRatio`, `dividendYield`. Bỏ `eps`, `revenue`, `netProfit` vì nguồn REST không có; dùng `get_financials` nếu cần số tuyệt đối. `marketCap` nay tính bằng tỷ VND.
+
+### Thêm: chỉ số dựng sẵn trên GitHub
+
+- **`init({ ratios: true })`** tải `data/ratios.json` từ GitHub, cache đĩa 24h như `symbols.json` đang làm. Có file này thì screening lọc theo `roe`, `roa`, `roic`, `grossMargin`, `ebitMargin`, `currentRatio`, `quickRatio`, `debtToEquity`, `dividendYield`, `shares` mà **không gọi một request nào**.
+
+  Đo trên VN30: lọc ROE mất 416ms có file, 1413ms không có. Ghép thêm điều kiện PE thì lọc ROE chạy trước nên chỉ 5 mã sống sót phải gọi mạng.
+
+  Mặc định tắt, vì phần lớn người dùng không sàng lọc và đây là thêm một lượt tải. Tải lỗi thì `init()` vẫn chạy bình thường, screening tự quay về gọi theo từng mã.
+
+- File **chỉ chứa số liệu theo quý**. `pe`, `pb`, `ps`, `marketCap` cố ý không có: chúng phái sinh từ giá nên bản dựng sẵn sẽ sai ngay phiên sau. Screening vẫn gọi theo từng mã cho nhóm này.
+
+- File nằm trên GitHub, **không đóng gói vào npm**. Package vẫn 127 kB thay vì phình thêm 396 kB, và cập nhật dữ liệu không cần phát hành version mới. Workflow `update-data.yml` dựng lại hàng tuần bằng `npm run update-ratios`.
+
+  Script từ chối ghi đè nếu số mã lấy được tụt dưới 80% lần trước, để một lần upstream đổi cấu trúc không âm thầm phá file đang tốt.
+
+  **Lưu ý về dữ liệu:** nguồn trả `0` thay vì `null` cho các chỉ số không áp dụng được với ngành đó, ví dụ `currentRatio` và `roic` của ngân hàng. Thư viện giữ nguyên số của nguồn, không tự suy diễn. Nên lọc kiểu `currentRatio < 1` sẽ dính cả nhóm ngân hàng. Cân nhắc lọc kèm `exchange` hoặc ngành.
 
 ### Nội bộ
 

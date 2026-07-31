@@ -26,7 +26,8 @@
     "lint:fix": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "typecheck": "tsc --noEmit -p jest.tsconfig.json",
-    "update-symbols": "ts-node scripts/update-symbols.ts"
+    "update-symbols": "ts-node scripts/update-symbols.ts",
+    "update-ratios": "ts-node scripts/update-ratios.ts"
   },
   "keywords": [
     "vnstock",

@@ -172,6 +172,26 @@ Tùy chọn:
 - `cacheDir`: ghi đè vị trí cache
 - `noCache`: tắt cache trên disk (chỉ dùng bộ nhớ)
 - `timeout`: timeout tải dữ liệu tính bằng ms (mặc định 10s)
+- `ratios`: tải thêm bộ chỉ số dựng sẵn cho sàng lọc (mặc định tắt, xem bên dưới)
+
+### Sàng lọc nhanh với `ratios: true`
+
+```ts
+await vnstock.init({ ratios: true });
+
+// Lọc theo ROE không tốn request nào
+const rows = await vnstock.stock.screening.screen({
+  group: 'VN30',
+  filters: [{ field: 'roe', operator: '>', value: 0.2 }],
+  sortBy: 'roe',
+});
+```
+
+`init({ ratios: true })` tải `data/ratios.json` từ GitHub và cache 24h. File chứa các chỉ số **theo quý**: `roe`, `roa`, `roic`, `grossMargin`, `ebitMargin`, `currentRatio`, `quickRatio`, `debtToEquity`, `dividendYield`, `shares`. Lọc theo chúng không gọi mạng.
+
+`pe`, `pb`, `ps`, `marketCap` **không** nằm trong file vì phái sinh từ giá, bản dựng sẵn sẽ sai ngay phiên sau. Lọc theo nhóm này vẫn gọi theo từng mã, nhưng chỉ cho những mã đã sống sót qua các bộ lọc rẻ hơn.
+
+Nguồn trả `0` thay vì `null` cho chỉ số không áp dụng với ngành đó, ví dụ `currentRatio` của ngân hàng. Thư viện giữ nguyên số của nguồn.
 
 ## Chỉ báo kỹ thuật
 
