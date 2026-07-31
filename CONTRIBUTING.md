@@ -25,7 +25,7 @@ Yêu cầu: Node.js >= 18, npm >= 8.
 
 | Lệnh | Tác dụng |
 | --- | --- |
-| `npm run test:unit` | Unit tests, toàn bộ đều mock — không gọi mạng, chạy ~13s |
+| `npm run test:unit` | Unit tests, toàn bộ đều mock, không gọi mạng, chạy ~13s |
 | `npm run test:integration` | Gọi API thật của VCI và các nguồn hàng hoá |
 | `npm run test:integration:vn` | Như trên, kèm các test cần IP Việt Nam |
 | `npm run lint` | ESLint. Phải sạch lỗi trước khi tạo PR |
@@ -65,13 +65,13 @@ Khi viết test mới có gọi mạng, đặt trong `__tests__/integration/` v�
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Tên module (integration — INTEGRATION=1)", () => {
+describeIntegration("Tên module (integration, INTEGRATION=1)", () => {
   // ...
 });
 ```
 
 **Quan trọng:** đừng để test gọi mạng chung file với `jest.mock("axios")`. Jest
-hoist lệnh mock lên đầu file, nên nó sẽ mock luôn cả test integration — test có vẻ
+hoist lệnh mock lên đầu file, nên nó sẽ mock luôn cả test integration. Test có vẻ
 chạy nhưng thật ra đang gọi mock rỗng. Đó là lý do phần integration nằm ở thư mục
 riêng.
 
@@ -80,7 +80,7 @@ riêng.
 Codebase có từ trước khi Prettier được đưa vào, nên phần lớn file chưa đúng định
 dạng chuẩn. Vì vậy `prettier/prettier` để ở mức cảnh báo, không phải lỗi.
 
-Đừng chạy `npm run format` cho cả repo — sẽ tạo diff khổng lồ và gây xung đột cho
+Đừng chạy `npm run format` cho cả repo, sẽ tạo diff khổng lồ và gây xung đột cho
 người khác. Chỉ format file bạn thực sự sửa.
 
 ## Cấu trúc dự án
