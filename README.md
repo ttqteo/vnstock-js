@@ -142,7 +142,7 @@ const shareholders = await company.shareholders();
 // Báo cáo tài chính
 const bs = await stock.financials({ ticker: 'FPT', period: 'quarter' });
 
-// Sàng lọc cổ phiếu
+// Sàng lọc cổ phiếu (bắt buộc có group hoặc exchange)
 const screened = await stock.screening({
   exchange: 'HOSE',
   filters: [
@@ -247,10 +247,10 @@ await vnstock.commodity.goldPrice({ source: 'giavangnet' });
 
 ## MCP server (v1.4+)
 
-vnstock-js đi kèm MCP (Model Context Protocol) server expose 21 tools cho Claude:
+vnstock-js đi kèm MCP (Model Context Protocol) server expose 22 tools cho Claude:
 
 - 8 data tools: `get_quote`, `get_history`, `search_symbols`, `list_symbols`, `top_movers`, `is_trade_day`, `get_trading_calendar`, `get_company_info`
-- 3 corporate tools: `get_dividends`, `get_corporate_events`, `get_financials`
+- 4 corporate tools: `get_dividends`, `get_corporate_events`, `get_financials`, `screen_stocks`
 - 3 AI tools: `get_ai_context` (structured technical analysis), `to_ai_prompt` (plain-text), `compare_symbols`
 - 3 market tools: `get_market_breadth`, `get_foreign_flow`, `get_market_context`
 - 2 commodity tools: `get_gold_price`, `get_exchange_rate`

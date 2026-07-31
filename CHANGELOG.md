@@ -24,7 +24,7 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 
 ### Thêm: MCP và CLI
 
-- 8 MCP tool mới. Nhóm thị trường: `get_market_breadth`, `get_foreign_flow`, `get_market_context`. Lấp các module SDK trước đây chưa lộ ra MCP: `get_news`, `get_financials`, `get_gold_price`, `get_exchange_rate`, `watchlist`. Thêm `as_of` cho `get_ai_context` và `to_ai_prompt`. MCP server nay có 21 tool (trước 13).
+- 9 MCP tool mới. Nhóm thị trường: `get_market_breadth`, `get_foreign_flow`, `get_market_context`. Lấp các module SDK trước đây chưa lộ ra MCP: `get_news`, `get_financials`, `screen_stocks`, `get_gold_price`, `get_exchange_rate`, `watchlist`. Thêm `as_of` cho `get_ai_context` và `to_ai_prompt`. MCP server nay có 22 tool (trước 13).
 - `vnstock market`: tổng quan thị trường. Cờ `--exchange`, `--index`, `--verbose`.
 - `vnstock foreign [symbol]`: khối ngoại toàn sàn hoặc một mã. Cờ `--top`.
 
@@ -44,14 +44,17 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 - **Chỉ số bị chia 1000.** `transformQuoteHistory` chia OHLC cho 1000 không phân biệt loại mã. Đúng cho giá VND, sai cho chỉ số tính bằng điểm. Nay dùng `priceDivisorFor()`, so khớp không phân biệt hoa thường vì `INDEX_SYMBOLS` trộn kiểu viết (`VNINDEX` và `HNXIndex`).
 - **`asOf` lệch một ngày.** Biên `end` của endpoint là loại trừ, nên `asOf` ban đầu bỏ mất chính phiên được hỏi. Nay cộng một ngày khi chuyển đổi.
 - **CLI nuốt lệnh mới.** Lối tắt `vnstock MBB` dùng danh sách lệnh cứng, nên `vnstock market` bị coi là mã chứng khoán và trả dòng rỗng. Danh sách nay đọc từ commander.
-- **`screening` hỏng âm thầm.** Endpoint GraphQL của VCI mà module này phụ thuộc nay trả HTTP 200 với body rỗng, nên `screen()` trả mảng rỗng và người dùng đọc thành "không mã nào khớp điều kiện". Nay ném `DataUnavailableError` nói rõ nguồn đã bị ngừng. Tính năng vẫn hỏng cho tới khi chuyển sang REST, nhưng ít nhất không nói dối. Vì vậy không có MCP tool cho screening.
+- **`screening` hỏng âm thầm, nay đã chuyển sang REST.** Endpoint GraphQL của VCI mà module này phụ thuộc nay trả HTTP 200 với body rỗng, nên `screen()` trả mảng rỗng và người dùng đọc thành "không mã nào khớp điều kiện". Đã viết lại dùng REST. Đây là module cuối cùng còn phụ thuộc GraphQL.
 
-### Nội bộ thêm
+  **Breaking:** `screen()` nay **bắt buộc** có `group` (VN30, HNX30...) hoặc `exchange` (HOSE, HNX, UPCOM). Chỉ số tài chính phải lấy theo từng mã, nên quét cả 2089 mã trong một lần là cách chắc chắn ăn 429. Không truyền phạm vi thì ném `InvalidParameterError`.
 
-- `.gitattributes` chuẩn hoá xuống dòng về LF. Trước đó `core.autocrlf` trên Windows cảnh báo mỗi lần `git add`, và mỗi nền tảng sinh ra một kiểu xuống dòng khác nhau nên PR dễ mang diff toàn whitespace.
+  Bốn tầng giảm tải: phạm vi bắt buộc và thường nhỏ; bảng giá trả một lần cho cả rổ; bộ lọc trên trường bảng giá (`price`, `volume`, `value`, `changePercent`) chạy trước nên chỉ mã sống sót mới cần gọi chỉ số; chỉ số cache 1 giờ, ngắn hơn nhiều so với chu kỳ quý mà chúng thực sự đổi. Số luồng song song mặc định 5, chỉnh bằng `concurrency`.
+
+  Bộ chỉ số nay giàu hơn GraphQL cũ: thêm `ps`, `roic`, `grossMargin`, `currentRatio`, `dividendYield`. Bỏ `eps`, `revenue`, `netProfit` vì nguồn REST không có; dùng `get_financials` nếu cần số tuyệt đối. `marketCap` nay tính bằng tỷ VND.
 
 ### Nội bộ
 
+- `.gitattributes` chuẩn hoá xuống dòng về LF. Trước đó `core.autocrlf` trên Windows cảnh báo mỗi lần `git add`, và mỗi nền tảng sinh ra một kiểu xuống dòng khác nhau nên PR dễ mang diff toàn whitespace.
 - Thêm CI chạy lint, typecheck, build, unit test trên Node 18, 20, 22 cho mọi PR. Test gọi API thật tách sang lịch chạy riêng. Thêm issue template, PR template, CODE_OF_CONDUCT.
 - ESLint và Prettier nay chạy được. Trước có file cấu hình nhưng chưa cài gói. Chỉnh rule cho khớp quy ước dự án (ES5 dùng `var`, `!= null`, `require()` nạp trễ), từ 936 lỗi về 0.
 - Sửa `jest.tsconfig.json`: file kế thừa `./tsconfig.base` không tồn tại và dùng key `tsConfig` sai hoa thường nên ts-jest bỏ qua.
@@ -60,13 +63,14 @@ Nguồn dữ liệu chỉ có khối ngoại phiên hiện tại, không có l�
 - Commit `package-lock.json`, bỏ `pnpm-lock.yaml`, để `npm ci` chạy được trong CI.
 - Test cần IP Việt Nam tách sau cổng `INTEGRATION_VN=1`. BTMC treo hết 15 giây từ IP nước ngoài, SJC trả 403. Chạy đầy đủ bằng `npm run test:integration:vn`. Test đường dự phòng của `goldPrice()` không bị gate.
 - Integration chạy tuần tự (`--runInBand`), job giới hạn 15 phút.
-- Thêm test: 23 test cho hàm tổng hợp mức thị trường, 8 test cho lối tắt CLI, 5 test biên `asOf`, 3 test serialize lỗi, 3 test đơn vị chỉ số.
+- Thêm test: 23 test cho hàm tổng hợp mức thị trường, 13 test cho screening REST (pool giới hạn luồng, quy đổi đơn vị, phạm vi bắt buộc), 22 test cho MCP tool mới, 8 test cho lối tắt CLI, 5 test biên `asOf`, 3 test serialize lỗi, 3 test đơn vị chỉ số.
 
 ### Migration notes
 
 - Đang nhân 1000 để bù giá chỉ số: bỏ đi.
 - Đang đọc field raw từ `goldPriceGiaVangNet()`: đổi sang `code`/`name`/`buyPrice`/`sellPrice`.
-- Không dùng chỉ số và không dùng GiaVangNet: không cần làm gì.
+- Đang gọi `screening.screen()` không tham số: thêm `group` hoặc `exchange`. Đọc `eps`, `revenue` hay `netProfit` từ kết quả: chuyển sang `stock.financials`.
+- Không dùng chỉ số, GiaVangNet, screening: không cần làm gì.
 - Phần mức thị trường đều là API mới, không đụng gì tới code cũ.
 
 ## 1.4.3 Giá trị giao dịch theo bar + history batch nhiều mã

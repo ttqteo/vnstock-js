@@ -2,8 +2,8 @@ import { tools } from "../../../src/cli/mcp/tools";
 import { handlers } from "../../../src/cli/mcp/handlers";
 
 describe("MCP tool schemas", () => {
-  it("registers exactly 21 tools", () => {
-    expect(tools.length).toBe(21);
+  it("registers exactly 22 tools", () => {
+    expect(tools.length).toBe(22);
   });
 
   it("expected tool names present", () => {
@@ -28,6 +28,7 @@ describe("MCP tool schemas", () => {
         "get_market_context",
         "get_news",
         "get_financials",
+        "screen_stocks",
         "get_gold_price",
         "get_exchange_rate",
         "watchlist",

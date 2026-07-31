@@ -362,6 +362,39 @@ export async function handleGetFinancials(args: any): Promise<McpToolResponse> {
   }
 }
 
+export async function handleScreenStocks(args: any): Promise<McpToolResponse> {
+  var group = args.group ? String(args.group).toUpperCase() : undefined;
+  var exchange = args.exchange ? String(args.exchange).toUpperCase() : undefined;
+  if (!group && !exchange) {
+    return errorResponse(
+      "Cần chỉ định phạm vi: 'group' (VN30, HNX30...) hoặc 'exchange' (HOSE, HNX, UPCOM). " +
+        "Chỉ số tài chính phải lấy theo từng mã nên không quét cả thị trường trong một lần."
+    );
+  }
+
+  var filters = Array.isArray(args.filters) ? args.filters : [];
+  for (var i = 0; i < filters.length; i++) {
+    var f = filters[i];
+    if (!f || !f.field || !f.operator || f.value === undefined) {
+      return errorResponse("Mỗi filter cần đủ 'field', 'operator' và 'value'.");
+    }
+  }
+
+  try {
+    var rows = await vnstock.stock.screening.screen({
+      group: group,
+      exchange: exchange,
+      filters: filters,
+      sortBy: args.sort_by ? String(args.sort_by) : undefined,
+      order: args.order === "asc" ? "asc" : "desc",
+      limit: typeof args.limit === "number" ? args.limit : 20,
+    });
+    return textResponse(`${group || exchange}: ${rows.length} mã khớp điều kiện`, rows);
+  } catch (e: any) {
+    return errorResponse(`Lỗi khi sàng lọc: ${e.message || e}`);
+  }
+}
+
 export async function handleGetGoldPrice(args: any): Promise<McpToolResponse> {
   var source = args.source ? String(args.source).toLowerCase() : "auto";
   if (["auto", "btmc", "giavangnet"].indexOf(source) === -1) {
@@ -472,6 +505,7 @@ export const handlers: Record<string, (args: any) => Promise<McpToolResponse>> =
   get_market_context: handleGetMarketContext,
   get_news: handleGetNews,
   get_financials: handleGetFinancials,
+  screen_stocks: handleScreenStocks,
   get_gold_price: handleGetGoldPrice,
   get_exchange_rate: handleGetExchangeRate,
   watchlist: handleWatchlist,

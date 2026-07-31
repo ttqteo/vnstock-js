@@ -298,6 +298,39 @@ export const tools: ToolSchema[] = [
     },
   },
   {
+    name: "screen_stocks",
+    description:
+      "Sàng lọc cổ phiếu theo chỉ số tài chính: PE, PB, PS, ROE, ROA, ROIC, vốn hóa, tỷ suất cổ tức, biên lợi nhuận gộp, nợ trên vốn chủ. " +
+      "Lọc được cả theo giá, khối lượng, giá trị giao dịch. " +
+      "BẮT BUỘC chỉ định phạm vi bằng group (VN30, HNX30) hoặc exchange (HOSE, HNX, UPCOM), vì chỉ số phải lấy theo từng mã. " +
+      "Dùng khi user hỏi 'cổ phiếu VN30 PE dưới 15 ROE trên 20%', 'ngân hàng nào định giá rẻ'. " +
+      "EN: Screen Vietnam stocks by financial ratios within a required universe (group or exchange).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        group: { type: "string", description: "VN30, HNX30, VN100... Ưu tiên hơn exchange" },
+        exchange: { type: "string", description: "HOSE, HNX, UPCOM" },
+        filters: {
+          type: "array",
+          description:
+            'Mảng điều kiện { field, operator, value }. field rẻ (từ bảng giá): price, volume, value, changePercent. field đắt (phải gọi thêm): pe, pb, ps, roe, roa, roic, marketCap, dividendYield, debtToEquity, grossMargin, currentRatio. operator: <, >, <=, >=, =. Ví dụ: [{"field":"pe","operator":"<","value":15}]',
+          items: {
+            type: "object",
+            properties: {
+              field: { type: "string" },
+              operator: { type: "string" },
+              value: { type: "number" },
+            },
+            required: ["field", "operator", "value"],
+          },
+        },
+        sort_by: { type: "string", description: "Trường để sắp xếp, ví dụ roe" },
+        order: { type: "string", description: "desc (mặc định) hoặc asc" },
+        limit: { type: "number", description: "Số kết quả (mặc định 20)" },
+      },
+    },
+  },
+  {
     name: "get_gold_price",
     description:
       "Giá vàng trong nước. Tự dự phòng nguồn: thử BTMC trước, lỗi thì chuyển GiaVang.net. " +
