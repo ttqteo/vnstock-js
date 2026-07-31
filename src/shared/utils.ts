@@ -33,4 +33,18 @@ const inputValidation = (timeFrame?: string) => {
   }
 };
 
-export { validateDateFormat, inputValidation };
+/**
+ * The upstream chart endpoint treats its `end` bound as exclusive: asking for
+ * end=2026-07-21 returns bars up to 2026-07-20. `asOf` means "include this
+ * session", so shift a day forward when translating one into the other.
+ *
+ * Verified against the live endpoint rather than assumed.
+ */
+const asOfToExclusiveEnd = (asOf: string): string => {
+  validateDateFormat([asOf]);
+  const d = new Date(asOf + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().substring(0, 10);
+};
+
+export { validateDateFormat, inputValidation, asOfToExclusiveEnd };

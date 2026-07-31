@@ -9,6 +9,7 @@ import { atr } from "../../indicators/atr";
 import { superTrend } from "../../indicators/supertrend";
 import { ichimoku } from "../../indicators/ichimoku";
 import { detectPivots, PivotLevels } from "./pivot";
+import { asOfToExclusiveEnd, validateDateFormat } from "../../shared/utils";
 
 export interface TrendInfo {
   direction: "bullish" | "bearish" | "neutral";
@@ -133,7 +134,7 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
     strength = Math.min(1, Math.abs(slope) * 10);
   } else {
     direction = "neutral";
-    rationale = "EMA chuỗi không nhất quán hoặc slope flat — sideway";
+    rationale = "EMA chuỗi không nhất quán hoặc slope flat, sideway";
     strength = 0.3;
   }
 
@@ -280,7 +281,7 @@ export function classifyVolume(data: QuoteHistory[]): VolumeInfo {
     zscore = (today - mean) / sd;
     signal = zscore > 2 ? "above_average" : zscore < -1 ? "below_average" : "normal";
   } else {
-    // Constant historical volume — fall back to ratio comparison
+    // Constant historical volume, fall back to ratio comparison
     zscore = mean > 0 ? (today - mean) / mean : 0;
     if (mean === 0) signal = "normal";
     else if (today >= mean * 2) signal = "above_average";
@@ -305,17 +306,21 @@ export function computePerformance(data: QuoteHistory[]): PerformanceInfo {
 export async function buildAIContext(
   adapter: StockDataAdapter,
   symbol: string,
-  options: { lookback?: number } = {}
+  options: { lookback?: number; asOf?: string } = {}
 ): Promise<AIContext> {
   const lookback = options.lookback ?? 200;
-  const today = new Date();
-  const start = new Date(today);
+  // asOf anchors the window in the past so indicators are computed only from
+  // bars available on that date. Without it the anchor is today.
+  if (options.asOf) validateDateFormat([options.asOf]);
+  const anchor = options.asOf ? new Date(options.asOf) : new Date();
+  const start = new Date(anchor);
   start.setDate(start.getDate() - Math.ceil(lookback * 1.5) - 30);
   const startStr = start.toISOString().substring(0, 10);
 
   const candles = await adapter.fetchQuoteHistory({
     symbols: [symbol],
     start: startStr,
+    end: options.asOf ? asOfToExclusiveEnd(options.asOf) : undefined,
     timeFrame: "1D",
     countBack: lookback + 30,
   });
@@ -336,8 +341,8 @@ export async function buildAIContext(
 export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi"): string {
   const lines: string[] = [];
   if (lang === "vi") {
-    lines.push(`=== ${ctx.symbol} — ${ctx.asOf} ===`);
-    lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%) — ${ctx.trend.rationale}`);
+    lines.push(`=== ${ctx.symbol} · ${ctx.asOf} ===`);
+    lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%): ${ctx.trend.rationale}`);
     const ind = ctx.indicators;
     lines.push(`RSI(14): ${ind.rsi14?.toFixed(1) ?? "n/a"}`);
     lines.push(`MACD: line ${ind.macd.line?.toFixed(3) ?? "n/a"}, signal ${ind.macd.signal?.toFixed(3) ?? "n/a"}, histogram ${ind.macd.histogram?.toFixed(3) ?? "n/a"}, crossover: ${ind.macd.crossover}`);
@@ -364,8 +369,8 @@ export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi"): string
     const fmtPct = (v: number | null) => (v === null ? "n/a" : (v >= 0 ? "+" : "") + (v * 100).toFixed(2) + "%");
     lines.push(`Change: 1d ${fmtPct(perf.change1d)} · 7d ${fmtPct(perf.change7d)} · 30d ${fmtPct(perf.change30d)} · 90d ${fmtPct(perf.change90d)}`);
   } else {
-    lines.push(`=== ${ctx.symbol} — ${ctx.asOf} ===`);
-    lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%) — ${ctx.trend.rationale}`);
+    lines.push(`=== ${ctx.symbol} · ${ctx.asOf} ===`);
+    lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%): ${ctx.trend.rationale}`);
     const ind = ctx.indicators;
     lines.push(`RSI(14): ${ind.rsi14?.toFixed(1) ?? "n/a"}`);
     lines.push(`MACD: line ${ind.macd.line?.toFixed(3) ?? "n/a"}, signal ${ind.macd.signal?.toFixed(3) ?? "n/a"}, crossover: ${ind.macd.crossover}`);
