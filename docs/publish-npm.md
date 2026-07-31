@@ -3,11 +3,17 @@
 ## Trước khi publish
 
 ```bash
-# Build
+# Đúng chuỗi lệnh CI chạy trên PR
+npm run lint
+npm run typecheck
 npm run build
+npm run test:unit
 
-# Chạy tests
-npm test --maxWorkers=2
+# Test gọi API thật. CI không chạy phần này nên phải tự chạy trước khi phát hành.
+npm run test:integration
+
+# Nếu đang ở Việt Nam, chạy bản đầy đủ: gồm cả BTMC và SJC vốn chặn IP nước ngoài
+npm run test:integration:vn
 
 # Kiểm tra những gì sẽ publish
 npm pack --dry-run

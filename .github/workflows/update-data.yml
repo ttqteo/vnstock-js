@@ -1,0 +1,44 @@
+name: Update data
+
+# Rebuilds the prebuilt datasets that init() downloads at runtime. Publishing
+# them here rather than in the npm package keeps the tarball small and lets the
+# data refresh without cutting a release.
+on:
+  schedule:
+    # 12:00 UTC = 19:00 ICT on Saturday, well clear of trading hours.
+    - cron: "0 12 * * 6"
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Rebuild ratios.json
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rebuild ratios
+        run: npm run update-ratios
+
+      - name: Commit if anything moved
+        run: |
+          if git diff --quiet -- data/ratios.json; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/ratios.json
+          git commit -m "chore(data): refresh quarterly ratios"
+          git push

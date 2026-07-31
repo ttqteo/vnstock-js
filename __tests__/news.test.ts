@@ -3,7 +3,7 @@ import vnstock from "../src";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("News (integration — INTEGRATION=1)", () => {
+describeIntegration("News (integration, INTEGRATION=1)", () => {
   it("should fetch news for a recent date", async () => {
     const data = await vnstock.news.byDate("2026-05-14");
     expect(Array.isArray(data)).toBe(true);

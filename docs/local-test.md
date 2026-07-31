@@ -1,6 +1,6 @@
 # Local Testing
 
-Hướng dẫn chạy `vnstock-js` từ mã nguồn local — không cần publish lên npm — để test thay đổi trước khi release.
+Hướng dẫn chạy `vnstock-js` từ mã nguồn local, không cần publish lên npm, để test thay đổi trước khi release.
 
 ## 1. Dùng SDK từ dự án khác (npm link)
 
@@ -17,7 +17,7 @@ cd d:/path/to/other-app
 npm link vnstock-js
 ```
 
-Giờ `other-app` dùng code `vnstock-js` local (symlink). Mỗi lần sửa SDK, chỉ cần `npm run build` lại — không cần `npm link` lại.
+Giờ `other-app` dùng code `vnstock-js` local (symlink). Mỗi lần sửa SDK, chỉ cần `npm run build` lại, không cần `npm link` lại.
 
 Gỡ link khi xong:
 
@@ -59,10 +59,10 @@ npm unlink -g vnstock-js
 Thay vì chạy `npm run build` mỗi lần sửa, mở 2 terminal:
 
 ```bash
-# Terminal 1 — auto rebuild khi lưu file
+# Terminal 1: auto rebuild khi lưu file
 npm run dev
 
-# Terminal 2 — chạy command sau mỗi save
+# Terminal 2: chạy command sau mỗi save
 vnstock quote VCB
 ```
 
@@ -84,7 +84,7 @@ npm install ../vnstock-js/vnstock-js-1.3.1.tgz
 npm install -g ../vnstock-js/vnstock-js-1.3.1.tgz
 ```
 
-Cách này bao gồm đúng các file trong `package.json` `files` array — nếu thiếu `bin/`, `dist/` hoặc asset nào, sẽ lộ ra ở đây.
+Cách này bao gồm đúng các file trong `package.json` `files` array. Nếu thiếu `bin/`, `dist/` hoặc asset nào, sẽ lộ ra ở đây.
 
 ## 5. Chạy test suite
 

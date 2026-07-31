@@ -6,12 +6,12 @@ Closes #
 
 ## Loại thay đổi
 
-- [ ] `fix` — sửa lỗi
-- [ ] `feat` — tính năng mới
-- [ ] `refactor` — tái cấu trúc, không đổi hành vi
-- [ ] `docs` — tài liệu
-- [ ] `test` — thêm/sửa tests
-- [ ] `chore` — build, dependencies
+- [ ] `fix`: sửa lỗi
+- [ ] `feat`: tính năng mới
+- [ ] `refactor`: tái cấu trúc, không đổi hành vi
+- [ ] `docs`: tài liệu
+- [ ] `test`: thêm/sửa tests
+- [ ] `chore`: build, dependencies
 
 ## Checklist
 

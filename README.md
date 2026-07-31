@@ -17,7 +17,8 @@ Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng kho�
 - **Tài chính**: Bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ
 - **Niêm yết**: Danh sách mã theo sàn, ngành ICB, nhóm (VN30, HNX30...)
 - **Sàng lọc**: Lọc cổ phiếu theo PE, ROE, vốn hóa...
-- **Hàng hóa**: Giá vàng (BTMC, GiaVang.net; SJC deprecated do 403), tỷ giá VCB
+- **Thị trường**: Độ rộng (tăng/giảm/trần/sàn), thanh khoản toàn sàn, khối ngoại mua/bán ròng, bối cảnh thị trường cho AI
+- **Hàng hóa**: Giá vàng có dự phòng nguồn (`goldPrice()` tự chuyển BTMC → GiaVang.net khi lỗi), tỷ giá VCB
 - **Tin tức**: Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
 - **Realtime**: WebSocket dữ liệu giá trực tiếp (SSI)
 - **Chỉ báo kỹ thuật**: SMA, EMA, RSI, MACD, Bollinger Bands, ATR, SuperTrend, Ichimoku Cloud
@@ -75,6 +76,17 @@ $ vnstock symbols --exchange HOSE --limit 20
 VCB    VIC    VNM    VHM    FPT    MBB    ACB    HPG    MSN    VRE
 VCI    SSI    STB    TCB    CTG    BID    VPB    TPB    SHB    LPB
 
+# Tổng quan thị trường
+$ vnstock market
+VNINDEX  1748.86  +0.24% · 2026-07-31
+Thanh khoản 8.72k tỷ  -56.9%
+Độ rộng HOSE ▲ 130  ▼ 180  = 48  (trần 4, sàn 3 / 358 mã)
+Khối ngoại -507.1 tỷ  mua 1.04k tỷ · bán 1.55k tỷ
+
+# Khối ngoại: toàn sàn hoặc một mã
+$ vnstock foreign --top 3
+$ vnstock foreign VCB
+
 # Script-friendly output
 $ vnstock quote VCB --json | jq '.price'
 59.3
@@ -130,7 +142,7 @@ const shareholders = await company.shareholders();
 // Báo cáo tài chính
 const bs = await stock.financials({ ticker: 'FPT', period: 'quarter' });
 
-// Sàng lọc cổ phiếu
+// Sàng lọc cổ phiếu (bắt buộc có group hoặc exchange)
 const screened = await stock.screening({
   exchange: 'HOSE',
   filters: [
@@ -160,6 +172,26 @@ Tùy chọn:
 - `cacheDir`: ghi đè vị trí cache
 - `noCache`: tắt cache trên disk (chỉ dùng bộ nhớ)
 - `timeout`: timeout tải dữ liệu tính bằng ms (mặc định 10s)
+- `ratios`: tải thêm bộ chỉ số dựng sẵn cho sàng lọc (mặc định tắt, xem bên dưới)
+
+### Sàng lọc nhanh với `ratios: true`
+
+```ts
+await vnstock.init({ ratios: true });
+
+// Lọc theo ROE không tốn request nào
+const rows = await vnstock.stock.screening.screen({
+  group: 'VN30',
+  filters: [{ field: 'roe', operator: '>', value: 0.2 }],
+  sortBy: 'roe',
+});
+```
+
+`init({ ratios: true })` tải `data/ratios.json` từ GitHub và cache 24h. File chứa các chỉ số **theo quý**: `roe`, `roa`, `roic`, `grossMargin`, `ebitMargin`, `currentRatio`, `quickRatio`, `debtToEquity`, `dividendYield`, `shares`. Lọc theo chúng không gọi mạng.
+
+`pe`, `pb`, `ps`, `marketCap` **không** nằm trong file vì phái sinh từ giá, bản dựng sẵn sẽ sai ngay phiên sau. Lọc theo nhóm này vẫn gọi theo từng mã, nhưng chỉ cho những mã đã sống sót qua các bộ lọc rẻ hơn.
+
+Nguồn trả `0` thay vì `null` cho chỉ số không áp dụng với ngành đó, ví dụ `currentRatio` của ngân hàng. Thư viện giữ nguyên số của nguồn.
 
 ## Chỉ báo kỹ thuật
 
@@ -189,14 +221,62 @@ console.log(ctx.levels);    // { support: [...], resistance: [...] }
 
 // Plain-text format để dán vào GPT/Gemini bên ngoài
 const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
+
+// Tính như thể đang đứng ở cuối phiên 20/07, dùng khi viết báo cáo trễ ngày
+const past = await vnstock.stock.aiContext('VCB', { asOf: '2026-07-20' });
+```
+
+## Thị trường (v1.5+)
+
+```ts
+import vnstock from 'vnstock-js';
+
+// Tổng quan một lời gọi: chỉ số, thanh khoản, độ rộng, khối ngoại
+const ov = await vnstock.market.overview({ exchange: 'HOSE' });
+console.log(ov.index.close);        // 1749.54 (đơn vị điểm)
+console.log(ov.liquidity.value);    // 8720.4 (tỷ VND)
+console.log(ov.breadth);            // { advancing: 130, declining: 180, ... }
+console.log(ov.foreign.netValue);   // -507.1 (tỷ VND)
+
+// Từng phần riêng
+const breadth = await vnstock.market.breadth({ exchange: 'ALL' });
+const flow = await vnstock.market.foreignFlow({ exchange: 'HOSE', top: 10 });
+const one = await vnstock.stock.foreignFlow('VCB');
+
+// Bối cảnh thị trường cho AI reasoning
+const ctx = await vnstock.market.aiContext();
+console.log(ctx.regime);      // 'trending_down'
+console.log(ctx.liquidity);   // { value, avg20, ratio, signal: 'below_average' }
+```
+
+Mọi trường tiền ở mức thị trường tính bằng **tỷ VND**, và output mang kèm `unit` để tự mô tả.
+
+**Giới hạn:** nguồn dữ liệu chỉ có khối ngoại của phiên hiện tại, không có lịch sử theo ngày. `market.aiContext({ asOf })` với ngày quá khứ sẽ trả `breadth: null` và `foreign: null`, kèm lý do trong `notes`.
+
+## Hàng hóa
+
+```ts
+// Giá vàng có dự phòng nguồn: thử BTMC trước, lỗi thì chuyển GiaVang.net
+const gold = await vnstock.commodity.goldPrice();
+console.log(gold.source);   // 'btmc' hoặc 'giavangnet'
+console.log(gold.data);
+
+// Ép nguồn cụ thể
+await vnstock.commodity.goldPrice({ source: 'giavangnet' });
 ```
 
 ## MCP server (v1.4+)
 
-vnstock-js đi kèm MCP (Model Context Protocol) server expose 11 tools cho Claude:
+vnstock-js đi kèm MCP (Model Context Protocol) server expose 22 tools cho Claude:
 
 - 8 data tools: `get_quote`, `get_history`, `search_symbols`, `list_symbols`, `top_movers`, `is_trade_day`, `get_trading_calendar`, `get_company_info`
+- 4 corporate tools: `get_dividends`, `get_corporate_events`, `get_financials`, `screen_stocks`
 - 3 AI tools: `get_ai_context` (structured technical analysis), `to_ai_prompt` (plain-text), `compare_symbols`
+- 3 market tools: `get_market_breadth`, `get_foreign_flow`, `get_market_context`
+- 2 commodity tools: `get_gold_price`, `get_exchange_rate`
+- 2 tools khác: `get_news`, `watchlist`
+
+`get_ai_context`, `to_ai_prompt` và `get_market_context` nhận thêm `as_of` để tính theo một phiên trong quá khứ.
 
 ### Claude Desktop
 

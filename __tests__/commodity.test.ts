@@ -10,7 +10,7 @@ const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 const RUN_VN = RUN_INTEGRATION && process.env.INTEGRATION_VN === "1";
 const itVN = RUN_VN ? it : it.skip;
 
-describeIntegration("Commodity (integration — INTEGRATION=1)", () => {
+describeIntegration("Commodity (integration, INTEGRATION=1)", () => {
   itVN("should return normalized BTMC gold prices (needs VN IP)", async () => {
     const data = await vnstock.commodity.goldPriceBTMC();
     expect(Array.isArray(data)).toBe(true);

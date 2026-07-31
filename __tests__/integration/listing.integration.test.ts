@@ -5,7 +5,7 @@ import vnstock from "../../src";
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
-describeIntegration("Listing (integration — INTEGRATION=1)", () => {
+describeIntegration("Listing (integration, INTEGRATION=1)", () => {
   // Skipped: ai.vietcap.com.vn endpoint currently returns 403
   it.skip("should return all symbols", async () => {
     const data = await vnstock.stock.listing.allSymbols();

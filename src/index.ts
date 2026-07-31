@@ -2,6 +2,7 @@ import { Vnstock } from "./runtime";
 import { RealtimeClient, create as createRealtime, parseData } from "./realtime";
 import { createStockAPI, createCommodityAPI, createEasyMode } from "./simple";
 import { calendar } from "./core/market";
+export * as MarketTypes from "./models/market";
 import { init } from "./data";
 import { Watchlist } from "./watchlist";
 
@@ -10,7 +11,19 @@ const vnstock = new Vnstock();
 
 export const stock = createStockAPI(vnstock);
 export const commodity = createCommodityAPI(vnstock);
-export const market = { calendar };
+/**
+ * `market.calendar` is unchanged from earlier versions; the rest is new in
+ * v1.5.0 and delegates to the same instance as `vnstock.market`.
+ */
+export const market = {
+  calendar,
+  index: vnstock.market.index.bind(vnstock.market),
+  liquidity: vnstock.market.liquidity.bind(vnstock.market),
+  breadth: vnstock.market.breadth.bind(vnstock.market),
+  foreignFlow: vnstock.market.foreignFlow.bind(vnstock.market),
+  overview: vnstock.market.overview.bind(vnstock.market),
+  aiContext: vnstock.market.aiContext.bind(vnstock.market),
+};
 export const news = vnstock.news;
 
 const easy = createEasyMode(vnstock);

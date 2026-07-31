@@ -39,7 +39,7 @@ describe("Directory", () => {
       expect(Directory.getBySymbol("ZZZZZ")).toBeNull();
     });
 
-    it('is case-insensitive — "vnm" works', () => {
+    it('is case-insensitive, "vnm" works', () => {
       const result = Directory.getBySymbol("vnm");
       expect(result).not.toBeNull();
       expect(result!.symbol).toBe("VNM");
@@ -88,25 +88,25 @@ describe("Directory", () => {
   });
 
   describe("search()", () => {
-    it('"VNM" — exact match ranks first', () => {
+    it('"VNM" exact match ranks first', () => {
       const results = Directory.search("VNM");
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].symbol).toBe("VNM");
     });
 
-    it('"SSI" — exact match ranks first', () => {
+    it('"SSI" exact match ranks first', () => {
       const results = Directory.search("SSI");
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].symbol).toBe("SSI");
     });
 
-    it('"VN" — VNM in top 5 (startsWith)', () => {
+    it('"VN" puts VNM in top 5 (startsWith)', () => {
       const results = Directory.search("VN", { limit: 20 });
       const top5 = results.slice(0, 5).map((r) => r.symbol);
       expect(top5).toContain("VNM");
     });
 
-    it("VN30 boost — VN30 stocks rank higher within same tier", () => {
+    it("VN30 boost puts VN30 stocks higher within same tier", () => {
       const results = Directory.search("VN");
       // Among startsWith matches, VN30 items should come first
       const startsWith = results.filter(
@@ -141,7 +141,7 @@ describe("Directory", () => {
   });
 });
 
-describe("Directory — not initialized", () => {
+describe("Directory: not initialized", () => {
   it("throws NotInitializedError when called before init()", () => {
     _reset();
     expect(() => Directory.all()).toThrow(/not initialized/i);

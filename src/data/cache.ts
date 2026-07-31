@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { CachedDataset, CacheMeta } from "./types";
 
-type DatasetName = "symbols" | "holidays";
+type DatasetName = "symbols" | "holidays" | "ratios";
 
 export class DiskCache {
   private readonly dir: string;
