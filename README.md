@@ -7,7 +7,7 @@
 
 Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng khoán Việt Nam. Output chuẩn hóa, sẵn sàng cho web.
 
-[Tài liệu](https://vnstock-js-docs.vercel.app/) | [npm](https://www.npmjs.com/package/vnstock-js) | [GitHub](https://github.com/ttqteo/vnstock-js)
+[Tài liệu](https://vnstock-js-docs.vercel.app/) | [Lịch sử phiên bản](https://vnstock-js-docs.vercel.app/docs/getting-started/changelog) | [npm](https://www.npmjs.com/package/vnstock-js) | [GitHub](https://github.com/ttqteo/vnstock-js)
 
 ## Tính năng
 
@@ -414,6 +414,8 @@ Không cần xác thực.
 ## Tài liệu
 
 Chi tiết và ví dụ: [vnstock-js-docs.vercel.app](https://vnstock-js-docs.vercel.app/)
+
+Thay đổi qua từng phiên bản: [Lịch sử phiên bản](https://vnstock-js-docs.vercel.app/docs/getting-started/changelog). Bản đầy đủ kèm ghi chú nâng cấp nằm ở [CHANGELOG.md](CHANGELOG.md).
 
 ## Lấy cảm hứng từ
 

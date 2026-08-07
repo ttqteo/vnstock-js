@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.1 Sửa lỗi import trên môi trường serverless
+
+Từ 1.4.0, chỉ cần `import "vnstock-js"` là ứng dụng chạy trên Vercel, AWS Lambda hay Cloudflare bị sập ngay lúc nạp module:
+
+```
+Error: ENOENT: no such file or directory, mkdir '/home/sbx_user1051/.vnstock-js'
+```
+
+Nguyên nhân: `index.ts` tạo sẵn instance `watchlist` ở cấp module, mà constructor của storage lại `mkdirSync` vào thư mục home. Serverless không có home ghi được, nên mọi route trả 500 kể cả khi ứng dụng không hề dùng watchlist.
+
+Storage nay không đụng ổ đĩa lúc khởi tạo. Thư mục chỉ được tạo ở lần ghi đầu tiên, và nếu home không ghi được thì tự chuyển sang thư mục tạm thay vì ném lỗi. Đọc watchlist ở nơi không có file trả `null` như trước.
+
+Không có thay đổi phá vỡ tương thích. Ai đang chạy trên máy cá nhân không thấy khác biệt gì.
+
 ## 1.5.0 Market & Foreign Data
 
 Thêm nhóm API mức thị trường: độ rộng, thanh khoản, khối ngoại, bối cảnh thị trường cho AI. Thêm `asOf` để tính chỉ báo theo phiên quá khứ. Sửa lỗi đơn vị chỉ số và lỗi serialize error.
