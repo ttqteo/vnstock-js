@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.5.1 Sửa lỗi import trên môi trường serverless
+## 1.5.1 Sửa lỗi serverless và lỗi phân loại request đứt giữa chừng
+
+### Sửa: import trên môi trường serverless
 
 Từ 1.4.0, chỉ cần `import "vnstock-js"` là ứng dụng chạy trên Vercel, AWS Lambda hay Cloudflare bị sập ngay lúc nạp module:
 
@@ -11,6 +13,23 @@ Error: ENOENT: no such file or directory, mkdir '/home/sbx_user1051/.vnstock-js'
 Nguyên nhân: `index.ts` tạo sẵn instance `watchlist` ở cấp module, mà constructor của storage lại `mkdirSync` vào thư mục home. Serverless không có home ghi được, nên mọi route trả 500 kể cả khi ứng dụng không hề dùng watchlist.
 
 Storage nay không đụng ổ đĩa lúc khởi tạo. Thư mục chỉ được tạo ở lần ghi đầu tiên, và nếu home không ghi được thì tự chuyển sang thư mục tạm thay vì ném lỗi. Đọc watchlist ở nơi không có file trả `null` như trước.
+
+### Sửa: request đứt giữa chừng bị báo là `HTTP 200: OK`
+
+Phản hồi lớn có thể đứt khi thân dữ liệu đang tải, sau khi header 200 đã về. Axios khi đó ném lỗi nhưng vẫn kèm `response` mang status 200, nên thư viện đọc thành lỗi HTTP và ném ra thông báo vô nghĩa:
+
+```
+ApiError: HTTP 200: OK    (cause: aborted)
+```
+
+Hai hệ quả: người dùng không hiểu chuyện gì xảy ra, và tệ hơn là `isRetryable` chỉ bắt `ECONNABORTED`, `ETIMEDOUT` cùng status từ 500 nên **request đứt không được thử lại lần nào**.
+
+Nay lỗi truyền tải được nhận diện trước khi xét status, kể cả khi còn `response` cũ: ném `NetworkError` với thông báo thật, và được thử lại theo backoff như các lỗi mạng khác. Lỗi HTTP thật vẫn ném `ApiError` như trước.
+
+### Nội bộ
+
+- Thêm 3 test cho ca đứt giữa chừng và 3 test hồi quy cho watchlist storage.
+- Test integration nay bỏ qua khi upstream chậm, giới hạn hoặc tạm không phản hồi, thay vì làm đỏ CI. Chỉ lỗi truyền tải mới được bỏ qua; đổi cấu trúc dữ liệu vẫn fail, vì đó mới là thứ những test này canh.
 
 Không có thay đổi phá vỡ tương thích. Ai đang chạy trên máy cá nhân không thấy khác biệt gì.
 

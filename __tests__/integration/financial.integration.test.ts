@@ -1,4 +1,5 @@
 import vnstock from "../../src";
+import { tolerateUpstream } from "../helpers/upstream";
 
 // Live VCI calls. Kept in a separate file because `jest.mock("axios")` is hoisted
 // to the top of whatever file it appears in, which would silently mock these too.
@@ -7,33 +8,36 @@ const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
 describeIntegration("Financial (integration, INTEGRATION=1)", () => {
   it("should return normalized balance sheet", async () => {
-    const data = await vnstock.stock.financials.balanceSheet({
+    const data = await tolerateUpstream(() => vnstock.stock.financials.balanceSheet({
       symbol: "VCI",
       period: "quarter",
-    });
+    }));
+    if (!data) return;
 
     expect(data).toHaveProperty("data");
     expect(data).toHaveProperty("mapping");
     expect(data.data).toHaveProperty("symbol");
     expect(data.data).not.toHaveProperty("ticker");
-  }, 30000);
+  }, 60000);
 
   it("should return normalized income statement", async () => {
-    const data = await vnstock.stock.financials.incomeStatement({
+    const data = await tolerateUpstream(() => vnstock.stock.financials.incomeStatement({
       symbol: "VCI",
       period: "year",
-    });
+    }));
+    if (!data) return;
 
     expect(data).toHaveProperty("data");
     expect(data.data).toHaveProperty("symbol");
-  }, 30000);
+  }, 60000);
 
   it("should return normalized cash flow", async () => {
-    const data = await vnstock.stock.financials.cashFlow({
+    const data = await tolerateUpstream(() => vnstock.stock.financials.cashFlow({
       symbol: "VCI",
-    });
+    }));
+    if (!data) return;
 
     expect(data).toHaveProperty("data");
     expect(data.data).toHaveProperty("symbol");
-  }, 30000);
+  }, 60000);
 });

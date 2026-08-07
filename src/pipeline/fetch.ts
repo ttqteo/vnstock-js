@@ -4,8 +4,28 @@ import { headers as defaultHeaders } from "../shared/constants";
 import { getDeviceId, getUserAgent, getCookieHeader, setCookies } from "../shared/session";
 import { NetworkError, RateLimitError, ApiError } from "../errors";
 
+/**
+ * A transport failure rather than an HTTP answer. Worth its own check
+ * because a large body can abort mid-stream after the headers already
+ * arrived: axios then carries a `response` with status 200, which would
+ * otherwise be read as a successful HTTP status.
+ */
+function isTransportFailure(error: any): boolean {
+  var code = error.code;
+  if (
+    code === "ECONNABORTED" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNRESET" ||
+    code === "EPIPE" ||
+    code === "ERR_CANCELED"
+  ) {
+    return true;
+  }
+  return /\baborted\b|\btimeout\b|socket hang up/i.test(error.message || "");
+}
+
 function isRetryable(error: any): boolean {
-  if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") return true;
+  if (isTransportFailure(error)) return true;
   if (error.response && error.response.status >= 500) return true;
   return false;
 }
@@ -51,6 +71,12 @@ function toSerializableCause(error: any): Error {
 
 function wrapError(error: any): never {
   var cause = toSerializableCause(error);
+  // Checked before the response branch: an aborted download keeps the 200
+  // headers around, and reporting that as "HTTP 200: OK" tells nobody
+  // anything.
+  if (isTransportFailure(error)) {
+    throw new NetworkError(error.message || "Connection interrupted", cause);
+  }
   if (error.response) {
     if (isCloudflareRateLimit(error)) {
       throw new RateLimitError("Cloudflare Error 1015 (rate limited)", cause);

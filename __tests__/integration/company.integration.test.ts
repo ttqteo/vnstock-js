@@ -1,4 +1,5 @@
 import { Company } from "../../src/core/stock/company";
+import { tolerateUpstream } from "../helpers/upstream";
 
 // Live VCI calls. Kept in a separate file because `jest.mock("axios")` is hoisted
 // to the top of whatever file it appears in, which would silently mock these too.
@@ -13,35 +14,39 @@ describeIntegration("Company (integration, INTEGRATION=1)", () => {
   });
 
   it("should return normalized profile", async () => {
-    const data = await company.profile();
+    const data = await tolerateUpstream(() => company.profile());
+    if (!data) return;
     expect(data).toHaveProperty("industry");
     expect(data).toHaveProperty("industryEn");
     expect(data).toHaveProperty("issuedShares");
     expect(data).not.toHaveProperty("issueShare");
     expect(data).not.toHaveProperty("icbName3");
-  }, 30000);
+  }, 60000);
 
   it("should return normalized shareholders", async () => {
-    const data = await company.shareholders();
+    const data = await tolerateUpstream(() => company.shareholders());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("name");
     expect(data[0]).toHaveProperty("percentage");
     expect(data[0]).not.toHaveProperty("ownerFullName");
-  }, 30000);
+  }, 60000);
 
   it("should return normalized officers", async () => {
-    const data = await company.officers();
+    const data = await tolerateUpstream(() => company.officers());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("name");
     expect(data[0]).toHaveProperty("position");
     expect(data[0]).not.toHaveProperty("fullName");
     expect(data[0]).not.toHaveProperty("positionName");
-  }, 30000);
+  }, 60000);
 
   it("should return normalized events", async () => {
-    const data = await company.events();
+    const data = await tolerateUpstream(() => company.events());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     if (data.length > 0) {
       expect(data[0]).toHaveProperty("title");
@@ -49,10 +54,11 @@ describeIntegration("Company (integration, INTEGRATION=1)", () => {
       expect(data[0]).not.toHaveProperty("eventTitle");
       expect(data[0]).not.toHaveProperty("eventListCode");
     }
-  }, 30000);
+  }, 60000);
 
   it("should return normalized news", async () => {
-    const data = await company.news();
+    const data = await tolerateUpstream(() => company.news());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     if (data.length > 0) {
       expect(data[0]).toHaveProperty("title");
@@ -60,20 +66,23 @@ describeIntegration("Company (integration, INTEGRATION=1)", () => {
       expect(data[0]).not.toHaveProperty("newsTitle");
       expect(data[0]).not.toHaveProperty("newsShortContent");
     }
-  }, 30000);
+  }, 60000);
 
   it("should return normalized dividends", async () => {
-    const data = await company.dividends();
+    const data = await tolerateUpstream(() => company.dividends());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
-  }, 30000);
+  }, 60000);
 
   it("should return normalized insider deals", async () => {
-    const data = await company.insiderDeals();
+    const data = await tolerateUpstream(() => company.insiderDeals());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
-  }, 30000);
+  }, 60000);
 
   it("should return subsidiaries", async () => {
-    const data = await company.subsidiaries();
+    const data = await tolerateUpstream(() => company.subsidiaries());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
-  }, 30000);
+  }, 60000);
 });

@@ -1,4 +1,5 @@
 import vnstock from "../../src";
+import { tolerateUpstream } from "../helpers/upstream";
 
 // Live VCI calls. Kept in a separate file because `jest.mock("axios")` is hoisted
 // to the top of whatever file it appears in, which would silently mock these too.
@@ -16,7 +17,8 @@ describeIntegration("Listing (integration, INTEGRATION=1)", () => {
   }, 30000);
 
   it("should return symbols by exchange", async () => {
-    const data = await vnstock.stock.listing.symbolsByExchange();
+    const data = await tolerateUpstream(() => vnstock.stock.listing.symbolsByExchange());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("symbol");
@@ -24,10 +26,11 @@ describeIntegration("Listing (integration, INTEGRATION=1)", () => {
     expect(data[0]).toHaveProperty("companyName");
     expect(data[0]).not.toHaveProperty("board");
     expect(data[0]).not.toHaveProperty("organName");
-  }, 30000);
+  }, 60000);
 
   it("should return symbols by industries", async () => {
-    const data = await vnstock.stock.listing.symbolsByIndustries();
+    const data = await tolerateUpstream(() => vnstock.stock.listing.symbolsByIndustries());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("symbol");
@@ -35,10 +38,11 @@ describeIntegration("Listing (integration, INTEGRATION=1)", () => {
     expect(data[0]).toHaveProperty("industryEn");
     expect(data[0]).not.toHaveProperty("ticker");
     expect(data[0]).not.toHaveProperty("icbName3");
-  }, 30000);
+  }, 60000);
 
   it("should return ICB industries", async () => {
-    const data = await vnstock.stock.listing.industriesIcb();
+    const data = await tolerateUpstream(() => vnstock.stock.listing.industriesIcb());
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("code");
@@ -46,12 +50,13 @@ describeIntegration("Listing (integration, INTEGRATION=1)", () => {
     expect(data[0]).toHaveProperty("nameEn");
     expect(data[0]).not.toHaveProperty("icbCode");
     expect(data[0]).not.toHaveProperty("icbName");
-  }, 30000);
+  }, 60000);
 
   it("should return symbols by group VN30", async () => {
-    const data = await vnstock.stock.listing.symbolsByGroup("VN30");
+    const data = await tolerateUpstream(() => vnstock.stock.listing.symbolsByGroup("VN30"));
+    if (!data) return;
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("symbol");
-  }, 30000);
+  }, 60000);
 });
