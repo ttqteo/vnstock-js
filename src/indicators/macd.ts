@@ -1,7 +1,7 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 
 export interface MacdResult {
-  date: string;
+  time: string;
   macd: number | null;
   signal: number | null;
   histogram: number | null;
@@ -29,9 +29,14 @@ function emaSeries(values: number[], period: number): (number | null)[] {
   return out;
 }
 
+/**
+ * MACD line, signal and histogram; defaults 12, 26, 9.
+ * @example
+ * const last = macd(bars).at(-1) // { macd, signal, histogram }
+ */
 export function macd(
-  data: QuoteHistory[],
-  options: { fast?: number; slow?: number; signal?: number; field?: keyof QuoteHistory } = {}
+  data: Bar[],
+  options: { fast?: number; slow?: number; signal?: number; field?: "open" | "high" | "low" | "close" | "volume" } = {}
 ): MacdResult[] {
   const fast = options.fast ?? 12;
   const slow = options.slow ?? 26;
@@ -62,12 +67,9 @@ export function macd(
   }
 
   return data.map((c, i) => ({
-    date: c.date,
+    time: c.time,
     macd: macdLine[i],
     signal: signalLine[i],
-    histogram:
-      macdLine[i] !== null && signalLine[i] !== null
-        ? (macdLine[i] as number) - (signalLine[i] as number)
-        : null,
+    histogram: macdLine[i] !== null && signalLine[i] !== null ? (macdLine[i] as number) - (signalLine[i] as number) : null,
   }));
 }

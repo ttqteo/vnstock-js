@@ -1,4 +1,4 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 import { atr } from "./atr";
 
 export interface SuperTrendOptions {
@@ -7,17 +7,19 @@ export interface SuperTrendOptions {
 }
 
 export interface SuperTrendResult {
-  date: string;
+  time: string;
   superTrend: number | null;
   direction: "bullish" | "bearish" | null;
   upperBand: number | null;
   lowerBand: number | null;
 }
 
-export function superTrend(
-  data: QuoteHistory[],
-  options: SuperTrendOptions = {}
-): SuperTrendResult[] {
+/**
+ * SuperTrend line and direction from ATR bands; defaults 10 periods, multiplier 3.
+ * @example
+ * superTrend(bars).at(-1)?.direction // "bullish"
+ */
+export function superTrend(data: Bar[], options: SuperTrendOptions = {}): SuperTrendResult[] {
   var period = options.period == null ? 10 : options.period;
   var multiplier = options.multiplier == null ? 3 : options.multiplier;
 
@@ -40,7 +42,7 @@ export function superTrend(
 
     if (atrVal === null) {
       results[i] = {
-        date: bar.date,
+        time: bar.time,
         superTrend: null,
         direction: null,
         upperBand: null,
@@ -60,14 +62,8 @@ export function superTrend(
       finalLower = basicLower;
     } else {
       var prevClose = data[i - 1].close;
-      finalUpper =
-        basicUpper < prevFinalUpper || prevClose > prevFinalUpper
-          ? basicUpper
-          : prevFinalUpper;
-      finalLower =
-        basicLower > prevFinalLower || prevClose < prevFinalLower
-          ? basicLower
-          : prevFinalLower;
+      finalUpper = basicUpper < prevFinalUpper || prevClose > prevFinalUpper ? basicUpper : prevFinalUpper;
+      finalLower = basicLower > prevFinalLower || prevClose < prevFinalLower ? basicLower : prevFinalLower;
     }
 
     var st: number;
@@ -102,7 +98,7 @@ export function superTrend(
     dir = bar.close > st ? "bullish" : "bearish";
 
     results[i] = {
-      date: bar.date,
+      time: bar.time,
       superTrend: st,
       direction: dir,
       upperBand: finalUpper,

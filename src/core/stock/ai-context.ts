@@ -1,5 +1,4 @@
-import { QuoteHistory } from "../../models/normalized";
-import { StockDataAdapter } from "../../adapters/types";
+import { Bar } from "../../types";
 import { sma } from "../../indicators/sma";
 import { ema } from "../../indicators/ema";
 import { rsi } from "../../indicators/rsi";
@@ -9,7 +8,6 @@ import { atr } from "../../indicators/atr";
 import { superTrend } from "../../indicators/supertrend";
 import { ichimoku } from "../../indicators/ichimoku";
 import { detectPivots, PivotLevels } from "./pivot";
-import { asOfToExclusiveEnd, validateDateFormat } from "../../shared/utils";
 
 export interface TrendInfo {
   direction: "bullish" | "bearish" | "neutral";
@@ -45,6 +43,7 @@ export interface VolumeInfo {
   zscore: number;
 }
 
+/** Close-to-close change over 1, 7, 30 and 90 sessions, in percent: 5.2 is +5.2%. */
 export interface PerformanceInfo {
   change1d: number | null;
   change7d: number | null;
@@ -62,10 +61,7 @@ export interface AIContext {
   performance: PerformanceInfo;
 }
 
-function lastValue<T extends { ema?: number | null; sma?: number | null; rsi?: number | null }>(
-  series: T[],
-  key: "ema" | "sma" | "rsi"
-): number | null {
+function lastValue<T extends { ema?: number | null; sma?: number | null; rsi?: number | null }>(series: T[], key: "ema" | "sma" | "rsi"): number | null {
   if (series.length === 0) return null;
   const v = (series[series.length - 1] as any)[key];
   return v === undefined ? null : v;
@@ -75,7 +71,10 @@ function computeSlope(values: (number | null)[]): number {
   const clean = values.filter((v) => v !== null) as number[];
   if (clean.length < 2) return 0;
   const n = clean.length;
-  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  let sumX = 0,
+    sumY = 0,
+    sumXY = 0,
+    sumXX = 0;
   for (let i = 0; i < n; i++) {
     sumX += i;
     sumY += clean[i];
@@ -87,7 +86,7 @@ function computeSlope(values: (number | null)[]): number {
   return (n * sumXY - sumX * sumY) / denom;
 }
 
-export function classifyTrend(data: QuoteHistory[]): TrendInfo {
+export function classifyTrend(data: Bar[]): TrendInfo {
   if (data.length < 50) {
     return { direction: "neutral", strength: 0, rationale: "Không đủ dữ liệu (cần ≥50 phiên)" };
   }
@@ -107,6 +106,12 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
     return { direction: "neutral", strength: 0, rationale: "Không đủ dữ liệu indicator" };
   }
 
+  // Slope as percent of EMA20 per session, so the score reads the same for a
+  // 5,000 dong penny stock and a 125,000 dong blue chip. The factor 2.5 keeps
+  // v1 strengths: 0.05 thousand/session at price 25 is 0.2%/session, and
+  // 0.2 x 2.5 = 0.5 = 0.05 x 10.
+  const slopePct = e20 !== 0 ? (slope / e20) * 100 : 0;
+
   const stLast = superTrend(data);
   const stDir = stLast.length > 0 ? stLast[stLast.length - 1].direction : null;
 
@@ -124,14 +129,14 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
   let rationale: string;
   let strength = 0;
 
-  if (e20 > e50 && (e200 === null || e50 > e200) && slope > 0) {
+  if (e20 > e50 && (e200 === null || e50 > e200) && slopePct > 0) {
     direction = "bullish";
     rationale = "EMA20 > EMA50" + (e200 !== null ? " > EMA200" : "") + ", slope EMA20 dương 5 phiên";
-    strength = Math.min(1, Math.abs(slope) * 10);
-  } else if (e20 < e50 && (e200 === null || e50 < e200) && slope < 0) {
+    strength = Math.min(1, Math.abs(slopePct) * 2.5);
+  } else if (e20 < e50 && (e200 === null || e50 < e200) && slopePct < 0) {
     direction = "bearish";
     rationale = "EMA20 < EMA50" + (e200 !== null ? " < EMA200" : "") + ", slope EMA20 âm 5 phiên";
-    strength = Math.min(1, Math.abs(slope) * 10);
+    strength = Math.min(1, Math.abs(slopePct) * 2.5);
   } else {
     direction = "neutral";
     rationale = "EMA chuỗi không nhất quán hoặc slope flat, sideway";
@@ -182,7 +187,7 @@ export function classifyTrend(data: QuoteHistory[]): TrendInfo {
   return { direction, strength, rationale };
 }
 
-export function snapshotIndicators(data: QuoteHistory[]): IndicatorSnapshot {
+export function snapshotIndicators(data: Bar[]): IndicatorSnapshot {
   const rsiSeries = rsi(data, { period: 14 });
   const macdSeries = macd(data);
   const sma20 = data.length >= 20 ? lastValue(sma(data, { period: 20 }), "sma") : null;
@@ -216,11 +221,7 @@ export function snapshotIndicators(data: QuoteHistory[]): IndicatorSnapshot {
   }
 
   let tkCross: "bullish" | "bearish" | "none" = "none";
-  if (
-    lastIchi && prevIchi &&
-    lastIchi.tenkanSen !== null && lastIchi.kijunSen !== null &&
-    prevIchi.tenkanSen !== null && prevIchi.kijunSen !== null
-  ) {
+  if (lastIchi && prevIchi && lastIchi.tenkanSen !== null && lastIchi.kijunSen !== null && prevIchi.tenkanSen !== null && prevIchi.kijunSen !== null) {
     if (lastIchi.tenkanSen > lastIchi.kijunSen && prevIchi.tenkanSen <= prevIchi.kijunSen) tkCross = "bullish";
     else if (lastIchi.tenkanSen < lastIchi.kijunSen && prevIchi.tenkanSen >= prevIchi.kijunSen) tkCross = "bearish";
   }
@@ -263,7 +264,7 @@ export function snapshotIndicators(data: QuoteHistory[]): IndicatorSnapshot {
   };
 }
 
-export function classifyVolume(data: QuoteHistory[]): VolumeInfo {
+export function classifyVolume(data: Bar[]): VolumeInfo {
   if (data.length < 21) {
     const last = data[data.length - 1];
     return { today: last?.volume ?? 0, avg20: 0, signal: "normal", zscore: 0 };
@@ -291,104 +292,72 @@ export function classifyVolume(data: QuoteHistory[]): VolumeInfo {
   return { today, avg20: mean, signal, zscore };
 }
 
-export function computePerformance(data: QuoteHistory[]): PerformanceInfo {
+export function computePerformance(data: Bar[]): PerformanceInfo {
   if (data.length === 0) return { change1d: null, change7d: null, change30d: null, change90d: null };
   const last = data[data.length - 1].close;
   function chg(daysBack: number): number | null {
     const idx = data.length - 1 - daysBack;
     if (idx < 0) return null;
     const ref = data[idx].close;
-    return ref > 0 ? (last - ref) / ref : null;
+    return ref > 0 ? Math.round(((last - ref) / ref) * 100 * 1000) / 1000 : null;
   }
   return { change1d: chg(1), change7d: chg(7), change30d: chg(30), change90d: chg(90) };
 }
 
-export async function buildAIContext(
-  adapter: StockDataAdapter,
-  symbol: string,
-  options: { lookback?: number; asOf?: string } = {}
-): Promise<AIContext> {
-  const lookback = options.lookback ?? 200;
-  // asOf anchors the window in the past so indicators are computed only from
-  // bars available on that date. Without it the anchor is today.
-  if (options.asOf) validateDateFormat([options.asOf]);
-  const anchor = options.asOf ? new Date(options.asOf) : new Date();
-  const start = new Date(anchor);
-  start.setDate(start.getDate() - Math.ceil(lookback * 1.5) - 30);
-  const startStr = start.toISOString().substring(0, 10);
-
-  const candles = await adapter.fetchQuoteHistory({
-    symbols: [symbol],
-    start: startStr,
-    end: options.asOf ? asOfToExclusiveEnd(options.asOf) : undefined,
-    timeFrame: "1D",
-    countBack: lookback + 30,
-  });
-
-  const sliced = candles.slice(-lookback);
-
-  return {
-    symbol,
-    asOf: sliced.length > 0 ? sliced[sliced.length - 1].date : "",
-    trend: classifyTrend(sliced),
-    indicators: snapshotIndicators(sliced),
-    levels: detectPivots(sliced, { window: 5, topN: 3 }),
-    volume: classifyVolume(sliced),
-    performance: computePerformance(sliced),
-  };
-}
-
-export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi"): string {
+/**
+ * Plain-text context for an LLM prompt. `price` formats every price-valued number (MAs, bands,
+ * ATR, levels); without it they print with fixed decimals as in v1.
+ */
+export function formatAIPrompt(ctx: AIContext, lang: "vi" | "en" = "vi", price?: (v: number) => string): string {
+  const p = (v: number | null | undefined, digits: number): string => (v === null || v === undefined ? "n/a" : price ? price(v) : v.toFixed(digits));
   const lines: string[] = [];
   if (lang === "vi") {
     lines.push(`=== ${ctx.symbol} · ${ctx.asOf} ===`);
     lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%): ${ctx.trend.rationale}`);
     const ind = ctx.indicators;
     lines.push(`RSI(14): ${ind.rsi14?.toFixed(1) ?? "n/a"}`);
-    lines.push(`MACD: line ${ind.macd.line?.toFixed(3) ?? "n/a"}, signal ${ind.macd.signal?.toFixed(3) ?? "n/a"}, histogram ${ind.macd.histogram?.toFixed(3) ?? "n/a"}, crossover: ${ind.macd.crossover}`);
-    lines.push(`SMA: 20=${ind.sma[20]?.toFixed(2) ?? "n/a"}, 50=${ind.sma[50]?.toFixed(2) ?? "n/a"}, 200=${ind.sma[200]?.toFixed(2) ?? "n/a"}`);
-    lines.push(`EMA: 20=${ind.ema[20]?.toFixed(2) ?? "n/a"}, 50=${ind.ema[50]?.toFixed(2) ?? "n/a"}, 200=${ind.ema[200]?.toFixed(2) ?? "n/a"}`);
-    lines.push(`Bollinger %B: ${ind.bollinger.percentB?.toFixed(2) ?? "n/a"} (upper=${ind.bollinger.upper?.toFixed(2) ?? "n/a"}, lower=${ind.bollinger.lower?.toFixed(2) ?? "n/a"})`);
-    lines.push(`ATR(14): ${ind.atr14?.toFixed(3) ?? "n/a"}`);
+    lines.push(`MACD: line ${p(ind.macd.line, 3)}, signal ${p(ind.macd.signal, 3)}, histogram ${p(ind.macd.histogram, 3)}, crossover: ${ind.macd.crossover}`);
+    lines.push(`SMA: 20=${p(ind.sma[20], 2)}, 50=${p(ind.sma[50], 2)}, 200=${p(ind.sma[200], 2)}`);
+    lines.push(`EMA: 20=${p(ind.ema[20], 2)}, 50=${p(ind.ema[50], 2)}, 200=${p(ind.ema[200], 2)}`);
+    lines.push(`Bollinger %B: ${ind.bollinger.percentB?.toFixed(2) ?? "n/a"} (upper=${p(ind.bollinger.upper, 2)}, lower=${p(ind.bollinger.lower, 2)})`);
+    lines.push(`ATR(14): ${p(ind.atr14, 3)}`);
     const stVi = ind.superTrend;
     const stArrowVi = stVi.direction === "bullish" ? "▲ TĂNG" : stVi.direction === "bearish" ? "▼ GIẢM" : "n/a";
-    lines.push(`SuperTrend: ${stVi.value?.toFixed(2) ?? "n/a"} (${stArrowVi})`);
+    lines.push(`SuperTrend: ${p(stVi.value, 2)} (${stArrowVi})`);
     const ichiVi = ind.ichimoku;
-    const cloudStrVi = ichiVi.cloudBottom !== null && ichiVi.cloudTop !== null
-      ? `[${ichiVi.cloudBottom.toFixed(2)} – ${ichiVi.cloudTop.toFixed(2)}]`
-      : "n/a";
-    const priceVsVi = ichiVi.priceVsCloud === "above" ? "TRÊN mây"
-                    : ichiVi.priceVsCloud === "below" ? "DƯỚI mây"
-                    : ichiVi.priceVsCloud === "inside" ? "TRONG mây"
-                    : "n/a";
-    lines.push(`Ichimoku: TK ${ichiVi.tenkanSen?.toFixed(2) ?? "n/a"} / KJ ${ichiVi.kijunSen?.toFixed(2) ?? "n/a"} · Cloud ${cloudStrVi} · Giá ${priceVsVi} · TK cross: ${ichiVi.tkCross}`);
-    lines.push(`Volume: ${ctx.volume.today.toLocaleString()} (avg ${ctx.volume.avg20.toLocaleString()}, z-score ${ctx.volume.zscore.toFixed(2)}, ${ctx.volume.signal})`);
-    lines.push(`Support: ${ctx.levels.support.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
-    lines.push(`Resistance: ${ctx.levels.resistance.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
+    const cloudStrVi = ichiVi.cloudBottom !== null && ichiVi.cloudTop !== null ? `[${p(ichiVi.cloudBottom, 2)} – ${p(ichiVi.cloudTop, 2)}]` : "n/a";
+    const priceVsVi =
+      ichiVi.priceVsCloud === "above" ? "TRÊN mây" : ichiVi.priceVsCloud === "below" ? "DƯỚI mây" : ichiVi.priceVsCloud === "inside" ? "TRONG mây" : "n/a";
+    lines.push(`Ichimoku: TK ${p(ichiVi.tenkanSen, 2)} / KJ ${p(ichiVi.kijunSen, 2)} · Cloud ${cloudStrVi} · Giá ${priceVsVi} · TK cross: ${ichiVi.tkCross}`);
+    lines.push(
+      `Volume: ${ctx.volume.today.toLocaleString()} (avg ${ctx.volume.avg20.toLocaleString()}, z-score ${ctx.volume.zscore.toFixed(2)}, ${ctx.volume.signal})`
+    );
+    lines.push(`Support: ${ctx.levels.support.map((v) => p(v, 2)).join(" / ") || "n/a"}`);
+    lines.push(`Resistance: ${ctx.levels.resistance.map((v) => p(v, 2)).join(" / ") || "n/a"}`);
     const perf = ctx.performance;
-    const fmtPct = (v: number | null) => (v === null ? "n/a" : (v >= 0 ? "+" : "") + (v * 100).toFixed(2) + "%");
+    const fmtPct = (v: number | null) => (v === null ? "n/a" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
     lines.push(`Change: 1d ${fmtPct(perf.change1d)} · 7d ${fmtPct(perf.change7d)} · 30d ${fmtPct(perf.change30d)} · 90d ${fmtPct(perf.change90d)}`);
   } else {
     lines.push(`=== ${ctx.symbol} · ${ctx.asOf} ===`);
     lines.push(`Trend: ${ctx.trend.direction} (strength ${(ctx.trend.strength * 100).toFixed(0)}%): ${ctx.trend.rationale}`);
     const ind = ctx.indicators;
     lines.push(`RSI(14): ${ind.rsi14?.toFixed(1) ?? "n/a"}`);
-    lines.push(`MACD: line ${ind.macd.line?.toFixed(3) ?? "n/a"}, signal ${ind.macd.signal?.toFixed(3) ?? "n/a"}, crossover: ${ind.macd.crossover}`);
-    lines.push(`SMA: 20=${ind.sma[20]?.toFixed(2) ?? "n/a"}, 50=${ind.sma[50]?.toFixed(2) ?? "n/a"}, 200=${ind.sma[200]?.toFixed(2) ?? "n/a"}`);
+    lines.push(`MACD: line ${p(ind.macd.line, 3)}, signal ${p(ind.macd.signal, 3)}, crossover: ${ind.macd.crossover}`);
+    lines.push(`SMA: 20=${p(ind.sma[20], 2)}, 50=${p(ind.sma[50], 2)}, 200=${p(ind.sma[200], 2)}`);
     lines.push(`Bollinger %B: ${ind.bollinger.percentB?.toFixed(2) ?? "n/a"}`);
-    lines.push(`ATR(14): ${ind.atr14?.toFixed(3) ?? "n/a"}`);
+    lines.push(`ATR(14): ${p(ind.atr14, 3)}`);
     const stEn = ind.superTrend;
-    lines.push(`SuperTrend: ${stEn.value?.toFixed(2) ?? "n/a"} (${stEn.direction ?? "n/a"})`);
+    lines.push(`SuperTrend: ${p(stEn.value, 2)} (${stEn.direction ?? "n/a"})`);
     const ichiEn = ind.ichimoku;
-    const cloudStrEn = ichiEn.cloudBottom !== null && ichiEn.cloudTop !== null
-      ? `[${ichiEn.cloudBottom.toFixed(2)} – ${ichiEn.cloudTop.toFixed(2)}]`
-      : "n/a";
-    lines.push(`Ichimoku: TK ${ichiEn.tenkanSen?.toFixed(2) ?? "n/a"} / KJ ${ichiEn.kijunSen?.toFixed(2) ?? "n/a"} · Cloud ${cloudStrEn} · Price ${ichiEn.priceVsCloud ?? "n/a"} cloud · TK cross: ${ichiEn.tkCross}`);
+    const cloudStrEn = ichiEn.cloudBottom !== null && ichiEn.cloudTop !== null ? `[${p(ichiEn.cloudBottom, 2)} – ${p(ichiEn.cloudTop, 2)}]` : "n/a";
+    lines.push(
+      `Ichimoku: TK ${p(ichiEn.tenkanSen, 2)} / KJ ${p(ichiEn.kijunSen, 2)} · Cloud ${cloudStrEn} · Price ${ichiEn.priceVsCloud ?? "n/a"} cloud · TK cross: ${ichiEn.tkCross}`
+    );
     lines.push(`Volume: ${ctx.volume.today} (z-score ${ctx.volume.zscore.toFixed(2)}, ${ctx.volume.signal})`);
-    lines.push(`Support: ${ctx.levels.support.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
-    lines.push(`Resistance: ${ctx.levels.resistance.map((v) => v.toFixed(2)).join(" / ") || "n/a"}`);
+    lines.push(`Support: ${ctx.levels.support.map((v) => p(v, 2)).join(" / ") || "n/a"}`);
+    lines.push(`Resistance: ${ctx.levels.resistance.map((v) => p(v, 2)).join(" / ") || "n/a"}`);
     const perf = ctx.performance;
-    const fmtPct = (v: number | null) => (v === null ? "n/a" : (v >= 0 ? "+" : "") + (v * 100).toFixed(2) + "%");
+    const fmtPct = (v: number | null) => (v === null ? "n/a" : (v >= 0 ? "+" : "") + v.toFixed(2) + "%");
     lines.push(`Change: 1d ${fmtPct(perf.change1d)} · 7d ${fmtPct(perf.change7d)} · 30d ${fmtPct(perf.change30d)} · 90d ${fmtPct(perf.change90d)}`);
   }
   return lines.join("\n");

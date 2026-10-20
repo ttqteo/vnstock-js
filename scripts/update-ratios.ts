@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
-import axios from "axios";
-import { Vnstock } from "../src/runtime";
-import { headers, VCI_COMPANY_URL } from "../src/shared/constants";
+import { createTransport } from "../src/transport";
+import { VciAdapter } from "../src/adapters/vci";
+import { VCI_COMPANY_URL } from "../src/shared/constants";
 import { SymbolRatios, RatiosFile } from "../src/models/ratios";
 
 /**
@@ -17,6 +17,7 @@ import { SymbolRatios, RatiosFile } from "../src/models/ratios";
 const EXCHANGES = ["HOSE", "HNX", "UPCOM"];
 const CONCURRENCY = 4;
 const OUT = path.join(__dirname, "..", "data", "ratios.json");
+const transport = createTransport({ timeout: 20000 });
 
 async function pool<T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
@@ -38,11 +39,8 @@ function num(v: unknown): number | null {
 
 async function fetchOne(symbol: string): Promise<SymbolRatios | null> {
   try {
-    const res = await axios.get(`${VCI_COMPANY_URL}/${symbol}/statistics-financial`, {
-      headers,
-      timeout: 20000,
-    });
-    const rows = res.data?.data || [];
+    const res = await transport.request<any>({ url: `${VCI_COMPANY_URL}/${symbol}/statistics-financial`, method: "GET" });
+    const rows = res?.data || [];
     if (rows.length === 0) return null;
     const r = rows[rows.length - 1];
 
@@ -66,11 +64,11 @@ async function fetchOne(symbol: string): Promise<SymbolRatios | null> {
 }
 
 async function main(): Promise<void> {
-  const v = new Vnstock();
+  const source = new VciAdapter({ transport });
 
   const symbols: string[] = [];
   for (const ex of EXCHANGES) {
-    const listed = await v.stock.listing.symbolsByGroup(ex);
+    const listed = await source.fetchSymbolsByGroup(ex);
     for (const s of listed) symbols.push(s.symbol);
   }
   const unique = Array.from(new Set(symbols));
@@ -85,8 +83,7 @@ async function main(): Promise<void> {
     const prev: RatiosFile = JSON.parse(fs.readFileSync(OUT, "utf8"));
     if (prev.count > 0 && ratios.length < prev.count * 0.8) {
       throw new Error(
-        `Only ${ratios.length} symbols resolved, previous file had ${prev.count}. ` +
-          `Refusing to overwrite; check the upstream response shape.`
+        `Only ${ratios.length} symbols resolved, previous file had ${prev.count}. ` + `Refusing to overwrite; check the upstream response shape.`
       );
     }
   }
@@ -104,5 +101,5 @@ async function main(): Promise<void> {
 
 main().catch((e) => {
   process.stderr.write(`Failed: ${e.message}\n`);
-  process.exit(1);
+  process.exitCode = 1;
 });

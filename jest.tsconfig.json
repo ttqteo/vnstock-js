@@ -2,6 +2,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": true,
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "types": ["jest", "node"]
   },
   "include": ["src/**/*", "__tests__/**/*"]

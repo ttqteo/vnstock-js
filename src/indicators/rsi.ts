@@ -1,14 +1,16 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 
 export interface RsiResult {
-  date: string;
+  time: string;
   rsi: number | null;
 }
 
-export function rsi(
-  data: QuoteHistory[],
-  options: { period?: number; field?: keyof QuoteHistory } = {}
-): RsiResult[] {
+/**
+ * Wilder's RSI, 14 periods by default; 0 to 100.
+ * @example
+ * rsi(bars).at(-1)?.rsi // 62.4
+ */
+export function rsi(data: Bar[], options: { period?: number; field?: "open" | "high" | "low" | "close" | "volume" } = {}): RsiResult[] {
   const { period = 14, field = "close" } = options;
 
   if (period < 1) throw new Error("Period must be >= 1");
@@ -34,7 +36,7 @@ export function rsi(
 
   for (let i = 0; i < data.length; i++) {
     if (i < period) {
-      results.push({ date: data[i].date, rsi: null });
+      results.push({ time: data[i].time, rsi: null });
     } else if (i === period) {
       let sumGain = 0;
       let sumLoss = 0;
@@ -46,20 +48,20 @@ export function rsi(
       avgLoss = sumLoss / period;
 
       if (avgLoss === 0) {
-        results.push({ date: data[i].date, rsi: 100 });
+        results.push({ time: data[i].time, rsi: 100 });
       } else {
         const rs = avgGain / avgLoss;
-        results.push({ date: data[i].date, rsi: 100 - 100 / (1 + rs) });
+        results.push({ time: data[i].time, rsi: 100 - 100 / (1 + rs) });
       }
     } else {
       avgGain = (avgGain * (period - 1) + gains[i]) / period;
       avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
 
       if (avgLoss === 0) {
-        results.push({ date: data[i].date, rsi: 100 });
+        results.push({ time: data[i].time, rsi: 100 });
       } else {
         const rs = avgGain / avgLoss;
-        results.push({ date: data[i].date, rsi: 100 - 100 / (1 + rs) });
+        results.push({ time: data[i].time, rsi: 100 - 100 / (1 + rs) });
       }
     }
   }

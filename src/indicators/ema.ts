@@ -1,14 +1,16 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 
 export interface EmaResult {
-  date: string;
+  time: string;
   ema: number | null;
 }
 
-export function ema(
-  data: QuoteHistory[],
-  options: { period: number; field?: keyof QuoteHistory }
-): EmaResult[] {
+/**
+ * Exponential moving average seeded with the SMA of the first `period` bars.
+ * @example
+ * ema(bars, { period: 50 }).at(-1)?.ema
+ */
+export function ema(data: Bar[], options: { period: number; field?: "open" | "high" | "low" | "close" | "volume" }): EmaResult[] {
   const { period, field = "close" } = options;
 
   if (period < 1) throw new Error("Period must be >= 1");
@@ -21,21 +23,21 @@ export function ema(
 
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
-      results.push({ date: data[i].date, ema: null });
+      results.push({ time: data[i].time, ema: null });
     } else if (i === period - 1) {
       let sum = 0;
       for (let j = 0; j < period; j++) {
         sum += data[j][field] as number;
       }
       prevEma = sum / period;
-      results.push({ date: data[i].date, ema: prevEma });
+      results.push({ time: data[i].time, ema: prevEma });
     } else {
       if (prevEma === null) {
-        results.push({ date: data[i].date, ema: null });
+        results.push({ time: data[i].time, ema: null });
       } else {
         const value = data[i][field] as number;
         prevEma = value * multiplier + prevEma * (1 - multiplier);
-        results.push({ date: data[i].date, ema: prevEma });
+        results.push({ time: data[i].time, ema: prevEma });
       }
     }
   }

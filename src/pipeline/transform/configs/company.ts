@@ -15,7 +15,6 @@ export const companyProfileTransformConfig: TransformConfig = {
     icbName4: "subIndustry",
     enIcbName4: "subIndustryEn",
   },
-  priceFields: [],
   dateFields: [],
   percentFields: [],
 };
@@ -30,9 +29,9 @@ export const shareholderTransformConfig: TransformConfig = {
     percentage: "percentage",
     updateDate: "updatedAt",
   },
-  priceFields: [],
   dateFields: ["updatedAt"],
-  percentFields: ["percentage"],
+  // VCI already sends ownership as a fraction (0.068 is 6.8%).
+  percentFields: [],
 };
 
 export const officerTransformConfig: TransformConfig = {
@@ -48,9 +47,8 @@ export const officerTransformConfig: TransformConfig = {
     percentage: "ownership",
     quantity: "quantity",
   },
-  priceFields: [],
   dateFields: ["updatedAt"],
-  percentFields: ["ownership"],
+  percentFields: [],
 };
 
 export const eventTransformConfig: TransformConfig = {
@@ -71,7 +69,6 @@ export const eventTransformConfig: TransformConfig = {
     recordDate: "recordDate",
     exrightDate: "exRightDate",
   },
-  priceFields: [],
   dateFields: ["publishedAt", "issuedAt", "recordDate", "exRightDate"],
   percentFields: [],
 };
@@ -91,7 +88,6 @@ export const newsTransformConfig: TransformConfig = {
     referencePrice: "referencePrice",
     percentPriceChange: "priceChangePercent",
   },
-  priceFields: ["closePrice", "referencePrice"],
   dateFields: ["publishedAt"],
   percentFields: ["priceChangePercent"],
 };
@@ -103,7 +99,6 @@ export const subsidiaryTransformConfig: TransformConfig = {
     subOrganCode: "subsidiaryCode",
     percentage: "ownership",
   },
-  priceFields: [],
   dateFields: [],
   percentFields: ["ownership"],
   keepExtra: true,

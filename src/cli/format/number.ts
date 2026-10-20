@@ -1,3 +1,4 @@
+/** Share counts for display (1.2M, 3.4B); money goes through money() in money.ts. */
 export function compactNumber(n: number): string {
   if (n >= 1e9) {
     var b = n / 1e9;

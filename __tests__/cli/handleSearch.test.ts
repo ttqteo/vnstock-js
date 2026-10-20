@@ -1,59 +1,41 @@
-jest.mock("../../src/core/listing/directory", () => ({
-  Directory: {
-    search: jest.fn(),
-  },
-}));
+import { handleSearch } from "../../src/cli/commands/search";
 
-import { handleSearch, meta } from "../../src/cli/commands/search";
-import { Directory } from "../../src/core/listing/directory";
-
-const mockSearch = (Directory as any).search as jest.Mock;
-
-const sampleResults = [
+const results = [
   { symbol: "VNM", companyName: "Vinamilk", exchange: "HSX" },
-  { symbol: "VND", companyName: "VNDirect", exchange: "HSX" },
-  { symbol: "VHM", companyName: "Vinhomes", exchange: "HSX" },
+  { symbol: "VCB", companyName: "Vietcombank", exchange: "HSX" },
 ];
 
 const base = { json: false, csv: false, color: false, quiet: true, verbose: false };
 
-beforeEach(() => {
-  mockSearch.mockReset();
-  mockSearch.mockReturnValue(sampleResults);
-});
-
-describe("handleSearch meta", () => {
-  it("requires data init", () => {
-    expect(meta.requiresData).toBe(true);
-  });
-});
+function fakeClient(out: any[] = results) {
+  const search = jest.fn(async (_q: string, _o: any) => out);
+  return { client: { search } as any, search };
+}
 
 describe("handleSearch", () => {
   it("returns JSON when --json", async () => {
-    const out = await handleSearch({ query: "vina", ...base, json: true });
-    const parsed = JSON.parse(out);
-    expect(parsed).toHaveLength(3);
+    const { client } = fakeClient();
+    expect(JSON.parse(await handleSearch(client, { query: "v", ...base, json: true }))).toHaveLength(2);
   });
 
-  it("returns table with symbol, name, exchange by default", async () => {
-    const out = await handleSearch({ query: "vina", ...base });
+  it("returns a table with symbol, name and exchange by default", async () => {
+    const { client } = fakeClient();
+    const out = await handleSearch(client, { query: "v", ...base });
     expect(out).toContain("VNM");
     expect(out).toContain("Vinamilk");
+    expect(out).toContain("HSX");
   });
 
-  it("passes limit to SDK", async () => {
-    await handleSearch({ query: "v", limit: 5, ...base, json: true });
-    expect(mockSearch).toHaveBeenCalledWith("v", { limit: 5 });
+  it("passes the limit to the client and defaults to 10", async () => {
+    const { client, search } = fakeClient();
+    await handleSearch(client, { query: "bank", limit: 3, ...base });
+    expect(search).toHaveBeenLastCalledWith("bank", { limit: 3 });
+    await handleSearch(client, { query: "bank", ...base });
+    expect(search).toHaveBeenLastCalledWith("bank", { limit: 10 });
   });
 
-  it("defaults to limit 10 when not provided", async () => {
-    await handleSearch({ query: "v", ...base, json: true });
-    expect(mockSearch).toHaveBeenCalledWith("v", { limit: 10 });
-  });
-
-  it("returns no-match message when empty", async () => {
-    mockSearch.mockReturnValue([]);
-    const out = await handleSearch({ query: "zzz", ...base });
-    expect(out).toMatch(/no matches/i);
+  it("says when nothing matches", async () => {
+    const { client } = fakeClient([]);
+    expect(await handleSearch(client, { query: "zzz", ...base })).toBe("No matches for: zzz");
   });
 });

@@ -8,11 +8,7 @@ function apply(fn: (s: string) => string, value: string, enabled: boolean): stri
   return enabled ? fn(value) : value;
 }
 
-export function priceColor(
-  change: number,
-  value: string,
-  opts: ColorOptions
-): string {
+export function priceColor(change: number, value: string, opts: ColorOptions): string {
   if (change > 0) return apply(pc.green, value, opts.color);
   if (change < 0) return apply(pc.red, value, opts.color);
   return apply(pc.yellow, value, opts.color);

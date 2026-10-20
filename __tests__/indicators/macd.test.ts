@@ -1,16 +1,14 @@
 import { macd } from "../../src/indicators/macd";
 
-function makeCandle(date: string, close: number) {
-  return { date, open: close, high: close, low: close, close, volume: 0 };
+function makeCandle(time: string, close: number) {
+  return { time, open: close, high: close, low: close, close, volume: 0, value: null };
 }
 
 describe("macd", () => {
   // Synthetic uptrend 35 candles cho fast=12, slow=26, signal=9 → cần >= slow + signal + buffer
   const closes = [
-    22, 22.5, 23, 22.8, 23.2, 23.5, 24, 24.2, 24.5, 25,
-    25.5, 26, 26.3, 26.8, 27.1, 27.5, 28, 28.3, 28.7, 29,
-    29.5, 30, 30.2, 30.5, 31, 31.5, 32, 32.3, 32.8, 33.2,
-    33.5, 34, 34.2, 34.5, 35,
+    22, 22.5, 23, 22.8, 23.2, 23.5, 24, 24.2, 24.5, 25, 25.5, 26, 26.3, 26.8, 27.1, 27.5, 28, 28.3, 28.7, 29, 29.5, 30, 30.2, 30.5, 31, 31.5, 32, 32.3, 32.8,
+    33.2, 33.5, 34, 34.2, 34.5, 35,
   ];
   const data = closes.map((c, i) => makeCandle(`2024-01-${String(i + 1).padStart(2, "0")}`, c));
 
@@ -41,10 +39,10 @@ describe("macd", () => {
     expect(Math.abs(last.histogram as number)).toBeLessThanOrEqual(Math.abs(last.macd as number) * 2);
   });
 
-  it("preserves dates", () => {
+  it("preserves time", () => {
     const result = macd(data);
-    expect(result[0].date).toBe("2024-01-01");
-    expect(result[result.length - 1].date).toBe(data[data.length - 1].date);
+    expect(result[0].time).toBe("2024-01-01");
+    expect(result[result.length - 1].time).toBe(data[data.length - 1].time);
   });
 
   it("returns empty array for empty input", () => {

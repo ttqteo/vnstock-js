@@ -1,21 +1,17 @@
-import { Company } from "../../src/core/stock/company";
+import { createClient } from "../../src/client";
 import { tolerateUpstream } from "../helpers/upstream";
 
-// Live VCI calls. Kept in a separate file because `jest.mock("axios")` is hoisted
-// to the top of whatever file it appears in, which would silently mock these too.
+// Live VCI calls, run with INTEGRATION=1.
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
 describeIntegration("Company (integration, INTEGRATION=1)", () => {
-  let company: Company;
+  const vci = createClient().stock("VCI");
 
-  beforeAll(() => {
-    company = new Company("VCI");
-  });
-
-  it("should return normalized profile", async () => {
-    const data = await tolerateUpstream(() => company.profile());
+  it("should return a normalized profile", async () => {
+    const data = await tolerateUpstream(() => vci.company());
     if (!data) return;
+    expect(data).toHaveProperty("symbol", "VCI");
     expect(data).toHaveProperty("industry");
     expect(data).toHaveProperty("industryEn");
     expect(data).toHaveProperty("issuedShares");
@@ -24,65 +20,41 @@ describeIntegration("Company (integration, INTEGRATION=1)", () => {
   }, 60000);
 
   it("should return normalized shareholders", async () => {
-    const data = await tolerateUpstream(() => company.shareholders());
+    const data = await tolerateUpstream(() => vci.shareholders());
     if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("name");
     expect(data[0]).toHaveProperty("percentage");
     expect(data[0]).not.toHaveProperty("ownerFullName");
+    expect(data[0]).not.toHaveProperty("ticker");
   }, 60000);
 
   it("should return normalized officers", async () => {
-    const data = await tolerateUpstream(() => company.officers());
+    const data = await tolerateUpstream(() => vci.officers());
     if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
     expect(data[0]).toHaveProperty("name");
     expect(data[0]).toHaveProperty("position");
-    expect(data[0]).not.toHaveProperty("fullName");
-    expect(data[0]).not.toHaveProperty("positionName");
   }, 60000);
 
-  it("should return normalized events", async () => {
-    const data = await tolerateUpstream(() => company.events());
+  it("should return normalized events with ICT dates", async () => {
+    const data = await tolerateUpstream(() => vci.events());
     if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
-    if (data.length > 0) {
-      expect(data[0]).toHaveProperty("title");
-      expect(data[0]).toHaveProperty("eventType");
-      expect(data[0]).not.toHaveProperty("eventTitle");
-      expect(data[0]).not.toHaveProperty("eventListCode");
-    }
+    expect(data.length).toBeGreaterThan(0);
+    expect(data[0]).toHaveProperty("title");
+    if (data[0].publishedAt) expect(String(data[0].publishedAt)).toMatch(/^\d{4}-\d{2}-\d{2}/);
   }, 60000);
 
   it("should return normalized news", async () => {
-    const data = await tolerateUpstream(() => company.news());
+    const data = await tolerateUpstream(() => vci.news());
     if (!data) return;
     expect(Array.isArray(data)).toBe(true);
-    if (data.length > 0) {
-      expect(data[0]).toHaveProperty("title");
-      expect(data[0]).toHaveProperty("summary");
-      expect(data[0]).not.toHaveProperty("newsTitle");
-      expect(data[0]).not.toHaveProperty("newsShortContent");
-    }
+    if (data.length > 0) expect(data[0]).toHaveProperty("title");
   }, 60000);
 
-  it("should return normalized dividends", async () => {
-    const data = await tolerateUpstream(() => company.dividends());
+  it("should return dividends as a subset of events", async () => {
+    const data = await tolerateUpstream(() => vci.dividends());
     if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
-  }, 60000);
-
-  it("should return normalized insider deals", async () => {
-    const data = await tolerateUpstream(() => company.insiderDeals());
-    if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
-  }, 60000);
-
-  it("should return subsidiaries", async () => {
-    const data = await tolerateUpstream(() => company.subsidiaries());
-    if (!data) return;
-    expect(Array.isArray(data)).toBe(true);
+    for (const e of data) expect(String(e.eventType)).toContain("DIVIDEND");
   }, 60000);
 });

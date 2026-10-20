@@ -1,14 +1,13 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { tools } from "./tools";
-import { handlers } from "./handlers";
+import { createHandlers } from "./handlers";
+import type { Client } from "../../client";
 import { errorResponse } from "./formatters";
 
-export async function start(): Promise<void> {
+export async function start(client: Client): Promise<void> {
+  const handlers = createHandlers(client);
   const pkg = require("../../../package.json");
 
   const server = new Server(
@@ -43,7 +42,5 @@ export async function start(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  process.stderr.write(
-    `[vnstock-js mcp] Server started (v${pkg.version}), ${tools.length} tools registered.\n`
-  );
+  process.stderr.write(`[vnstock-js mcp] Server started (v${pkg.version}), ${tools.length} tools registered.\n`);
 }

@@ -1,5 +1,104 @@
 # Changelog
 
+## 2.0.0 Làm lại API, tiền tính bằng đồng
+
+1.x có hai bộ API song song làm cùng một việc, mỗi chỗ trả tiền một đơn vị (nghìn đồng, triệu đồng, tỷ đồng), và phải gọi `init()` trước khi dùng. Bản 2.0 viết lại từ đầu: một API, mọi số tiền là đồng, không cần khởi tạo, chạy được trên Node, serverless và trình duyệt.
+
+```ts
+// 1.x
+import vnstock from 'vnstock-js'
+await vnstock.init()
+const history = await vnstock.stock.quote({ ticker: 'FPT', start: '2026-01-01' })
+// [{ date: '2026-01-02', close: 125.8, ... }]   giá theo nghìn đồng
+
+// 2.0
+import { vn } from 'vnstock-js'
+const history = await vn.stock('FPT').history({ from: '2026-01-01' })
+// [{ time: '2026-01-02', close: 125800, ... }]  giá theo đồng
+```
+
+Không có lớp tương thích với 1.x. Trước khi nâng cấp, đọc [MIGRATION.md](MIGRATION.md): có bảng đối chiếu từng lời gọi và mục Đơn vị. Đơn vị là chỗ dễ sai nhất: đổi lời gọi mà giữ phép nhân chia cũ thì code vẫn chạy, nhưng số lệch 1.000 lần.
+
+### Thay đổi không tương thích
+
+**Đơn vị.** Mọi số tiền là đồng:
+
+| Dữ liệu | 1.x | 2.0 |
+|---|---|---|
+| Giá cổ phiếu (nến, bảng giá, trần, sàn, tham chiếu) | nghìn đồng | đồng |
+| Giá trị giao dịch của nến | triệu đồng | đồng |
+| Thanh khoản thị trường, khối ngoại toàn sàn | tỷ đồng | đồng |
+| Vốn hoá, báo cáo tài chính, giá vàng | tuỳ nguồn | đồng (vàng: đồng/lượng) |
+| `context().performance` | phân số (`0.05`) | phần trăm (`5`) |
+
+Không đổi: chỉ số vẫn là điểm, `changePct` vẫn là phần trăm. Tỷ số tài chính là phân số (`roe: 0.15` là 15%).
+
+**API.**
+
+- Một điểm vào: `import { vn, createClient } from 'vnstock-js'`. `vn.stock('FPT')` và `vn.index('VNINDEX')` trả về handle, các hàm cấp thị trường nằm ngay trên client (`vn.market()`, `vn.screen()`, `vn.prices()`, `vn.gold()`...).
+- Gỡ toàn bộ API 1.x: default export, class `Vnstock`, `stock`, `market`, `commodity`, `news`, `realtime`, `watchlist` và các hàm easy mode `quickQuote`, `recentHistory`, `compareSymbols`, `topMovers`.
+- Không còn `init()` và `NotInitializedError`. Danh mục mã, lịch nghỉ, tỷ số quý tự tải ở lần dùng đầu.
+- Chỉ báo chuyển sang `vnstock-js/indicators`.
+- Watchlist rời khỏi SDK, còn ở CLI `vnstock watchlist` và tool MCP `watchlist` (đọc file `~/.vnstock-js/watchlist.json` cũ).
+
+**Tên trường và tham số.**
+
+- Tham số luôn là `symbol`, không còn `ticker`.
+- Nến có `time` thay cho `date`, theo giờ Việt Nam: `2026-10-16` cho nến ngày, `2026-10-16T09:15:00+07:00` cho nến trong phiên. Nến trong phiên có `value` là giá trị luỹ kế từ đầu phiên.
+- Bảng giá trả `Quote`: `ref`, `ceiling`, `floor`, `volume`, `value`, `bids`, `asks`... thay cho `referencePrice`, `ceilingPrice`, `totalVolume`, `totalValue`, `bidPrices`...
+- Khoảng thời gian `1d 5d 1mo 3mo 6mo ytd 1y 2y 5y max` hoặc `{ from, to }`, khung nến `1m 5m 15m 30m 1h 1d 1w 1mo`. Viết kiểu cũ như `6m` thì báo lỗi kèm gợi ý.
+- Sàng lọc dùng `where: { pe: { lt: 15 } }` và `sort: '-roe'` thay cho `filters`, `sortBy`, `order`.
+- `vn.symbols()` và `vn.search()` trả sàn `HOSE` thay cho `HSX`.
+
+**Môi trường.** Cần Node 18 trở lên. Đã gỡ axios và date-fns, mọi request đi qua `fetch` có sẵn. `watch()` ở chế độ stream cần WebSocket: có sẵn từ Node 22, Node 18 đến 21 cài thêm `ws`.
+
+### Mới
+
+**Chạy ở mọi nơi.**
+
+- `createClient({ proxy, timeout, retries, storage, fetch, preload })`. Handle tạo đồng bộ, không gọi mạng cho tới lần dùng đầu. Gõ sai mã thì lời gọi đầu tiên báo lỗi kèm `Did you mean "FPT"?`.
+- Core không đụng ổ đĩa nên chạy trên Vercel, Cloudflare Workers, Deno, Bun. Cache qua `Storage`: mặc định trong bộ nhớ, `fileStorage()` ở `vnstock-js/node` lưu vào `~/.vnstock-js`. Khi home không ghi được, `fileStorage()` dùng thư mục tạm riêng cho từng user (`vnstock-js-<uid>`, quyền 700) và bỏ qua thư mục tạm mà user khác ghi được. Bản cache có `fetchedAt` ở tương lai bị coi là hết hạn.
+- Proxy cho trình duyệt ở `vnstock-js/proxy` (`nextHandler()`, `workerHandler()`, `expressHandler()`), vì VietCap chặn CORS. Proxy chỉ chuyển tiếp tới hai host VietCap theo danh sách đường dẫn cố định, không phải open proxy. Body lớn hơn `maxBodyBytes` (mặc định 64 KB) bị trả 413, và phản hồi kèm `x-content-type-options: nosniff` cùng CSP `sandbox`.
+- Build cả CommonJS và ESM. Entry gốc bundle được cho trình duyệt mà không cần `fs`, `path`, `events` hay `ws`.
+- Lỗi có `hint` chỉ cách sửa, và `JSON.stringify` được.
+
+**Dữ liệu.**
+
+- Lịch sử khối ngoại: `vn.stock('FPT').foreign('3mo')`, `vn.market.foreign({ range: '1mo' })`. VietCap chỉ cho xem phiên hiện tại, nên repo tự ghi lại mỗi ngày. Dữ liệu có từ năm 2026.
+- Thanh khoản trong phiên: `vn.market.intraday()` trả thanh khoản luỹ kế theo phút, so với phiên trước tại cùng giờ.
+- Báo cáo tài chính trả `{ unit: 'VND', fields, rows }` theo năm hoặc quý, kèm lịch sử tỷ số.
+- Gộp nến 5m, 15m, 30m, 1w, 1mo phía client.
+
+**Danh mục, theo dõi giá, cảnh báo.**
+
+- `vn.portfolio({ positions, cash })` định giá danh mục theo giá hiện tại, nhóm theo môi giới và theo ngành. `cost` là giá vốn mỗi cổ phiếu, tính bằng đồng.
+- `vn.watch(['FPT', 'VCB'], cb)` dùng chung một WebSocket cho mọi watcher; `mode: 'poll'` cho serverless và trình duyệt.
+- `alert({ when: 'breakout' })` báo một lần mỗi phiên khi giá vượt đỉnh N phiên. `when` nhận cả hàm `(tick) => boolean`.
+
+**Phân tích.**
+
+- Chỉ báo mới: vùng hỗ trợ/kháng cự, vùng quá mua/quá bán, bảy mẫu nến đảo chiều, tín hiệu Turtle, breakout có xác nhận khối lượng, sức khoẻ thị trường theo William O'Neil. Gọi nhanh qua `vn.stock('FPT').patterns()` và `vn.index('VNINDEX').health()`.
+- Backtest kiểu event study: `vn.stock('FPT').backtest('breakout', { tp: 7, sl: 4, hold: 10 })`. Vào lệnh ở giá mở cửa phiên sau tín hiệu; phiên chạm cả chốt lời lẫn cắt lỗ thì tính cắt lỗ trước. `tp`, `sl` tính bằng phần trăm. Chưa tính phí, trượt giá, trần sàn.
+- Phiên tương tự (thử nghiệm): `similar()` tìm các phiên trong 5 năm có trạng thái kỹ thuật giống phiên gần nhất, và giá đã đi bao nhiêu sau 5, 20, 60 phiên.
+
+**Cho AI agent.**
+
+- `AGENTS.md` đi kèm package: quy tắc đơn vị và công thức mẫu cho coding agent. Mọi API công khai có JSDoc kèm ví dụ, đọc được ngay từ `.d.ts`. Mọi khối code trong README và AGENTS.md được type-check trong CI.
+- MCP có 27 tool, thêm `find_patterns`, `get_foreign_history`, `portfolio_summary`, `backtest_signal`, `find_similar_setups`. Tên 22 tool cũ giữ nguyên.
+- CLI thêm `patterns`, `similar`, `backtest`, `gold`, `compare`, `watchlist`, `screen`, `portfolio`. Thêm `--json` để lấy dữ liệu thô.
+
+### Sửa
+
+Các lỗi này có ở 1.x:
+
+- Lịch sử giá bỏ qua ngày bắt đầu: `stock.quote({ start })` luôn trả 365 phiên tính lùi từ hôm nay, và khoảng dài hơn khoảng 1,5 năm bị cắt mất phần đầu.
+- Ngày (`end`, `asOf`, ngày sự kiện, tin tức) lệch một ngày tuỳ múi giờ của máy chạy. Nay luôn đọc theo giờ Việt Nam.
+- `changePct` luôn `null` ở `quickQuote`, `compareSymbols` và tool MCP `get_quote`.
+- Tỷ lệ sở hữu của cổ đông và ban lãnh đạo nhỏ hơn thật 100 lần (6,8% hiện thành 0,068%). Nay là phân số đúng: `0.068` là 6,8%.
+- Giá bạc BTMC gấp 10 lần, và `gold()` trả hàng trăm dòng lặp. Nay mỗi sản phẩm còn một dòng mới nhất. Đồng xu vàng bị bỏ khỏi kết quả, vì nguồn báo giá cả đồng xu, không quy được ra đồng/lượng.
+- Độ mạnh xu hướng phụ thuộc mức giá: cùng một xu hướng, mã giá 5 nghìn và mã giá 125 nghìn cho độ mạnh khác nhau.
+- CLI crash khi thoát trên Windows (`UV_HANDLE_CLOSING`).
+
 ## 1.5.1 Sửa lỗi serverless và lỗi phân loại request đứt giữa chừng
 
 ### Sửa: import trên môi trường serverless

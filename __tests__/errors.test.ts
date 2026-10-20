@@ -6,7 +6,6 @@ import {
   InvalidSymbolError,
   InvalidParameterError,
   ParseError,
-  NotInitializedError,
   DataUnavailableError,
 } from "../src/errors";
 
@@ -110,6 +109,12 @@ describe("Error taxonomy", () => {
       const err = new InvalidSymbolError("BAD");
       expect(err).toBeInstanceOf(VnstockError);
     });
+
+    it("accepts an optional suggestion", () => {
+      const err = new InvalidSymbolError("FTP", "FPT");
+      expect(err.hint).toContain("FPT");
+      expect(new InvalidSymbolError("FTP").hint).toBeUndefined();
+    });
   });
 
   describe("InvalidParameterError", () => {
@@ -157,15 +162,6 @@ describe("Error taxonomy", () => {
   });
 });
 
-describe("NotInitializedError", () => {
-  it("extends VnstockError with code NOT_INITIALIZED", () => {
-    const err = new NotInitializedError();
-    expect(err).toBeInstanceOf(VnstockError);
-    expect(err.code).toBe("NOT_INITIALIZED");
-    expect(err.message).toMatch(/init/i);
-  });
-});
-
 describe("DataUnavailableError", () => {
   it("extends VnstockError with code DATA_UNAVAILABLE", () => {
     const cause = new Error("network down");
@@ -174,5 +170,10 @@ describe("DataUnavailableError", () => {
     expect(err.code).toBe("DATA_UNAVAILABLE");
     expect(err.message).toContain("symbols");
     expect(err.cause).toBe(cause);
+  });
+
+  it("carries a hint about network access", () => {
+    const err = new DataUnavailableError("symbols");
+    expect(err.hint).toContain("raw.githubusercontent.com");
   });
 });

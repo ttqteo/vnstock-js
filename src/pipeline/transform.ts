@@ -1,4 +1,4 @@
-import { format, fromUnixTime } from "date-fns";
+import { ictDate } from "../shared/time";
 import { TransformConfig } from "./types";
 
 export function applyTransform(raw: Record<string, unknown>, config: TransformConfig): Record<string, unknown> {
@@ -16,18 +16,11 @@ export function applyTransform(raw: Record<string, unknown>, config: TransformCo
     }
   }
 
-  // Price fields: divide by 1000
-  for (const field of config.priceFields) {
-    if (typeof result[field] === "number") {
-      result[field] = (result[field] as number) / 1000;
-    }
-  }
-
-  // Date fields: unix timestamp → ISO date string
+  // Date fields: unix timestamp (seconds, or ms past 1e12) to the ICT date; ISO strings keep their date part
   for (const field of config.dateFields) {
-    if (typeof result[field] === "number") {
-      result[field] = format(fromUnixTime(result[field] as number), "yyyy-MM-dd");
-    }
+    const v = result[field];
+    if (typeof v === "number" && isFinite(v) && v > 0) result[field] = ictDate(v > 1e12 ? v / 1000 : v);
+    else if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) result[field] = v.substring(0, 10);
   }
 
   // Percent fields: divide by 100

@@ -1,10 +1,8 @@
-import { Directory } from "../../core/listing/directory";
+import type { Client } from "../../client";
 import { renderJson } from "../renderers/json";
 import { renderCsv } from "../renderers/csv";
 import { renderTable, renderGrid } from "../renderers/table";
 import { bold, dim } from "../format/color";
-
-export const meta = { requiresData: true };
 
 export interface SymbolsOpts {
   exchange?: string;
@@ -16,13 +14,8 @@ export interface SymbolsOpts {
   verbose: boolean;
 }
 
-export async function handleSymbols(opts: SymbolsOpts): Promise<string> {
-  var results: Array<any>;
-  if (opts.exchange) {
-    results = Directory.getByExchange(opts.exchange);
-  } else {
-    results = Directory.all();
-  }
+export async function handleSymbols(client: Client, opts: SymbolsOpts): Promise<string> {
+  var results = await client.symbols(opts.exchange ? { exchange: opts.exchange } : {});
 
   if (typeof opts.limit === "number" && opts.limit > 0) {
     results = results.slice(0, opts.limit);
@@ -36,13 +29,13 @@ export async function handleSymbols(opts: SymbolsOpts): Promise<string> {
 
   if (opts.verbose) {
     var head = ["Symbol", "Name"];
-    var rows: Array<Array<string>> = results.map(function (r: any): string[] {
+    var rows: Array<Array<string>> = results.map(function (r): string[] {
       return [r.symbol, r.companyName];
     });
     return header + "\n" + renderTable({ head: head, rows: rows });
   }
 
-  var syms: string[] = results.map(function (r: any): string {
+  var syms: string[] = results.map(function (r): string {
     return r.symbol;
   });
   var maxLen = 3;

@@ -1,16 +1,4 @@
-
-export interface QuoteHistory {
-  symbol?: string;  // mã CK của bar; chỉ có ý nghĩa khi history() gọi batch nhiều mã 1 request
-  date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  value?: number;   // giá trị giao dịch của bar (accumulatedValue từ VCI), đơn vị TRIỆU VND
-}
-
-
+/** v1 price-board row in thousand dong; kept only for scripts/foreign-snapshot.ts, which stays on v1 types for the master cherry-pick. */
 export interface PriceBoardItem {
   symbol: string;
   companyName: string;
@@ -20,6 +8,10 @@ export interface PriceBoardItem {
   floorPrice: number;
   referencePrice: number;
   price: number;
+  /** Against referencePrice, in thousand VND. 0 before the session's first match. */
+  priceChange: number;
+  /** Against referencePrice, in percent (-0.862 means -0.862%). */
+  changePercent: number;
   matchVolume: number;
   totalVolume: number;
   totalValue: number;
@@ -31,20 +23,6 @@ export interface PriceBoardItem {
   bidPrices: { price: number; volume: number }[];
   askPrices: { price: number; volume: number }[];
 }
-
-export interface TopStock {
-  symbol: string;
-  price1DayAgo: number;
-  price5DaysAgo: number;
-  price20DaysAgo: number;
-  exchange: string;
-  marketCap: number;
-  type: string;
-  liquidity: number;
-  vn30: boolean;
-  hnx30: boolean;
-}
-
 
 export interface CompanyProfile {
   id: string;
@@ -67,6 +45,7 @@ export interface Shareholder {
   name: string;
   nameEn: string;
   quantity: number;
+  /** Share of the company, as a fraction: 0.068 is 6.8%. */
   percentage: number;
   updatedAt: string;
 }
@@ -80,6 +59,7 @@ export interface Officer {
   positionShort: string;
   positionShortEn: string;
   updatedAt: string;
+  /** Share of the company, as a fraction. */
   ownership: number;
   quantity: number;
 }
@@ -117,48 +97,6 @@ export interface StockNews {
   priceChangePercent: number;
 }
 
-export interface Subsidiary {
-  id: string;
-  companyCode: string;
-  subsidiaryCode: string;
-  ownership: number;
-  companyName: string;
-  companyNameEn: string;
-}
-
-export interface Affiliate {
-  id: string;
-  companyCode: string;
-  affiliateCode: string;
-  ownership: number | null;
-  companyName: string;
-  companyNameEn: string;
-}
-
-export interface AnalysisReport {
-  date: string;
-  description: string;
-  link: string;
-  name: string;
-}
-
-
-export interface FinancialStatement {
-  symbol: string;
-  year: number;
-  quarter: number;
-  updatedAt: string;
-  revenue?: number;
-  grossProfit?: number;
-  netIncome?: number;
-  totalAssets?: number;
-  totalEquity?: number;
-  totalDebt?: number;
-  operatingCashFlow?: number;
-  [key: string]: unknown;
-}
-
-
 export interface ListedSymbol {
   id: number;
   symbol: string;
@@ -194,7 +132,6 @@ export interface IndustryClassification {
   nameEn: string;
 }
 
-
 export interface FinancialNews {
   id: string;
   source: string;
@@ -204,46 +141,6 @@ export interface FinancialNews {
   image: string;
   publishedAt: string;
 }
-
-
-export interface GoldPriceBtmc {
-  name: string;
-  karat: string;
-  weight: string;
-  buyPrice: string;
-  sellPrice: string;
-  worldPrice: string;
-  updatedAt: string;
-}
-
-export interface GoldPriceGiaVang {
-  code: string;
-  name: string;
-  buyPrice: number;
-  sellPrice: number;
-  buyChange: number;
-  sellChange: number;
-  updatedAt: string;
-}
-
-export interface GoldPriceSjc {
-  id: number;
-  type: string;
-  branch: string;
-  buyPrice: number;
-  sellPrice: number;
-  buyChange: number;
-  sellChange: number;
-}
-
-export interface ExchangeRate {
-  currencyCode: string;
-  currencyName: string;
-  buyCash: string;
-  buyTransfer: string;
-  sell: string;
-}
-
 
 export interface RealtimeQuote {
   exchange: string;
@@ -270,12 +167,4 @@ export interface SymbolInfo {
   sectorEn: string;
   icbCode: string;
   vn30: boolean;
-}
-
-export interface TradingSession {
-  exchange: string;
-  morning: { open: string; close: string };
-  afternoon: { open: string; close: string };
-  ato: string;
-  atc: string;
 }

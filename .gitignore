@@ -140,3 +140,5 @@ CLAUDE.md
 docs/plans/
 docs/release/
 docs/reports/
+# check-docs scratch output
+__docs_check__/

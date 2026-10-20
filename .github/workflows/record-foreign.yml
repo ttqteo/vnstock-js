@@ -1,0 +1,62 @@
+name: Record foreign flow
+
+# Saves one day of foreign buy/sell flow per symbol to data/foreign/YYYY/MM/DD.json,
+# valued in dong, then rolls the month into data/foreign/YYYY/MM.json and lists the
+# months in data/foreign/index.json for the SDK to read. VCI only shows today's flow,
+# so the history exists only if it is recorded daily.
+on:
+  schedule:
+    # 08:30 UTC = 15:30 ICT on weekdays, after the closing auction.
+    - cron: "30 8 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "YYYY-MM-DD, defaults to today in Vietnam time"
+        required: false
+
+jobs:
+  record:
+    name: Record today's snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Record snapshot
+        env:
+          DATE: ${{ github.event.inputs.date }}
+        run: npm run record-foreign -- $DATE
+
+      - name: Roll up the month
+        env:
+          DATE: ${{ github.event.inputs.date }}
+        run: npm run rollup-foreign -- $DATE
+
+      - name: Commit if a snapshot was written
+        env:
+          DATE: ${{ github.event.inputs.date }}
+        run: |
+          if [ ! -d data/foreign ]; then
+            echo "Nothing recorded."
+            exit 0
+          fi
+          git add data/foreign
+          if git diff --cached --quiet; then
+            echo "Nothing recorded."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(data): foreign flow ${DATE:-$(TZ=Asia/Ho_Chi_Minh date +%F)}"
+          git push

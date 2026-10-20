@@ -1,14 +1,12 @@
-import { QuoteHistory } from "../../models/normalized";
+import { Bar } from "../../types";
+import { swingPivots } from "../../indicators/pivots";
 
 export interface PivotLevels {
   support: number[];
   resistance: number[];
 }
 
-export function detectPivots(
-  data: QuoteHistory[],
-  options: { window?: number; topN?: number } = {}
-): PivotLevels {
+export function detectPivots(data: Bar[], options: { window?: number; topN?: number } = {}): PivotLevels {
   const window = options.window ?? 5;
   const topN = options.topN ?? 3;
 
@@ -16,36 +14,23 @@ export function detectPivots(
     return { support: [], resistance: [] };
   }
 
-  const swingHighs: { date: string; value: number }[] = [];
-  const swingLows: { date: string; value: number }[] = [];
-
-  for (let i = window; i < data.length - window; i++) {
-    const cur = data[i];
-    let isHigh = true;
-    let isLow = true;
-    for (let j = i - window; j <= i + window; j++) {
-      if (j === i) continue;
-      if (data[j].high >= cur.high) isHigh = false;
-      if (data[j].low <= cur.low) isLow = false;
-      if (!isHigh && !isLow) break;
-    }
-    if (isHigh) swingHighs.push({ date: cur.date, value: cur.high });
-    if (isLow) swingLows.push({ date: cur.date, value: cur.low });
-  }
+  const pivots = swingPivots(data, window);
+  const swingHighs = pivots.filter((p) => p.kind === "high");
+  const swingLows = pivots.filter((p) => p.kind === "low");
 
   const lastClose = data[data.length - 1].close;
 
   const resistance = swingHighs
-    .filter((p) => p.value > lastClose)
-    .sort((a, b) => a.value - b.value)
+    .filter((p) => p.price > lastClose)
+    .sort((a, b) => a.price - b.price)
     .slice(0, topN)
-    .map((p) => p.value);
+    .map((p) => p.price);
 
   const support = swingLows
-    .filter((p) => p.value < lastClose)
-    .sort((a, b) => b.value - a.value)
+    .filter((p) => p.price < lastClose)
+    .sort((a, b) => b.price - a.price)
     .slice(0, topN)
-    .map((p) => p.value);
+    .map((p) => p.price);
 
   return { support, resistance };
 }

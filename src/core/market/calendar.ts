@@ -1,5 +1,5 @@
-import { TradingSession } from "../../models/normalized";
-import { getHolidays } from "../../data";
+/** Holiday dates (YYYY-MM-DD) keyed by year, as in data/holidays.json. */
+export type HolidayTable = Record<string, string[]>;
 
 function parseDate(s: string): Date {
   var p = s.split("-");
@@ -13,49 +13,39 @@ function formatDate(d: Date): string {
   return y + "-" + (m < 10 ? "0" : "") + m + "-" + (day < 10 ? "0" : "") + day;
 }
 
-export class Calendar {
-  isTradeDay(dateStr: string): boolean {
-    var d = parseDate(dateStr);
-    var dow = d.getDay();
-    if (dow === 0 || dow === 6) return false;
-    var data = getHolidays();
-    var year = String(d.getFullYear());
-    var list = data[year] || [];
-    return list.indexOf(dateStr) === -1;
-  }
+/** A weekday that is not a listed holiday. */
+export function isTradeDay(table: HolidayTable, dateStr: string): boolean {
+  var d = parseDate(dateStr);
+  var dow = d.getDay();
+  if (dow === 0 || dow === 6) return false;
+  var year = String(d.getFullYear());
+  var list = table[year] || [];
+  return list.indexOf(dateStr) === -1;
+}
 
-  nextTradeDay(dateStr: string): string {
-    var d = parseDate(dateStr);
-    for (var i = 0; i < 30; i++) {
-      d.setDate(d.getDate() + 1);
-      var s = formatDate(d);
-      if (this.isTradeDay(s)) return s;
-    }
-    throw new Error("No trade day found within 30 days after " + dateStr);
+/** The first trade day after the date, looking at most 30 days ahead. */
+export function nextTradeDay(table: HolidayTable, dateStr: string): string {
+  var d = parseDate(dateStr);
+  for (var i = 0; i < 30; i++) {
+    d.setDate(d.getDate() + 1);
+    var s = formatDate(d);
+    if (isTradeDay(table, s)) return s;
   }
+  throw new Error("No trade day found within 30 days after " + dateStr);
+}
 
-  prevTradeDay(dateStr: string): string {
-    var d = parseDate(dateStr);
-    for (var i = 0; i < 30; i++) {
-      d.setDate(d.getDate() - 1);
-      var s = formatDate(d);
-      if (this.isTradeDay(s)) return s;
-    }
-    throw new Error("No trade day found within 30 days before " + dateStr);
+/** The last trade day before the date, looking at most 30 days back. */
+export function prevTradeDay(table: HolidayTable, dateStr: string): string {
+  var d = parseDate(dateStr);
+  for (var i = 0; i < 30; i++) {
+    d.setDate(d.getDate() - 1);
+    var s = formatDate(d);
+    if (isTradeDay(table, s)) return s;
   }
+  throw new Error("No trade day found within 30 days before " + dateStr);
+}
 
-  holidays(year: number): string[] {
-    var data = getHolidays();
-    return data[String(year)] || [];
-  }
-
-  session(): TradingSession {
-    return {
-      exchange: "HOSE",
-      morning: { open: "09:00", close: "11:30" },
-      afternoon: { open: "13:00", close: "14:45" },
-      ato: "09:00",
-      atc: "14:30",
-    };
-  }
+/** Holidays of one year. */
+export function holidays(table: HolidayTable, year: number): string[] {
+  return table[String(year)] || [];
 }

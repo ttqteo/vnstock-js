@@ -1,16 +1,21 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 
 export interface BollingerResult {
-  date: string;
+  time: string;
   upper: number | null;
   middle: number | null;
   lower: number | null;
   percentB: number | null;
 }
 
+/**
+ * Bollinger bands and %B; defaults 20 periods, 2 standard deviations.
+ * @example
+ * bollinger(bars, { period: 20, stddev: 2 }).at(-1)?.percentB
+ */
 export function bollinger(
-  data: QuoteHistory[],
-  options: { period?: number; stddev?: number; field?: keyof QuoteHistory } = {}
+  data: Bar[],
+  options: { period?: number; stddev?: number; field?: "open" | "high" | "low" | "close" | "volume" } = {}
 ): BollingerResult[] {
   const period = options.period ?? 20;
   const stddevMul = options.stddev ?? 2;
@@ -23,7 +28,7 @@ export function bollinger(
 
   for (let i = 0; i < data.length; i++) {
     if (i < period - 1) {
-      results.push({ date: data[i].date, upper: null, middle: null, lower: null, percentB: null });
+      results.push({ time: data[i].time, upper: null, middle: null, lower: null, percentB: null });
       continue;
     }
     let sum = 0;
@@ -43,7 +48,7 @@ export function bollinger(
     const range = upper - lower;
     const percentB = range > 0 ? (value - lower) / range : 0;
 
-    results.push({ date: data[i].date, upper, middle: mean, lower, percentB });
+    results.push({ time: data[i].time, upper, middle: mean, lower, percentB });
   }
 
   return results;

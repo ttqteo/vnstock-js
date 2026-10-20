@@ -1,56 +1,120 @@
-import { parse } from "date-fns";
-import { fetchWithRetry } from "../pipeline/fetch";
 import { applyTransform } from "../pipeline/transform";
-import { transformQuoteHistory } from "../pipeline/transform/configs/quote";
-import { tickerChangeTransformConfig } from "../pipeline/transform/configs/trading";
 import { symbolTransformConfig } from "../pipeline/transform/configs/listing";
+import { ListedSymbol, IndustryInfo, IndustryClassification } from "../models/normalized";
 import {
-  QuoteHistory, PriceBoardItem, TopStock, ListedSymbol,
-  IndustryInfo, IndustryClassification,
-} from "../models/normalized";
-import {
-  BASE_URL, CHART_URL, ALL_SYMBOLS_URL, VCI_HANDSHAKE_URL,
-  VCI_IQ_URL, VCI_COMPANY_URL, VCI_EVENTS_URL, VCI_NEWS_URL,
-  INTERVAL_MAP, PERIOD_MAP,
+  BASE_URL,
+  CHART_URL,
+  ALL_SYMBOLS_URL,
+  VCI_HANDSHAKE_URL,
+  VCI_IQ_URL,
+  VCI_COMPANY_URL,
+  VCI_EVENTS_URL,
+  VCI_NEWS_URL,
+  PERIOD_MAP,
 } from "../shared/constants";
-import {
-  StockDataAdapter, QuoteHistoryParams, FinancialParams, FinancialResult,
-} from "./types";
+import { StockDataAdapter, FinancialParams, FinancialResult, BarsParams } from "./types";
+import { Transport, RequestConfig, defaultTransport } from "../transport";
+import { Bar, Quote } from "../types";
+import { toBars, toQuote } from "./vci-transform";
+
+/** The chart endpoint matches these index codes case-sensitively; callers often upper-case them. */
+var VCI_INDEX_CASE: Record<string, string> = { HNXINDEX: "HNXIndex", HNXUPCOMINDEX: "HNXUpcomIndex" };
 
 var handshakeDone = false;
 var handshakePromise: Promise<void> | null = null;
 
 var NAMED_ENTITIES: Record<string, string> = {
-  nbsp: " ", amp: "&", quot: '"', apos: "'", lt: "<", gt: ">",
-  Agrave: "À", Aacute: "Á", Acirc: "Â", Atilde: "Ã", Auml: "Ä", Aring: "Å",
-  agrave: "à", aacute: "á", acirc: "â", atilde: "ã", auml: "ä", aring: "å",
-  Egrave: "È", Eacute: "É", Ecirc: "Ê", Euml: "Ë",
-  egrave: "è", eacute: "é", ecirc: "ê", euml: "ë",
-  Igrave: "Ì", Iacute: "Í", Icirc: "Î", Iuml: "Ï",
-  igrave: "ì", iacute: "í", icirc: "î", iuml: "ï",
-  Ograve: "Ò", Oacute: "Ó", Ocirc: "Ô", Otilde: "Õ", Ouml: "Ö",
-  ograve: "ò", oacute: "ó", ocirc: "ô", otilde: "õ", ouml: "ö",
-  Ugrave: "Ù", Uacute: "Ú", Ucirc: "Û", Uuml: "Ü",
-  ugrave: "ù", uacute: "ú", ucirc: "û", uuml: "ü",
-  Yacute: "Ý", yacute: "ý", yuml: "ÿ",
-  Ntilde: "Ñ", ntilde: "ñ",
-  Ccedil: "Ç", ccedil: "ç",
-  szlig: "ß", AElig: "Æ", aelig: "æ", Oslash: "Ø", oslash: "ø",
-  copy: "©", reg: "®", trade: "™",
-  hellip: "…", mdash: "—", ndash: "–",
-  lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”",
-  laquo: "«", raquo: "»",
-  middot: "·", bull: "•", deg: "°",
+  nbsp: " ",
+  amp: "&",
+  quot: '"',
+  apos: "'",
+  lt: "<",
+  gt: ">",
+  Agrave: "À",
+  Aacute: "Á",
+  Acirc: "Â",
+  Atilde: "Ã",
+  Auml: "Ä",
+  Aring: "Å",
+  agrave: "à",
+  aacute: "á",
+  acirc: "â",
+  atilde: "ã",
+  auml: "ä",
+  aring: "å",
+  Egrave: "È",
+  Eacute: "É",
+  Ecirc: "Ê",
+  Euml: "Ë",
+  egrave: "è",
+  eacute: "é",
+  ecirc: "ê",
+  euml: "ë",
+  Igrave: "Ì",
+  Iacute: "Í",
+  Icirc: "Î",
+  Iuml: "Ï",
+  igrave: "ì",
+  iacute: "í",
+  icirc: "î",
+  iuml: "ï",
+  Ograve: "Ò",
+  Oacute: "Ó",
+  Ocirc: "Ô",
+  Otilde: "Õ",
+  Ouml: "Ö",
+  ograve: "ò",
+  oacute: "ó",
+  ocirc: "ô",
+  otilde: "õ",
+  ouml: "ö",
+  Ugrave: "Ù",
+  Uacute: "Ú",
+  Ucirc: "Û",
+  Uuml: "Ü",
+  ugrave: "ù",
+  uacute: "ú",
+  ucirc: "û",
+  uuml: "ü",
+  Yacute: "Ý",
+  yacute: "ý",
+  yuml: "ÿ",
+  Ntilde: "Ñ",
+  ntilde: "ñ",
+  Ccedil: "Ç",
+  ccedil: "ç",
+  szlig: "ß",
+  AElig: "Æ",
+  aelig: "æ",
+  Oslash: "Ø",
+  oslash: "ø",
+  copy: "©",
+  reg: "®",
+  trade: "™",
+  hellip: "…",
+  mdash: "—",
+  ndash: "–",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  laquo: "«",
+  raquo: "»",
+  middot: "·",
+  bull: "•",
+  deg: "°",
 };
 
 function decodeEntities(s: string): string {
   return s.replace(/&(#x?[0-9a-fA-F]+|[a-zA-Z]+);/g, function (_, code) {
     if (code.charAt(0) === "#") {
-      var n = code.charAt(1) === "x" || code.charAt(1) === "X"
-        ? parseInt(code.substring(2), 16)
-        : parseInt(code.substring(1), 10);
+      var n = code.charAt(1) === "x" || code.charAt(1) === "X" ? parseInt(code.substring(2), 16) : parseInt(code.substring(1), 10);
       if (isFinite(n) && n > 0 && n < 0x10ffff) {
-        try { return String.fromCodePoint(n); } catch (_) { return ""; }
+        try {
+          return String.fromCodePoint(n);
+        } catch (_) {
+          return "";
+        }
       }
       return "";
     }
@@ -71,14 +135,29 @@ function tsToDate(ts: number | string | null | undefined): string {
   }
   var n = typeof ts === "number" ? ts : Number(ts);
   if (!isFinite(n) || n <= 0) return "";
-  if (n < 1e12) n = n * 1000;
+  if (n < 1e12) n = n * 1000; // seconds to ms
   var d = new Date(n);
   if (isNaN(d.getTime())) return "";
   return d.toISOString().substring(0, 10);
 }
 
+// Upper bound per calendar day: one daily bar, five or six hourly bars, and
+// about 255 minutes of continuous matching on HOSE.
+var BARS_PER_DAY: Record<string, number> = {
+  ONE_DAY: 1,
+  ONE_HOUR: 6,
+  ONE_MINUTE: 255,
+};
+
+function barsInRange(from: number, to: number, timeFrame: string): number {
+  var days = Math.ceil((to - from) / 86400) + 1;
+  return Math.max(days, 1) * (BARS_PER_DAY[timeFrame] || 1);
+}
+
 export interface VciAdapterOptions {
   cache?: boolean;
+  /** Transport for every request; defaults to the shared fetch transport. */
+  transport?: Transport;
 }
 
 interface CacheEntry {
@@ -86,6 +165,7 @@ interface CacheEntry {
   expiresAt: number;
 }
 
+// Cache lifetimes in ms.
 const CACHE_TTL_METRICS = 60 * 60 * 1000;
 const CACHE_TTL_ICB = 60 * 60 * 1000;
 const CACHE_TTL_SEARCH_BAR = 30 * 60 * 1000;
@@ -95,9 +175,15 @@ export class VciAdapter implements StockDataAdapter {
 
   private cacheEnabled: boolean;
   private cache: Map<string, CacheEntry> = new Map();
+  private transport: Transport;
 
   constructor(options: VciAdapterOptions = {}) {
     this.cacheEnabled = options.cache !== false;
+    this.transport = options.transport || defaultTransport;
+  }
+
+  private request<T = unknown>(config: RequestConfig): Promise<T> {
+    return this.transport.request<T>(config);
   }
 
   private cacheGet(key: string): any | undefined {
@@ -124,7 +210,7 @@ export class VciAdapter implements StockDataAdapter {
     const cacheKey = `metrics:${symbol}`;
     const cached = this.cacheGet(cacheKey);
     if (cached !== undefined) return cached;
-    const fresh = await fetchWithRetry<any>({
+    const fresh = await this.request<any>({
       url: `${VCI_COMPANY_URL}/${symbol}/financial-statement/metrics`,
       method: "GET",
     }).catch(() => null);
@@ -137,10 +223,10 @@ export class VciAdapter implements StockDataAdapter {
     if (handshakePromise) return handshakePromise;
     handshakePromise = (async () => {
       try {
-        await fetchWithRetry({
+        await this.request({
           url: VCI_HANDSHAKE_URL,
           method: "GET",
-        }, { retries: 1 });
+        });
         handshakeDone = true;
       } catch {
         handshakeDone = true;
@@ -151,91 +237,50 @@ export class VciAdapter implements StockDataAdapter {
     return handshakePromise;
   }
 
+  /**
+   * Bars keyed by symbol, in dong (indices in points) with ICT `time`. VCI ignores `from` and
+   * returns `countBack` bars ending at `to`, and daily bars are stamped 00:00 UTC with `to`
+   * inclusive, so both bounds are read in UTC, countBack is sized from the range and the result
+   * is trimmed to `from`, unless the caller passes countBack and owns the window.
+   */
+  async fetchBars(params: BarsParams): Promise<Record<string, Bar[]>> {
+    const { symbols, frame } = params;
+    // VCI takes unix seconds.
+    const from = Date.parse(params.from + "T00:00:00Z") / 1000;
+    const to = Date.parse(params.to + "T23:59:59Z") / 1000;
+    const ownWindow = params.countBack === undefined;
+    const countBack = ownWindow ? barsInRange(from, to, frame) : params.countBack;
 
-  async fetchQuoteHistory(params: QuoteHistoryParams): Promise<QuoteHistory[]> {
-    const { symbols, start, end, timeFrame, countBack = 365 } = params;
+    // VCI's spelling -> the caller's, so results come back under the key the caller asked for.
+    const asked = new Map(symbols.map((s) => [VCI_INDEX_CASE[s.toUpperCase()] ?? s, s]));
 
-    const mappedTimeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
-    const from = parse(start, "yyyy-MM-dd", new Date()).getTime() / 1000;
-    const now = new Date();
-    now.setDate(now.getDate() + 2);
-    const to = end
-      ? parse(end, "yyyy-MM-dd", new Date()).getTime() / 1000
-      : Math.floor(now.getTime() / 1000);
-
-    const rawData = await fetchWithRetry<any[]>({
+    const rawData = await this.request<any[]>({
       url: CHART_URL,
       method: "POST",
-      data: { symbols, from, to, timeFrame: mappedTimeFrame, countBack },
+      data: { symbols: Array.from(asked.keys()), from, to, timeFrame: frame, countBack },
     });
 
-    const results: QuoteHistory[] = [];
-    for (const chartData of rawData) {
-      results.push(...transformQuoteHistory(chartData));
+    const out: Record<string, Bar[]> = {};
+    for (const s of symbols) out[s] = [];
+    for (const chartData of rawData || []) {
+      const bars = toBars(chartData, frame);
+      out[asked.get(chartData.symbol) ?? chartData.symbol] = ownWindow ? bars.filter((b) => b.time >= params.from) : bars;
     }
-    return results;
+    return out;
   }
 
-
-  async fetchPriceBoard(symbols: string[]): Promise<PriceBoardItem[]> {
-    const rawData = await fetchWithRetry<any[]>({
+  /** v2 price-board rows in dong. */
+  async fetchQuotes(symbols: string[]): Promise<Quote[]> {
+    const rawData = await this.request<any[]>({
       url: `${BASE_URL}/api/price/symbols/getList`,
       method: "POST",
       data: { symbols },
     });
-
-    return rawData.map((raw: any) => {
-      const listing = raw.listingInfo || {};
-      const match = raw.matchPrice || {};
-      const bidAsk = raw.bidAsk || {};
-
-      return {
-        symbol: listing.symbol || "",
-        companyName: listing.organName || "",
-        companyNameEn: listing.enOrganName || "",
-        exchange: listing.board || "",
-        ceilingPrice: (listing.ceiling || 0) / 1000,
-        floorPrice: (listing.floor || 0) / 1000,
-        referencePrice: (listing.refPrice || 0) / 1000,
-        price: (match.matchPrice || 0) / 1000,
-        matchVolume: match.matchVol || 0,
-        totalVolume: match.accumulatedVolume || 0,
-        totalValue: match.accumulatedValue || 0,
-        averagePrice: (match.avgMatchPrice || 0) / 1000,
-        highestPrice: (match.highest || 0) / 1000,
-        lowestPrice: (match.lowest || 0) / 1000,
-        foreignBuyVolume: match.foreignBuyVolume || 0,
-        foreignSellVolume: match.foreignSellVolume || 0,
-        bidPrices: (bidAsk.bidPrices || []).map((b: any) => ({
-          price: (b.price || 0) / 1000,
-          volume: b.volume || 0,
-        })),
-        askPrices: (bidAsk.askPrices || []).map((a: any) => ({
-          price: (a.price || 0) / 1000,
-          volume: a.volume || 0,
-        })),
-      } as PriceBoardItem;
-    });
+    return (rawData || []).map(toQuote);
   }
-
-  async fetchTopStocks(timeFrame: string, type: "gainers" | "losers"): Promise<TopStock[]> {
-    const mappedTimeFrame = INTERVAL_MAP[timeFrame as keyof typeof INTERVAL_MAP];
-    const topStockType = type === "gainers" ? 1 : 0;
-
-    const rawData = await fetchWithRetry<any[]>({
-      url: `${BASE_URL}/api/price-alert-service/api/v1/non-authen/top-stock-change`,
-      method: "POST",
-      data: { topStockType, timeFrame: mappedTimeFrame, exchangeCode: null, stockCodes: null },
-    });
-
-    return rawData.map((raw: any) =>
-      applyTransform(raw, tickerChangeTransformConfig) as unknown as TopStock
-    );
-  }
-
 
   async fetchAllSymbols(): Promise<{ symbol: string; companyName: string }[]> {
-    const rawData = await fetchWithRetry<any>({
+    const rawData = await this.request<any>({
       url: ALL_SYMBOLS_URL,
       method: "GET",
     });
@@ -247,14 +292,12 @@ export class VciAdapter implements StockDataAdapter {
   }
 
   async fetchSymbolsByExchange(): Promise<ListedSymbol[]> {
-    const rawData = await fetchWithRetry<any[]>({
+    const rawData = await this.request<any[]>({
       url: `${BASE_URL}/api/price/symbols/getAll`,
       method: "GET",
     });
 
-    return rawData.map(
-      (s: any) => applyTransform(s, symbolTransformConfig) as unknown as ListedSymbol
-    );
+    return rawData.map((s: any) => applyTransform(s, symbolTransformConfig) as unknown as ListedSymbol);
   }
 
   async fetchSymbolsByIndustries(lang: string = "vi"): Promise<IndustryInfo[]> {
@@ -263,7 +306,7 @@ export class VciAdapter implements StockDataAdapter {
     const cacheKey = `search-bar:${language}`;
     let response = this.cacheGet(cacheKey);
     if (response === undefined) {
-      response = await fetchWithRetry<any>({
+      response = await this.request<any>({
         url: `${VCI_IQ_URL}/v2/company/search-bar`,
         method: "GET",
         params: { language },
@@ -301,7 +344,7 @@ export class VciAdapter implements StockDataAdapter {
     const cacheKey = "icb-codes";
     let response = this.cacheGet(cacheKey);
     if (response === undefined) {
-      response = await fetchWithRetry<any>({
+      response = await this.request<any>({
         url: `${VCI_IQ_URL}/v1/sectors/icb-codes`,
         method: "GET",
       });
@@ -318,17 +361,14 @@ export class VciAdapter implements StockDataAdapter {
   }
 
   async fetchSymbolsByGroup(group: string): Promise<ListedSymbol[]> {
-    const rawData = await fetchWithRetry<any[]>({
+    const rawData = await this.request<any[]>({
       url: `${BASE_URL}/api/price/symbols/getByGroup`,
       method: "GET",
       params: { group },
     });
 
-    return rawData.map(
-      (s: any) => applyTransform(s, symbolTransformConfig) as unknown as ListedSymbol
-    );
+    return rawData.map((s: any) => applyTransform(s, symbolTransformConfig) as unknown as ListedSymbol);
   }
-
 
   async fetchFinancialReport(params: FinancialParams & { reportKey: string }): Promise<FinancialResult> {
     await this.ensureHandshake();
@@ -344,13 +384,13 @@ export class VciAdapter implements StockDataAdapter {
 
     const [statementResp, ratioResp, mappingResp] = await Promise.all([
       section
-        ? fetchWithRetry<any>({
+        ? this.request<any>({
             url: `${VCI_COMPANY_URL}/${symbol}/financial-statement`,
             method: "GET",
             params: { section, period: periodCode },
           }).catch(() => null)
         : Promise.resolve(null),
-      fetchWithRetry<any>({
+      this.request<any>({
         url: `${VCI_COMPANY_URL}/${symbol}/statistics-financial`,
         method: "GET",
         params: { period: periodCode },
@@ -392,7 +432,6 @@ export class VciAdapter implements StockDataAdapter {
     };
   }
 
-
   async fetchCompanyOverview(ticker: string, lang: string): Promise<any> {
     await this.ensureHandshake();
     const language = lang === "en" ? 2 : 1;
@@ -403,25 +442,25 @@ export class VciAdapter implements StockDataAdapter {
     const fromDate = fromYear + "-01-01";
 
     const [details, shStruct, shList, events, news] = await Promise.all([
-      fetchWithRetry<any>({
+      this.request<any>({
         url: `${VCI_COMPANY_URL}/details`,
         method: "GET",
         params: { ticker, language },
       }).catch(() => null),
-      fetchWithRetry<any>({
+      this.request<any>({
         url: `${VCI_COMPANY_URL}/${ticker}/shareholder-structure`,
         method: "GET",
       }).catch(() => null),
-      fetchWithRetry<any>({
+      this.request<any>({
         url: `${VCI_COMPANY_URL}/${ticker}/shareholder`,
         method: "GET",
       }).catch(() => null),
-      fetchWithRetry<any>({
+      this.request<any>({
         url: VCI_EVENTS_URL,
         method: "GET",
         params: { ticker, fromDate, toDate, page: 0, size: 50 },
       }).catch(() => null),
-      fetchWithRetry<any>({
+      this.request<any>({
         url: VCI_NEWS_URL,
         method: "GET",
         params: { ticker, fromDate, toDate, page: 0, size: 50 },
@@ -430,9 +469,9 @@ export class VciAdapter implements StockDataAdapter {
 
     const d: any = (details && details.data) || details || {};
     const isVi = language === 1;
-    const profile = isVi ? (d.viOrganProfile || d.profile || "") : (d.enOrganProfile || d.profile || "");
+    const profile = isVi ? d.viOrganProfile || d.profile || "" : d.enOrganProfile || d.profile || "";
     const enProfile = d.enOrganProfile || d.profile || "";
-    const history = isVi ? (d.viOrganHistory || d.history || "") : (d.enOrganHistory || d.history || "");
+    const history = isVi ? d.viOrganHistory || d.history || "" : d.enOrganHistory || d.history || "";
     const enHistory = d.enOrganHistory || d.history || "";
 
     const shStructData: any = (shStruct && shStruct.data) || {};
@@ -444,16 +483,16 @@ export class VciAdapter implements StockDataAdapter {
     const eventsPayload = events && (events.data !== undefined ? events.data : events);
     const eventsArr: any[] = Array.isArray(eventsPayload)
       ? eventsPayload
-      : (eventsPayload && Array.isArray((eventsPayload as any).content)
-          ? (eventsPayload as any).content
-          : []);
+      : eventsPayload && Array.isArray((eventsPayload as any).content)
+        ? (eventsPayload as any).content
+        : [];
 
     const newsPayload = news && (news.data !== undefined ? news.data : news);
     const newsArr: any[] = Array.isArray(newsPayload)
       ? newsPayload
-      : (newsPayload && Array.isArray((newsPayload as any).content)
-          ? (newsPayload as any).content
-          : []);
+      : newsPayload && Array.isArray((newsPayload as any).content)
+        ? (newsPayload as any).content
+        : [];
 
     const CompanyListingInfo = {
       id: d.organCode || "",

@@ -1,14 +1,15 @@
 import { rsi } from "../../src/indicators/rsi";
 
 describe("rsi", () => {
-  const prices = [44,44.34,44.09,43.61,44.33,44.83,45.10,45.42,45.84,46.08,45.89,46.03,45.61,46.28,46.28,46.00,46.03,46.41,46.22,45.64];
+  const prices = [44, 44.34, 44.09, 43.61, 44.33, 44.83, 45.1, 45.42, 45.84, 46.08, 45.89, 46.03, 45.61, 46.28, 46.28, 46.0, 46.03, 46.41, 46.22, 45.64];
   const data = prices.map((p, i) => ({
-    date: `2024-01-${String(i + 1).padStart(2, "0")}`,
+    time: `2024-01-${String(i + 1).padStart(2, "0")}`,
     open: p,
     high: p + 0.5,
     low: p - 0.5,
     close: p,
     volume: 1000,
+    value: null,
   }));
 
   it("returns correct length", () => {
@@ -33,9 +34,9 @@ describe("rsi", () => {
     });
   });
 
-  it("preserves date from input", () => {
+  it("preserves time from input", () => {
     const result = rsi(data, { period: 14 });
-    expect(result[0].date).toBe("2024-01-01");
+    expect(result[0].time).toBe("2024-01-01");
   });
 
   it("throws on period < 1", () => {

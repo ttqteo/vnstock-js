@@ -11,26 +11,36 @@
  *   +-- ParseError            (unparseable response)
  */
 
-export type ErrorCode =
-  | "NETWORK_ERROR"
-  | "RATE_LIMIT"
-  | "API_ERROR"
-  | "INVALID_SYMBOL"
-  | "INVALID_PARAMETER"
-  | "PARSE_ERROR"
-  | "NOT_INITIALIZED"
-  | "DATA_UNAVAILABLE";
+export type ErrorCode = "NETWORK_ERROR" | "RATE_LIMIT" | "API_ERROR" | "INVALID_SYMBOL" | "INVALID_PARAMETER" | "PARSE_ERROR" | "DATA_UNAVAILABLE";
 
 export class VnstockError extends Error {
   readonly code: ErrorCode;
   readonly cause?: Error;
+  readonly hint?: string;
 
-  constructor(message: string, code: ErrorCode, cause?: Error) {
+  constructor(message: string, code: ErrorCode, cause?: Error, hint?: string) {
     super(message);
     Object.setPrototypeOf(this, new.target.prototype);
     this.name = new.target.name;
     this.code = code;
     this.cause = cause;
+    this.hint = hint;
+  }
+
+  toJSON(): {
+    name: string;
+    code: ErrorCode;
+    message: string;
+    hint?: string;
+    cause?: { name: string; message: string };
+  } {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      hint: this.hint,
+      cause: this.cause ? { name: this.cause.name, message: this.cause.message } : undefined,
+    };
   }
 }
 
@@ -64,34 +74,24 @@ export class ApiError extends VnstockError {
 }
 
 export class InvalidSymbolError extends VnstockError {
-  constructor(symbol: string) {
-    super('Invalid symbol: "' + symbol + '"', "INVALID_SYMBOL");
+  constructor(symbol: string, suggestion?: string) {
+    super('Unknown symbol "' + symbol + '".', "INVALID_SYMBOL", undefined, suggestion ? 'Did you mean "' + suggestion + '"?' : undefined);
   }
 }
 
 export class InvalidParameterError extends VnstockError {
-  constructor(param: string, value: unknown, allowed?: readonly unknown[]) {
-    var msg = 'Invalid parameter "' + param + '": got ' + JSON.stringify(value);
+  constructor(param: string, value: unknown, allowed?: readonly unknown[], hint?: string) {
+    let msg = 'Invalid parameter "' + param + '": got ' + JSON.stringify(value);
     if (allowed && allowed.length > 0) {
-      msg += ", allowed: [" + allowed.map(function (v) { return JSON.stringify(v); }).join(", ") + "]";
+      msg += ", allowed: [" + allowed.map((v) => JSON.stringify(v)).join(", ") + "]";
     }
-    super(msg, "INVALID_PARAMETER");
+    super(msg, "INVALID_PARAMETER", undefined, hint);
   }
 }
 
 export class ParseError extends VnstockError {
   constructor(message: string, cause?: Error) {
     super(message, "PARSE_ERROR", cause);
-  }
-}
-
-export class NotInitializedError extends VnstockError {
-  constructor(message?: string) {
-    super(
-      message ||
-        "vnstock-js not initialized. Call `await vnstock.init()` once at startup before using Directory or Calendar APIs.",
-      "NOT_INITIALIZED"
-    );
   }
 }
 
@@ -102,7 +102,8 @@ export class DataUnavailableError extends VnstockError {
     super(
       'Data "' + dataset + '" unavailable: fetch failed and no cache available',
       "DATA_UNAVAILABLE",
-      cause
+      cause,
+      "Check network access to raw.githubusercontent.com, or pass storage that already holds the dataset."
     );
     this.dataset = dataset;
   }

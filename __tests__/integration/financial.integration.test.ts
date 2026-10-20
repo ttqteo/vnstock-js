@@ -1,43 +1,30 @@
-import vnstock from "../../src";
+import { createClient } from "../../src/client";
 import { tolerateUpstream } from "../helpers/upstream";
 
-// Live VCI calls. Kept in a separate file because `jest.mock("axios")` is hoisted
-// to the top of whatever file it appears in, which would silently mock these too.
+// Live VCI calls, run with INTEGRATION=1.
 const RUN_INTEGRATION = process.env.INTEGRATION === "1";
 const describeIntegration = RUN_INTEGRATION ? describe : describe.skip;
 
 describeIntegration("Financial (integration, INTEGRATION=1)", () => {
-  it("should return normalized balance sheet", async () => {
-    const data = await tolerateUpstream(() => vnstock.stock.financials.balanceSheet({
-      symbol: "VCI",
-      period: "quarter",
-    }));
-    if (!data) return;
+  const fpt = createClient().stock("FPT");
 
-    expect(data).toHaveProperty("data");
-    expect(data).toHaveProperty("mapping");
-    expect(data.data).toHaveProperty("symbol");
-    expect(data.data).not.toHaveProperty("ticker");
-  }, 60000);
+  it.each(["balance", "income", "cashflow"] as const)(
+    "should return the %s statement in dong",
+    async (kind) => {
+      const st = await tolerateUpstream(() => fpt.financials(kind, { period: "year" }));
+      if (!st) return;
+      expect(st.unit).toBe("VND");
+      expect(st.rows.length).toBeGreaterThan(0);
+      expect(st.fields.length).toBeGreaterThan(0);
+    },
+    60000
+  );
 
-  it("should return normalized income statement", async () => {
-    const data = await tolerateUpstream(() => vnstock.stock.financials.incomeStatement({
-      symbol: "VCI",
-      period: "year",
-    }));
-    if (!data) return;
-
-    expect(data).toHaveProperty("data");
-    expect(data.data).toHaveProperty("symbol");
-  }, 60000);
-
-  it("should return normalized cash flow", async () => {
-    const data = await tolerateUpstream(() => vnstock.stock.financials.cashFlow({
-      symbol: "VCI",
-    }));
-    if (!data) return;
-
-    expect(data).toHaveProperty("data");
-    expect(data.data).toHaveProperty("symbol");
+  it("should put FPT annual revenue at the scale of tens of trillions of dong", async () => {
+    const st = await tolerateUpstream(() => fpt.financials("income", { period: "year" }));
+    if (!st) return;
+    const revenue = st.rows[st.rows.length - 1].values.isa1 as number;
+    expect(revenue).toBeGreaterThan(3e13);
+    expect(revenue).toBeLessThan(3e14);
   }, 60000);
 });

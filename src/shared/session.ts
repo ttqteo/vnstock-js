@@ -55,6 +55,14 @@ export function setCookies(url: string, setCookieHeader: string[] | string | und
   }
 }
 
+/** Stores cookies from a fetch `Headers`; older runtimes without getSetCookie join them into one comma-separated value. */
+export function setCookiesFromHeaders(url: string, headers: Headers): void {
+  const anyH = headers as any;
+  const list: string[] =
+    typeof anyH.getSetCookie === "function" ? anyH.getSetCookie() : (headers.get("set-cookie") || "").split(/,(?=\s*[^;=,]+=)/).filter(Boolean);
+  setCookies(url, list);
+}
+
 export function getCookieHeader(url: string): string {
   var domain = domainOf(url);
   var jar = cookieJar[domain];

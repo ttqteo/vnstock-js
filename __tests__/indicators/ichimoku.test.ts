@@ -1,16 +1,16 @@
 import { ichimoku, ichimokuFutureCloud } from "../../src/indicators/ichimoku";
-import { QuoteHistory } from "../../src/models/normalized";
+import { Bar } from "../../src/types";
 
-function bar(date: string, open: number, high: number, low: number, close: number): QuoteHistory {
-  return { date, open, high, low, close, volume: 0 };
+function bar(time: string, open: number, high: number, low: number, close: number): Bar {
+  return { time, open, high, low, close, volume: 0, value: null };
 }
 
-function makeLinearRamp(n: number): QuoteHistory[] {
-  const out: QuoteHistory[] = [];
+function makeLinearRamp(n: number): Bar[] {
+  const out: Bar[] = [];
   for (let i = 0; i < n; i++) {
     const base = 100 + i;
-    const date = `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`;
-    out.push(bar(date, base, base + 2, base - 2, base));
+    const time = `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`;
+    out.push(bar(time, base, base + 2, base - 2, base));
   }
   return out;
 }
@@ -109,11 +109,11 @@ describe("ichimoku", () => {
     }
   });
 
-  it("preserves dates", () => {
+  it("preserves time", () => {
     const data = makeLinearRamp(60);
     const r = ichimoku(data);
-    expect(r[0].date).toBe(data[0].date);
-    expect(r[59].date).toBe(data[59].date);
+    expect(r[0].time).toBe(data[0].time);
+    expect(r[59].time).toBe(data[59].time);
   });
 
   it("uses default periods 9/26/52/26", () => {

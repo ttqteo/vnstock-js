@@ -1,11 +1,10 @@
-import vnstock from "../../";
+import type { Client } from "../../client";
 import { renderJson } from "../renderers/json";
 import { renderCsv } from "../renderers/csv";
 import { compactNumber } from "../format/number";
+import { money } from "../format/money";
 import { priceColor, bold, dim } from "../format/color";
-import { formatTy, normalizeExchange } from "./market";
-
-export const meta = { requiresData: false };
+import { normalizeExchange, signedMoney } from "./market";
 
 export interface ForeignOpts {
   symbol?: string;
@@ -18,14 +17,14 @@ export interface ForeignOpts {
   verbose: boolean;
 }
 
-export async function handleForeign(opts: ForeignOpts): Promise<string> {
-  if (opts.symbol) return renderSymbol(opts);
-  return renderMarket(opts);
+export async function handleForeign(client: Client, opts: ForeignOpts): Promise<string> {
+  if (opts.symbol) return renderSymbol(client, opts);
+  return renderMarket(client, opts);
 }
 
-async function renderSymbol(opts: ForeignOpts): Promise<string> {
+async function renderSymbol(client: Client, opts: ForeignOpts): Promise<string> {
   var symbol = String(opts.symbol).toUpperCase().trim();
-  var flow = await vnstock.stock.foreignFlow(symbol);
+  var flow = await client.stock(symbol).foreign();
 
   if (opts.json) return renderJson(flow);
   if (opts.csv) return renderCsv([flow as any]);
@@ -33,21 +32,17 @@ async function renderSymbol(opts: ForeignOpts): Promise<string> {
   var line1 = bold(flow.symbol, opts) + dim(" · " + flow.date, opts);
   var line2 =
     dim("Ròng ", opts) +
-    priceColor(flow.netValue, (flow.netValue >= 0 ? "+" : "") + formatTy(flow.netValue), opts) +
-    dim("  mua " + formatTy(flow.buyValue) + " · bán " + formatTy(flow.sellValue), opts);
+    priceColor(flow.netValue, signedMoney(flow.netValue), opts) +
+    dim("  mua " + money(flow.buyValue) + " · bán " + money(flow.sellValue), opts);
   var line3 =
-    dim("KL mua/bán ", opts) +
-    compactNumber(flow.buyVolume) +
-    "/" +
-    compactNumber(flow.sellVolume) +
-    dim("  ròng " + compactNumber(flow.netVolume), opts);
+    dim("KL mua/bán ", opts) + compactNumber(flow.buyVolume) + "/" + compactNumber(flow.sellVolume) + dim("  ròng " + compactNumber(flow.netVolume), opts);
 
   return [line1, line2, line3].join("\n");
 }
 
-async function renderMarket(opts: ForeignOpts): Promise<string> {
+async function renderMarket(client: Client, opts: ForeignOpts): Promise<string> {
   var exchange = normalizeExchange(opts.exchange);
-  var flow = await vnstock.market.foreignFlow({ exchange: exchange as any, top: opts.top });
+  var flow = await client.market.foreign({ exchange: exchange, top: opts.top });
 
   if (opts.json) return renderJson(flow);
   if (opts.csv) return renderCsv(flow.topNetBuy.concat(flow.topNetSell) as any[]);
@@ -56,8 +51,8 @@ async function renderMarket(opts: ForeignOpts): Promise<string> {
     bold(flow.exchange, opts) +
     dim(" · " + flow.date, opts) +
     "  " +
-    priceColor(flow.netValue, (flow.netValue >= 0 ? "+" : "") + formatTy(flow.netValue), opts) +
-    dim("  mua " + formatTy(flow.buyValue) + " · bán " + formatTy(flow.sellValue), opts);
+    priceColor(flow.netValue, signedMoney(flow.netValue), opts) +
+    dim("  mua " + money(flow.buyValue) + " · bán " + money(flow.sellValue), opts);
 
   var out = [line1, ""];
   out.push(dim("Top mua ròng", opts));
@@ -79,8 +74,8 @@ function row(opts: ForeignOpts) {
     return (
       "  " +
       f.symbol.padEnd(6) +
-      priceColor(f.netValue, ((f.netValue >= 0 ? "+" : "") + f.netValue.toFixed(1)).padStart(9), opts) +
-      dim("  mua " + f.buyValue.toFixed(1) + " · bán " + f.sellValue.toFixed(1), opts)
+      priceColor(f.netValue, signedMoney(f.netValue).padStart(14), opts) +
+      dim("  mua " + money(f.buyValue) + " · bán " + money(f.sellValue), opts)
     );
   };
 }

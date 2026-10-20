@@ -1,25 +1,16 @@
 import { Watchlist } from "../src/watchlist";
-import { WatchlistStorage } from "../src/watchlist/storage";
-
-class MemoryStorage implements WatchlistStorage {
-  private data: string | null = null;
-  async read() {
-    return this.data;
-  }
-  async write(json: string) {
-    this.data = json;
-  }
-  inspect() {
-    return this.data;
-  }
-}
+import { memoryStorage, Storage } from "../src/storage";
+import { fileStorage } from "../src/node";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 describe("Watchlist", () => {
-  let storage: MemoryStorage;
+  let storage: Storage;
   let wl: Watchlist;
 
   beforeEach(() => {
-    storage = new MemoryStorage();
+    storage = memoryStorage();
     wl = new Watchlist(storage);
   });
 
@@ -78,17 +69,31 @@ describe("Watchlist", () => {
 
   it("setStorage swaps backend", async () => {
     await wl.add("a", "VCB");
-    const other = new MemoryStorage();
+    const other = memoryStorage();
     wl.setStorage(other);
     expect(await wl.list("a")).toEqual([]);
   });
 
   it("invalid JSON in storage → graceful fallback", async () => {
-    await storage.write("not-json{{{");
+    await storage.set("watchlist", "not-json{{{");
     const wl3 = new Watchlist(storage);
     expect(await wl3.listAll()).toEqual([]);
     await wl3.add("recovery", "VCB");
     expect(await wl3.list("recovery")).toEqual(["VCB"]);
+  });
+
+  it("keeps everything under one storage key", async () => {
+    await wl.add("banks", "VCB");
+    expect(JSON.parse((await storage.get("watchlist")) as string).banks.symbols).toEqual(["VCB"]);
+  });
+
+  it("reads and writes the v1 file ~/.vnstock-js/watchlist.json through fileStorage", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vns-wl-"));
+    fs.writeFileSync(path.join(dir, "watchlist.json"), JSON.stringify({ old: { symbols: ["FPT"], createdAt: "2026-01-01" } }));
+    const fromFile = new Watchlist(fileStorage(dir));
+    expect(await fromFile.list("old")).toEqual(["FPT"]);
+    await fromFile.add("old", "VCB");
+    expect(JSON.parse(fs.readFileSync(path.join(dir, "watchlist.json"), "utf8")).old.symbols).toEqual(["FPT", "VCB"]);
   });
 
   it("throws on empty name in create", async () => {

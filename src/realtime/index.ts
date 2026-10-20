@@ -1,4 +1,3 @@
-import { EventEmitter } from "events";
 import { RealtimeQuote } from "../models/normalized";
 import { ParseError } from "../errors";
 import { RealtimeClientOptions } from "./types";
@@ -7,35 +6,40 @@ export { RealtimeClientOptions } from "./types";
 
 const DEFAULT_URL = "wss://iboard-pushstream.ssi.com.vn/realtime";
 
+// Browsers and Node >= 22 ship a global WebSocket; older Node needs the ws package.
 function createWebSocket(url: string): any {
-  if (typeof window !== "undefined" && window.WebSocket) {
-    return new window.WebSocket(url);
+  const G: any = typeof globalThis !== "undefined" ? (globalThis as any).WebSocket : undefined;
+  if (G) return new G(url);
+  try {
+    const WS = require("ws");
+    return new WS(url);
+  } catch (err) {
+    throw new Error("No WebSocket available: use Node 22+ or install ws, or watch with { mode: 'poll' }. " + (err instanceof Error ? err.message : ""));
   }
-  var WS = require("ws");
-  return new WS(url);
 }
 
 export function parseData(str: string): RealtimeQuote {
   var parts = str.split("|");
+  // Prices and the matched change arrive in dong and stay that way.
 
   try {
     return {
       exchange: parts[0] || "",
       symbol: (parts[1] || "").split("#")[1] || "",
       bidPrices: [
-        { price: Number(parts[2]) / 1000, volume: Number(parts[3]) },
-        { price: Number(parts[4]) / 1000, volume: Number(parts[5]) },
-        { price: Number(parts[6]) / 1000, volume: Number(parts[7]) },
+        { price: Number(parts[2]), volume: Number(parts[3]) },
+        { price: Number(parts[4]), volume: Number(parts[5]) },
+        { price: Number(parts[6]), volume: Number(parts[7]) },
       ],
       askPrices: [
-        { price: Number(parts[22]) / 1000, volume: Number(parts[23]) },
-        { price: Number(parts[24]) / 1000, volume: Number(parts[25]) },
-        { price: Number(parts[26]) / 1000, volume: Number(parts[27]) },
+        { price: Number(parts[22]), volume: Number(parts[23]) },
+        { price: Number(parts[24]), volume: Number(parts[25]) },
+        { price: Number(parts[26]), volume: Number(parts[27]) },
       ],
       matched: {
-        price: Number(parts[42]) / 1000,
+        price: Number(parts[42]),
         volume: Number(parts[43]),
-        change: Number(parts[52]) / 1000,
+        change: Number(parts[52]),
         changePercent: Number(parts[53]) / 100,
       },
       totalBuyVolume: Number(parts[48]) || 0,
@@ -46,14 +50,34 @@ export function parseData(str: string): RealtimeQuote {
       lastUpdated: Number(parts[65]) || 0,
     };
   } catch (err) {
-    throw new ParseError(
-      "Failed to parse realtime data: " + (err instanceof Error ? err.message : String(err)),
-      err instanceof Error ? err : undefined
-    );
+    throw new ParseError("Failed to parse realtime data: " + (err instanceof Error ? err.message : String(err)), err instanceof Error ? err : undefined);
   }
 }
 
-export class RealtimeClient extends EventEmitter {
+type Listener = (...args: any[]) => void;
+
+/** Just enough of an event emitter to keep Node's `events` out of browser bundles. */
+class Emitter {
+  private handlers: Record<string, Listener[]> = {};
+
+  on(event: string, fn: Listener): this {
+    (this.handlers[event] = this.handlers[event] || []).push(fn);
+    return this;
+  }
+
+  off(event: string, fn: Listener): this {
+    this.handlers[event] = (this.handlers[event] || []).filter((f) => f !== fn);
+    return this;
+  }
+
+  emit(event: string, ...args: any[]): boolean {
+    const fns = (this.handlers[event] || []).slice();
+    for (const fn of fns) fn(...args);
+    return fns.length > 0;
+  }
+}
+
+export class RealtimeClient extends Emitter {
   private readonly url: string;
   private readonly autoReconnect: boolean;
   private readonly reconnectInterval: number;
@@ -69,7 +93,6 @@ export class RealtimeClient extends EventEmitter {
 
   constructor(opts?: RealtimeClientOptions) {
     super();
-    Object.setPrototypeOf(this, RealtimeClient.prototype);
 
     var o = opts || {};
     this.url = o.url || DEFAULT_URL;
@@ -159,8 +182,7 @@ export class RealtimeClient extends EventEmitter {
           if (msg && msg.error) {
             self.emit("error", new Error(String(msg.error)));
           }
-        } catch (_e) {
-        }
+        } catch (_e) {}
         return;
       }
     };

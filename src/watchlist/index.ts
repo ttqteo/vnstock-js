@@ -1,4 +1,7 @@
-import { WatchlistStorage, defaultStorage } from "./storage";
+import { Storage } from "../storage";
+
+/** All watchlists live under this key; fileStorage() maps it to ~/.vnstock-js/watchlist.json, the v1 file. */
+const KEY = "watchlist";
 
 interface WatchlistRecord {
   symbols: string[];
@@ -7,22 +10,23 @@ interface WatchlistRecord {
 
 type WatchlistData = Record<string, WatchlistRecord>;
 
+/** Named symbol lists kept in a Storage. Used by the CLI and MCP server. */
 export class Watchlist {
-  private storage: WatchlistStorage;
+  private storage: Storage;
   private cache: WatchlistData | null = null;
 
-  constructor(storage?: WatchlistStorage) {
-    this.storage = storage || defaultStorage();
+  constructor(storage: Storage) {
+    this.storage = storage;
   }
 
-  setStorage(storage: WatchlistStorage) {
+  setStorage(storage: Storage) {
     this.storage = storage;
     this.cache = null;
   }
 
   private async load(): Promise<WatchlistData> {
     if (this.cache) return this.cache;
-    var raw = await this.storage.read();
+    var raw = await this.storage.get(KEY);
     var data: WatchlistData = {};
     if (raw) {
       try {
@@ -38,7 +42,7 @@ export class Watchlist {
 
   private async save(data: WatchlistData): Promise<void> {
     this.cache = data;
-    await this.storage.write(JSON.stringify(data, null, 2));
+    await this.storage.set(KEY, JSON.stringify(data, null, 2));
   }
 
   async create(name: string): Promise<void> {

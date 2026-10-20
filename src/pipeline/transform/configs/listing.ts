@@ -11,7 +11,6 @@ export const symbolTransformConfig: TransformConfig = {
     organName: "companyName",
     organShortName: "companyShortName",
   },
-  priceFields: [],
   dateFields: [],
   percentFields: [],
 };
@@ -33,7 +32,6 @@ export const tickerInfoTransformConfig: TransformConfig = {
     icbCode3: "icbCode3",
     icbCode4: "icbCode4",
   },
-  priceFields: [],
   dateFields: [],
   percentFields: [],
 };
@@ -45,7 +43,6 @@ export const icbTransformConfig: TransformConfig = {
     icbName: "name",
     enIcbName: "nameEn",
   },
-  priceFields: [],
   dateFields: [],
   percentFields: [],
 };

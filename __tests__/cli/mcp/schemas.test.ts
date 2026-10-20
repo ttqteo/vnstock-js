@@ -1,9 +1,11 @@
 import { tools } from "../../../src/cli/mcp/tools";
-import { handlers } from "../../../src/cli/mcp/handlers";
+import { createHandlers } from "../../../src/cli/mcp/handlers";
+
+const handlers = createHandlers({} as any, { watchlist: {} as any });
 
 describe("MCP tool schemas", () => {
-  it("registers exactly 22 tools", () => {
-    expect(tools.length).toBe(22);
+  it("registers exactly 27 tools", () => {
+    expect(tools.length).toBe(27);
   });
 
   it("expected tool names present", () => {
@@ -32,6 +34,11 @@ describe("MCP tool schemas", () => {
         "get_gold_price",
         "get_exchange_rate",
         "watchlist",
+        "find_patterns",
+        "get_foreign_history",
+        "portfolio_summary",
+        "backtest_signal",
+        "find_similar_setups",
       ])
     );
   });

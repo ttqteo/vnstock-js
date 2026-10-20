@@ -1,11 +1,13 @@
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { fetchJson } from "../data/fetch";
+import { createTransport } from "../transport";
 
 var REGISTRY_URL = "https://registry.npmjs.org/vnstock-js/latest";
-var TTL_MS = 24 * 60 * 60 * 1000;
+var TTL_MS = 24 * 60 * 60 * 1000; // one day in ms
 var FETCH_TIMEOUT_MS = 2000;
+// One quick attempt: the banner is a nicety and must never slow a command down.
+var registry = createTransport({ timeout: FETCH_TIMEOUT_MS, retries: 0 });
 
 interface CacheFile {
   latestVersion: string;
@@ -94,7 +96,7 @@ export async function checkForUpdate(currentVersion: string): Promise<string | n
   }
 
   try {
-    var data = await fetchJson<RegistryResponse>(REGISTRY_URL, FETCH_TIMEOUT_MS);
+    var data = await registry.request<RegistryResponse>({ url: REGISTRY_URL, method: "GET" });
     if (!data || typeof data.version !== "string") return null;
     writeCache(data.version);
     return isNewer(data.version, currentVersion) ? data.version : null;

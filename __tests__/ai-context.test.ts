@@ -1,44 +1,44 @@
-import {
-  classifyTrend,
-  snapshotIndicators,
-  classifyVolume,
-  computePerformance,
-  buildAIContext,
-  formatAIPrompt,
-} from "../src/core/stock/ai-context";
+import { classifyTrend, snapshotIndicators, classifyVolume, computePerformance, formatAIPrompt } from "../src/core/stock/ai-context";
 import { detectPivots } from "../src/core/stock/pivot";
-import { QuoteHistory } from "../src/models/normalized";
+import { Bar } from "../src/types";
+import { buildContext } from "../src/client/context";
 
-function makeUptrend(n: number): QuoteHistory[] {
-  const data: QuoteHistory[] = [];
+function makeUptrend(n: number): Bar[] {
+  const data: Bar[] = [];
   for (let i = 0; i < n; i++) {
     const base = 100 + i * 0.5;
     data.push({
-      date: `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`,
+      time: `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`,
       open: base,
       high: base + 1,
       low: base - 0.5,
       close: base + 0.5,
       volume: 1_000_000 + i * 1000,
+      value: null,
     });
   }
   return data;
 }
 
-function makeDowntrend(n: number): QuoteHistory[] {
-  const data: QuoteHistory[] = [];
+function makeDowntrend(n: number): Bar[] {
+  const data: Bar[] = [];
   for (let i = 0; i < n; i++) {
     const base = 200 - i * 0.5;
     data.push({
-      date: `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`,
+      time: `2024-${String(Math.floor(i / 30) + 1).padStart(2, "0")}-${String((i % 30) + 1).padStart(2, "0")}`,
       open: base,
       high: base + 0.5,
       low: base - 1,
       close: base - 0.5,
       volume: 1_000_000,
+      value: null,
     });
   }
   return data;
+}
+
+function fakeSource(bars: Bar[]): any {
+  return { fetchBars: async (p: any) => ({ [p.symbols[0]]: bars }) };
 }
 
 describe("classifyTrend", () => {
@@ -70,6 +70,32 @@ describe("classifyTrend", () => {
     const r = classifyTrend(makeDowntrend(220));
     expect(r.direction).toBe("bearish");
     expect(r.rationale).toMatch(/ST.*Ichimoku|Ichimoku.*ST/i);
+  });
+});
+
+function makeTrendingBars(n: number, start: number, step = 0.002): Bar[] {
+  const out: Bar[] = [];
+  let p = start;
+  for (let i = 0; i < n; i++) {
+    out.push({ time: "2026-01-" + String(i).padStart(3, "0"), open: p, high: p * 1.005, low: p * 0.995, close: p * (1 + step), volume: 1000, value: null });
+    p = p * (1 + step);
+  }
+  return out;
+}
+
+describe("classifyTrend strength is scale-free", () => {
+  it("gives the same trend for the same shape at any price level", () => {
+    const base = makeTrendingBars(120, 25);
+    const scaled = base.map((b) => ({ ...b, open: b.open * 1000, high: b.high * 1000, low: b.low * 1000, close: b.close * 1000 }));
+    const a = classifyTrend(base);
+    const c = classifyTrend(scaled);
+    expect(c.direction).toBe(a.direction);
+    expect(c.strength).toBeCloseTo(a.strength, 6);
+  });
+
+  it("keeps strength for a 0.2%/session trend near its v1 value at price 25", () => {
+    expect(classifyTrend(makeTrendingBars(120, 25)).strength).toBeGreaterThan(0.3);
+    expect(classifyTrend(makeTrendingBars(120, 25)).strength).toBeLessThan(0.8);
   });
 });
 
@@ -144,6 +170,15 @@ describe("computePerformance", () => {
     expect(p.change1d as number).toBeGreaterThan(0);
   });
 
+  it("reports change in percent, like changePct", async () => {
+    const bar = (time: string, close: number): Bar => ({ time, open: close, high: close, low: close, close, volume: 0, value: null });
+    const p = computePerformance([bar("2024-01-01", 50000), bar("2024-01-02", 55000)]);
+    expect(p.change1d).toBe(10);
+    const ctx = await buildContext(fakeSource(makeUptrend(220)), "VCB");
+    const text = formatAIPrompt({ ...ctx, performance: p }, "en");
+    expect(text).toContain("1d +10.00%");
+  });
+
   it("returns null for short data", () => {
     const data = makeUptrend(20);
     const p = computePerformance(data);
@@ -156,16 +191,27 @@ describe("computePerformance", () => {
 describe("detectPivots", () => {
   it("finds swing highs and lows in synthetic data with peaks", () => {
     // create data with explicit peak at i=10 and trough at i=20
-    const data: QuoteHistory[] = [];
+    const data: Bar[] = [];
     for (let i = 0; i < 30; i++) {
       const base = 100;
       let high = base + 1;
       let low = base - 1;
-      if (i === 10) { high = 120; low = 119; }
-      if (i === 20) { high = 81; low = 80; }
+      if (i === 10) {
+        high = 120;
+        low = 119;
+      }
+      if (i === 20) {
+        high = 81;
+        low = 80;
+      }
       data.push({
-        date: `2024-01-${String(i + 1).padStart(2, "0")}`,
-        open: base, high, low, close: base, volume: 0,
+        time: `2024-01-${String(i + 1).padStart(2, "0")}`,
+        open: base,
+        high,
+        low,
+        close: base,
+        volume: 0,
+        value: null,
       });
     }
     const pivots = detectPivots(data, { window: 3, topN: 3 });
@@ -180,12 +226,9 @@ describe("detectPivots", () => {
   });
 });
 
-describe("buildAIContext (integration via mock adapter)", () => {
-  it("composes full context from mock adapter", async () => {
-    const mockAdapter: any = {
-      fetchQuoteHistory: jest.fn().mockResolvedValue(makeUptrend(220)),
-    };
-    const ctx = await buildAIContext(mockAdapter, "VCB");
+describe("buildContext (integration via a fake source)", () => {
+  it("composes the full context from daily bars", async () => {
+    const ctx = await buildContext(fakeSource(makeUptrend(220)), "VCB");
     expect(ctx.symbol).toBe("VCB");
     expect(ctx.asOf).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     expect(ctx.trend.direction).toBe("bullish");
@@ -196,10 +239,7 @@ describe("buildAIContext (integration via mock adapter)", () => {
 
 describe("formatAIPrompt", () => {
   it("vi output contains expected labels", async () => {
-    const mockAdapter: any = {
-      fetchQuoteHistory: jest.fn().mockResolvedValue(makeUptrend(220)),
-    };
-    const ctx = await buildAIContext(mockAdapter, "VCB");
+    const ctx = await buildContext(fakeSource(makeUptrend(220)), "VCB");
     const text = formatAIPrompt(ctx, "vi");
     expect(text).toContain("Trend:");
     expect(text).toContain("RSI(14)");
@@ -213,10 +253,7 @@ describe("formatAIPrompt", () => {
   });
 
   it("en output contains English labels", async () => {
-    const mockAdapter: any = {
-      fetchQuoteHistory: jest.fn().mockResolvedValue(makeUptrend(220)),
-    };
-    const ctx = await buildAIContext(mockAdapter, "VCB");
+    const ctx = await buildContext(fakeSource(makeUptrend(220)), "VCB");
     const text = formatAIPrompt(ctx, "en");
     expect(text).toContain("Trend:");
     expect(text).toContain("Bollinger %B:");

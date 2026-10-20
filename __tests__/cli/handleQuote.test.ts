@@ -1,83 +1,71 @@
-jest.mock("../../src", () => ({
-  __esModule: true,
-  default: {
-    stock: {
-      trading: {
-        priceBoard: jest.fn(),
-      },
-    },
-  },
-}));
-
-import { handleQuote, meta } from "../../src/cli/commands/quote";
-import sdk from "../../src";
-
-const mockPriceBoard = (sdk as any).stock.trading.priceBoard as jest.Mock;
+import { handleQuote } from "../../src/cli/commands/quote";
 
 const sample = {
   symbol: "VCB",
-  companyName: "Vietcombank",
-  exchange: "HSX",
-  price: 59.3,
-  referencePrice: 59.2,
-  ceilingPrice: 63.3,
-  floorPrice: 55.3,
-  highestPrice: 59.4,
-  lowestPrice: 59.1,
-  totalVolume: 3_830_000,
+  name: "Vietcombank",
+  nameEn: "Vietcombank",
+  exchange: "HOSE",
+  price: 59300,
+  change: 100,
+  changePct: 0.169,
+  ref: 59200,
+  ceiling: 63300,
+  floor: 55100,
+  high: 59400,
+  low: 59100,
+  avg: 59250,
+  volume: 3_830_000,
+  value: 227e9,
   foreignBuyVolume: 1_410_000,
   foreignSellVolume: 656_300,
+  bids: [],
+  asks: [],
 };
 
-beforeEach(() => {
-  mockPriceBoard.mockReset();
-  mockPriceBoard.mockResolvedValue([sample]);
-});
+const base = { json: false, csv: false, color: false, quiet: true, verbose: false };
 
-describe("handleQuote meta", () => {
-  it("does not require data init", () => {
-    expect(meta.requiresData).toBe(false);
-  });
-});
+function fakeClient(result: any[] = [sample]) {
+  const prices = jest.fn(async (_s: string[]) => result);
+  return { client: { prices } as any, prices };
+}
 
 describe("handleQuote", () => {
-  const base = { json: false, csv: false, color: false, quiet: true, verbose: false };
-
   it("returns JSON when --json", async () => {
-    const out = await handleQuote({ symbol: "VCB", ...base, json: true });
-    const parsed = JSON.parse(out);
-    expect(parsed.symbol).toBe("VCB");
+    const { client } = fakeClient();
+    expect(JSON.parse(await handleQuote(client, { symbol: "VCB", ...base, json: true })).price).toBe(59300);
   });
 
   it("returns CSV when --csv", async () => {
-    const out = await handleQuote({ symbol: "VCB", ...base, csv: true });
-    expect(out.split("\n")[0]).toContain("symbol");
-    expect(out).toContain("VCB");
+    const { client } = fakeClient();
+    expect((await handleQuote(client, { symbol: "VCB", ...base, csv: true })).split("\n")[0]).toContain("symbol");
   });
 
-  it("default output contains symbol, company, exchange, price", async () => {
-    const out = await handleQuote({ symbol: "VCB", ...base });
+  it("prints symbol, company, exchange and the price from dong", async () => {
+    const { client } = fakeClient();
+    const out = await handleQuote(client, { symbol: "VCB", ...base });
     expect(out).toContain("VCB");
     expect(out).toContain("Vietcombank");
-    expect(out).toContain("HSX");
-    expect(out).toContain("59.3");
+    expect(out).toContain("HOSE");
+    expect(out).toContain("59.3k");
+    expect(out).toContain("+0.17%");
+    expect(out).toContain("63.3k/55.1k");
   });
 
-  it("verbose includes NN and highest/lowest", async () => {
-    const out = await handleQuote({ symbol: "VCB", ...base, verbose: true });
-    expect(out).toContain("NN");
-    expect(out).toContain("Cao");
+  it("verbose adds foreign volume and high/low", async () => {
+    const { client } = fakeClient();
+    const out = await handleQuote(client, { symbol: "VCB", ...base, verbose: true });
+    expect(out).toContain("NN Mua/Bán");
+    expect(out).toContain("59.4k/59.1k");
   });
 
-  it("calls priceBoard with uppercase symbol", async () => {
-    await handleQuote({ symbol: "vcb", ...base, json: true });
-    expect(mockPriceBoard).toHaveBeenCalledWith(["VCB"]);
+  it("asks for uppercase symbols, comma separated", async () => {
+    const { client, prices } = fakeClient();
+    await handleQuote(client, { symbol: "vcb, fpt", ...base, json: true });
+    expect(prices).toHaveBeenCalledWith(["VCB", "FPT"]);
   });
 
-  it("throws when symbol not found (empty array)", async () => {
-    mockPriceBoard.mockResolvedValue([]);
-    await expect(
-      handleQuote({ symbol: "ZZZ", ...base, json: true })
-    ).rejects.toThrow(/not found/i);
+  it("throws when nothing comes back", async () => {
+    const { client } = fakeClient([]);
+    await expect(handleQuote(client, { symbol: "XYZ", ...base })).rejects.toThrow(/not found/);
   });
 });

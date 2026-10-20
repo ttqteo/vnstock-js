@@ -2,420 +2,354 @@
 
 [![CI](https://github.com/ttqteo/vnstock-js/actions/workflows/ci.yml/badge.svg)](https://github.com/ttqteo/vnstock-js/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/vnstock-js.svg)](https://www.npmjs.com/package/vnstock-js)
-[![npm downloads](https://img.shields.io/npm/dm/vnstock-js.svg)](https://www.npmjs.com/package/vnstock-js)
 [![license](https://img.shields.io/npm/l/vnstock-js.svg)](https://github.com/ttqteo/vnstock-js/blob/master/LICENSE)
 
-Thư viện JavaScript/TypeScript lấy dữ liệu thị trường chứng khoán Việt Nam. Output chuẩn hóa, sẵn sàng cho web.
+Dữ liệu chứng khoán Việt Nam cho JavaScript/TypeScript. Chạy trên Node, Bun, Deno, Cloudflare Workers, Vercel Edge, và trình duyệt qua proxy đóng gói sẵn.
 
-[Tài liệu](https://vnstock-js-docs.vercel.app/) | [Lịch sử phiên bản](https://vnstock-js-docs.vercel.app/docs/getting-started/changelog) | [npm](https://www.npmjs.com/package/vnstock-js) | [GitHub](https://github.com/ttqteo/vnstock-js)
+```ts
+import { vn } from 'vnstock-js'
 
-## Tính năng
+const fpt = vn.stock('FPT')
+await fpt.price()          // { price: 127000, changePct: 0.95, ... }
+await fpt.history('6mo')   // nến ngày, giá tính bằng đồng
+await vn.market()          // VN-Index, thanh khoản, độ rộng, khối ngoại
+```
 
-- **Báo giá**: Dữ liệu giá lịch sử OHLCV, nhiều timeframe (1m, 5m, 1H, 1D, 1W, 1M)
-- **Giao dịch**: Bảng giá, top tăng/giảm
-- **Công ty**: Thông tin, cổ đông, ban lãnh đạo, sự kiện, tin tức, cổ tức
-- **Tài chính**: Bảng cân đối, kết quả kinh doanh, lưu chuyển tiền tệ
-- **Niêm yết**: Danh sách mã theo sàn, ngành ICB, nhóm (VN30, HNX30...)
-- **Sàng lọc**: Lọc cổ phiếu theo PE, ROE, vốn hóa...
-- **Thị trường**: Độ rộng (tăng/giảm/trần/sàn), thanh khoản toàn sàn, khối ngoại mua/bán ròng, bối cảnh thị trường cho AI
-- **Hàng hóa**: Giá vàng có dự phòng nguồn (`goldPrice()` tự chuyển BTMC → GiaVang.net khi lỗi), tỷ giá VCB
-- **Tin tức**: Tổng hợp tin tài chính VN hàng ngày (Vietstock, VnExpress, Tin Nhanh CK, ...)
-- **Realtime**: WebSocket dữ liệu giá trực tiếp (SSI)
-- **Chỉ báo kỹ thuật**: SMA, EMA, RSI, MACD, Bollinger Bands, ATR, SuperTrend, Ichimoku Cloud
-- **AI context**: `aiContext()` trả structured trend/RSI/MACD/S-R/volume cho LLM reasoning
-- **MCP server**: `vnstock mcp` cho Claude Desktop / Cursor / VS Code
-- **Watchlist**: quản lý danh sách mã yêu thích, persist `~/.vnstock-js/watchlist.json`
-- **CLI**: Command-line tool `vnstock` cho terminal users
-- **TypeScript**: Đầy đủ type definitions
+Trang demo: sắp có. [Tài liệu](https://vnstock-js-docs.vercel.app/) | [CHANGELOG](CHANGELOG.md) | [npm](https://www.npmjs.com/package/vnstock-js)
 
 ## Cài đặt
 
 ```bash
-# Dùng làm thư viện
 npm install vnstock-js
-
-# Cài CLI toàn cục
-npm install -g vnstock-js
-
-# Hoặc chạy một lần không cần cài
-npx vnstock-js quote VCB
 ```
 
-## CLI
+Cần Node 18 trở lên (dùng `fetch` có sẵn). Không cần khóa API, không cần gọi hàm khởi tạo: dữ liệu danh mục mã và lịch nghỉ được tải ở lần dùng đầu.
 
-Sau khi cài `-g`, bạn có command `vnstock` trong terminal:
+## Quy ước
 
-```bash
-# Snapshot giá 1 mã
-$ vnstock quote VCB
-VCB  Ngân hàng Thương mại Cổ phần Ngoại thương Việt Nam · HSX
-59.3k  +0.17%  KL 5.55M  Trần/Sàn 63.3k/55.1k
+- **Tiền tính bằng đồng**: giá cổ phiếu, giá trị giao dịch, vốn hóa, dòng tiền khối ngoại, báo cáo tài chính. `127000` là 127.000 đồng.
+- **Chỉ số tính bằng điểm**: VN-Index `1705.91`.
+- **Phần trăm thay đổi giá là số phần trăm**: `changePct: 0.95` nghĩa là 0,95%.
+- **Tỷ số tài chính là phân số**: `roe: 0.15` nghĩa là 15%, nên lọc ROE trên 15% là `{ roe: { gt: 0.15 } }`.
+- **Thời gian theo giờ Việt Nam (ICT)**: nến ngày có `time` dạng `2026-10-16`, nến trong phiên dạng `2026-10-16T09:15:00+07:00`.
+- **Tham số luôn là `symbol`**, không phân biệt hoa thường. `HSX` được hiểu là `HOSE`.
+- **Khoảng thời gian (range)**: `1d 5d 1mo 3mo 6mo ytd 1y 2y 5y max`, hoặc `{ from, to }`.
+- **Khung nến (interval)**: `1m 5m 15m 30m 1h 1d 1w 1mo`. Các khung 5m, 15m, 30m, 1w, 1mo được gộp từ nến gốc ngay trong thư viện.
+- **Lỗi có gợi ý**: mọi lỗi có `code`, và thường có `hint`, ví dụ gõ `FTP` sẽ nhận `Did you mean "FPT"?`.
 
-# Lịch sử giá 7 ngày gần nhất
-$ vnstock history VCB --range 7d
-┌────────────┬───────┬─────────┬────────┐
-│ Date       │ Close │ Change  │ Volume │
-├────────────┼───────┼─────────┼────────┤
-│ 2026-04-14 │ 59.3k │ +0.17%  │ 5.55M  │
-│ 2026-04-11 │ 59.2k │ +0.51%  │ 4.10M  │
-│ ...        │       │         │        │
-└────────────┴───────┴─────────┴────────┘
-
-# Tìm mã theo tên
-$ vnstock search "ngân hàng"
-┌────────┬──────────────────────────┬──────────┐
-│ Symbol │ Name                     │ Exchange │
-├────────┼──────────────────────────┼──────────┤
-│ VCB    │ Vietcombank              │ HSX      │
-│ BID    │ BIDV                     │ HSX      │
-│ ...    │                          │          │
-└────────┴──────────────────────────┴──────────┘
-
-# Liệt kê mã sàn HOSE (grid compact, default)
-$ vnstock symbols --exchange HOSE --limit 20
-VCB    VIC    VNM    VHM    FPT    MBB    ACB    HPG    MSN    VRE
-VCI    SSI    STB    TCB    CTG    BID    VPB    TPB    SHB    LPB
-
-# Tổng quan thị trường
-$ vnstock market
-VNINDEX  1748.86  +0.24% · 2026-07-31
-Thanh khoản 8.72k tỷ  -56.9%
-Độ rộng HOSE ▲ 130  ▼ 180  = 48  (trần 4, sàn 3 / 358 mã)
-Khối ngoại -507.1 tỷ  mua 1.04k tỷ · bán 1.55k tỷ
-
-# Khối ngoại: toàn sàn hoặc một mã
-$ vnstock foreign --top 3
-$ vnstock foreign VCB
-
-# Script-friendly output
-$ vnstock quote VCB --json | jq '.price'
-59.3
-
-$ vnstock history VCB --range 1m --csv > vcb.csv
-```
-
-### Relative date shortcuts (cho `history`)
-
-| Flag | Ý nghĩa |
-|---|---|
-| `--range 7d` | 7 ngày trước đến hôm nay |
-| `--range 1w` | 1 tuần trước |
-| `--range 1m` | 1 tháng trước |
-| `--range 1y` | 1 năm trước |
-| `--from 2025-01-01 --to 2025-06-30` | Khoảng ngày cụ thể |
-
-Tất cả tính theo múi giờ Việt Nam (UTC+7).
-
-### Flags chung
-
-- `--json`, `--csv`: format output (suppress màu + bảng)
-- `--no-color`: tắt màu
-- `--verbose`: hiện thêm chi tiết (`-v` dành cho `--version`)
-- Non-TTY stdout tự động tắt màu + spinner (pipe-friendly)
-
-## Sử dụng nhanh
+## Cổ phiếu
 
 ```ts
-import vnstock from 'vnstock-js';
+import { vn } from 'vnstock-js'
 
-// Bắt buộc: khởi tạo một lần lúc startup trước khi sử dụng symbol lookup hay calendar APIs
-await vnstock.init();
+const fpt = vn.stock('FPT')        // đồng bộ, chưa gọi mạng
+const quote = await fpt.price()    // giá, trần, sàn, tham chiếu, khối lượng, giá trị
+const weekly = await fpt.history({ from: '2025-01-01', interval: '1w' })
+const profile = await fpt.company()
+const holders = await fpt.shareholders()
+const dividends = await fpt.dividends()
+const income = await fpt.financials('income', { period: 'year' })
+const foreign = await fpt.foreign()      // khối ngoại phiên hiện tại
+const context = await fpt.context({ asOf: '2026-10-10' })
+const prompt = await fpt.prompt({ lang: 'vi' })
+const patterns = await fpt.patterns()    // hỗ trợ/kháng cự, mẫu nến, tín hiệu Turtle, breakout
 
-const { stock, commodity } = vnstock;
-
-// Dữ liệu giá lịch sử
-const history = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
-// [{ date: "2024-01-02", open: 25.5, high: 26.0, low: 25.0, close: 25.8, volume: 1000000 }, ...]
-
-// Bảng giá
-const board = await stock.priceBoard({ ticker: 'FPT' });
-
-// Top tăng / giảm
-const gainers = await stock.topGainers();
-const losers = await stock.topLosers();
-
-// Thông tin công ty
-const company = stock.company({ ticker: 'FPT' });
-const profile = await company.profile();
-const shareholders = await company.shareholders();
-
-// Báo cáo tài chính
-const bs = await stock.financials({ ticker: 'FPT', period: 'quarter' });
-
-// Sàng lọc cổ phiếu (bắt buộc có group hoặc exchange)
-const screened = await stock.screening({
-  exchange: 'HOSE',
-  filters: [
-    { field: 'pe', operator: '<', value: 15 },
-    { field: 'roe', operator: '>', value: 0.15 },
-  ],
-  sortBy: 'roe',
-  order: 'desc',
-  limit: 10,
-});
-
-// Giá vàng
-const gold = await commodity.gold.priceSJC();
-
-// Tỷ giá
-const rates = await commodity.exchange();
+console.log(quote.price, weekly.length, profile.industry, holders.length, dividends.length)
+console.log(income.rows.at(-1)?.values, foreign.netValue, context.trend.direction, prompt, patterns.zones)
 ```
 
-### `vnstock.init(options?)`
+`financials` nhận `'balance' | 'income' | 'cashflow' | 'ratios'`, số liệu giữ nguyên đơn vị đồng như nguồn trả về.
 
-Gọi một lần lúc startup trước khi sử dụng symbol lookup hay calendar APIs. Tải danh sách mã và ngày lễ từ GitHub (lưu cache cục bộ trong `~/.vnstock-js/cache/` trong 24h).
-
-Tùy chọn:
-- `symbolsUrl`, `holidaysUrl`: ghi đè URL GitHub mặc định
-- `ttl`: thời gian cache tính bằng ms (mặc định 24h)
-- `force`: bỏ qua cache và tải lại
-- `cacheDir`: ghi đè vị trí cache
-- `noCache`: tắt cache trên disk (chỉ dùng bộ nhớ)
-- `timeout`: timeout tải dữ liệu tính bằng ms (mặc định 10s)
-- `ratios`: tải thêm bộ chỉ số dựng sẵn cho sàng lọc (mặc định tắt, xem bên dưới)
-
-### Sàng lọc nhanh với `ratios: true`
+## Thị trường
 
 ```ts
-await vnstock.init({ ratios: true });
+import { vn } from 'vnstock-js'
 
-// Lọc theo ROE không tốn request nào
-const rows = await vnstock.stock.screening.screen({
+const overview = await vn.market({ exchange: 'HOSE' })   // chỉ số, thanh khoản, độ rộng, khối ngoại
+const past = await vn.market({ asOf: '2026-10-10' })     // bối cảnh thị trường của một phiên đã qua
+const breadth = await vn.market.breadth({ exchange: 'HNX' })
+const flows = await vn.market.foreign({ top: 5 })
+const vnindex = await vn.index('VNINDEX').history('1y')  // điểm
+const health = await vn.index('VNINDEX').health()        // ngày phân phối, ngày bùng nổ xác nhận
+const quotes = await vn.prices({ group: 'VN30' })
+const movers = await vn.topMovers({ limit: 5 })
+
+console.log(overview.liquidity.value, past.regime, breadth.advancing, flows.topNetBuy, vnindex.length, health.status, quotes.length, movers.gainers)
+```
+
+`health()` chấm sức khỏe thị trường theo phương pháp của William O'Neil: đếm ngày phân phối trong 25 phiên và tìm ngày bùng nổ xác nhận sau một đáy.
+
+### Lịch sử khối ngoại
+
+VCI chỉ cho xem khối ngoại của phiên hiện tại, nên repo tự ghi mỗi ngày sau 15:30 vào `data/foreign`. Truyền khoảng thời gian để lấy lịch sử: mỗi phiên đã ghi một dòng, cũ trước mới sau, tính bằng đồng. Dữ liệu chỉ có từ ngày bắt đầu ghi (năm 2026); phiên trước đó không có trong kết quả.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const fpt = await vn.stock('FPT').foreign('3mo')
+const hose = await vn.market.foreign({ range: '1mo' })
+const all = await vn.market.foreign({ range: { from: '2026-10-01' }, exchange: 'ALL' })
+
+console.log(fpt.reduce((sum, d) => sum + d.netValue, 0), hose.at(-1)?.netValue, all.length)
+```
+
+### Thanh khoản trong phiên
+
+`vn.market.intraday()` trả thanh khoản luỹ kế theo từng phút của phiên hiện tại (phiên gần nhất khi thị trường đã đóng), so với phiên trước tại cùng giờ, kèm độ rộng thị trường lúc gọi. Giờ nghỉ trưa không có điểm nào, phiên ATC là một điểm lúc 14:45.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const d = await vn.market.intraday({ exchange: 'HOSE' })
+console.log(d.liquidity.value, d.liquidity.changePercent, d.breadth.advancing, d.points.length)
+```
+
+## Sàng lọc
+
+```ts
+import { vn } from 'vnstock-js'
+
+const cheapAndProfitable = await vn.screen({
   group: 'VN30',
-  filters: [{ field: 'roe', operator: '>', value: 0.2 }],
-  sortBy: 'roe',
-});
+  where: { pe: { lt: 15 }, roe: { gt: 0.15 } },
+  sort: '-roe',
+  limit: 10,
+})
+console.log(cheapAndProfitable.map((r) => [r.symbol, r.pe, r.roe, r.marketCap]))
 ```
 
-`init({ ratios: true })` tải `data/ratios.json` từ GitHub và cache 24h. File chứa các chỉ số **theo quý**: `roe`, `roa`, `roic`, `grossMargin`, `ebitMargin`, `currentRatio`, `quickRatio`, `debtToEquity`, `dividendYield`, `shares`. Lọc theo chúng không gọi mạng.
+Cần chỉ định `group` hoặc `exchange`. Điều kiện trên bảng giá và các tỷ số quý (ROE, ROA, biên lợi nhuận...) chạy trước, không tốn request. PE, PB và vốn hóa phải lấy theo từng mã nên chỉ được hỏi cho những mã còn lại sau bước đó.
 
-`pe`, `pb`, `ps`, `marketCap` **không** nằm trong file vì phái sinh từ giá, bản dựng sẵn sẽ sai ngay phiên sau. Lọc theo nhóm này vẫn gọi theo từng mã, nhưng chỉ cho những mã đã sống sót qua các bộ lọc rẻ hơn.
+## Danh mục đầu tư
 
-Nguồn trả `0` thay vì `null` cho chỉ số không áp dụng với ngành đó, ví dụ `currentRatio` của ngân hàng. Thư viện giữ nguyên số của nguồn.
+`cost` là giá vốn mỗi cổ phiếu, tính bằng đồng (`120000`, không phải `120`). Kết quả có từng vị thế, nhóm theo môi giới, theo ngành và tổng. `pnlPct` là phần trăm, `weight` là tỷ trọng trên NAV (phân số). Vị thế không ghi `broker` được gom vào `default`.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const summary = await vn.portfolio({
+  positions: [
+    { symbol: 'FPT', quantity: 100, cost: 120000, broker: 'DNSE' },
+    { symbol: 'VCB', quantity: 200, cost: 58000, broker: 'TCBS' },
+  ],
+  cash: { DNSE: 5000000, TCBS: 2000000 },
+})
+console.log(summary.totals.nav, summary.totals.pnlPct, summary.byBroker.DNSE.nav, summary.byIndustry)
+
+await vn.portfolio.save({ positions: [{ symbol: 'FPT', quantity: 100, cost: 120000 }] })
+const saved = await vn.portfolio.load()
+console.log(saved.positions.length)
+```
+
+`save()` và `load()` dùng `storage` của client. Với `fileStorage()` của `vnstock-js/node`, danh mục nằm ở `~/.vnstock-js/portfolio.json`; trên trình duyệt có thể tự viết `Storage` trên IndexedDB.
+
+## Theo dõi giá trực tiếp
+
+`watch()` gọi callback mỗi khi có khớp lệnh mới, giá tính bằng đồng, `changePct` là phần trăm. Mọi watcher của một client dùng chung một kết nối WebSocket. Hàm trả về dùng để dừng theo dõi. Mã sai được báo qua `onError`.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const stop = vn.watch(['FPT', 'VCB'], (t) => console.log(t.symbol, t.price, t.changePct))
+const stopHpg = vn.stock('HPG').watch((t) => console.log(t.price), {
+  mode: 'poll',
+  interval: 5000,
+  onError: (e) => console.error(e.message),
+})
+
+setTimeout(() => {
+  stop()
+  stopHpg()
+}, 60000)
+```
+
+`mode: 'poll'` hỏi bảng giá mỗi `interval` ms (mặc định 5 giây). Dùng chế độ này trên serverless và trên trình duyệt đi qua proxy, nơi không giữ được WebSocket lâu. Node 18 đến 21 cần cài thêm `ws` để dùng chế độ stream.
+
+### Cảnh báo
+
+`alert()` chạy trên `watch()` và trả hàm dừng. `when: 'breakout'` báo một lần mỗi phiên khi giá khớp vượt đỉnh cao nhất của `lookback` phiên trước (mặc định 20, không tính phiên hôm nay). Truyền hàm thì cảnh báo chạy mỗi khi hàm đổi từ `false` sang `true`. Không có gì được lưu lại: cảnh báo sống cùng tiến trình.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const stopBreakout = vn.stock('FPT').alert({ when: 'breakout' }, (e) => console.log(e.time, e.price, e.level))
+const stopPrice = vn.stock('HPG').alert({ when: (t) => t.price >= 30000, mode: 'poll' }, (e) => console.log(e.price))
+
+setTimeout(() => {
+  stopBreakout()
+  stopPrice()
+}, 60000)
+```
+
+## Backtest và phiên tương tự
+
+`backtest()` đo từng tín hiệu theo kiểu event study trên nến ngày: vào lệnh ở giá mở cửa phiên sau tín hiệu, thoát khi chạm chốt lời `tp`, cắt lỗ `sl` hoặc hết `hold` phiên. `tp`, `sl` và `ret` tính bằng phần trăm (`tp: 7` là +7%). Phiên chạm cả hai mức thì tính cắt lỗ trước. Mỗi mã chỉ một lệnh mở tại một thời điểm, truyền `overlap: true` để đếm mọi tín hiệu. Không tính phí, trượt giá, trần sàn.
+
+Tín hiệu là hàm nhận các nến tới phiên đang xét (không nhìn trước được), trả `true` hoặc một chuỗi làm nhãn nhóm, hoặc tên preset: `breakout` (đóng cửa vượt đỉnh 20 phiên), `oversold_bounce` (RSI 14 cắt lên 30), `ema_cross` (EMA20 cắt lên EMA50).
+
+```ts
+import { vn } from 'vnstock-js'
+
+const r = await vn.stock('FPT').backtest('breakout', { tp: 7, sl: 4, hold: 10 })
+console.log(r.stats.all.trades, r.stats.all.winRate, r.stats.all.avgRet)
+
+const many = await vn.backtest(['FPT', 'VCB', 'HPG'], (bars) => {
+  const last = bars[bars.length - 1]
+  const prev = bars[bars.length - 2]
+  if (!prev) return false
+  return last.close > prev.high ? (last.volume > prev.volume * 2 ? 'vol-x2' : 'vol-normal') : false
+}, { tp: 5, sl: 3, hold: 5, range: '5y' })
+console.log(many.stats.byTag)
+```
+
+`similar()` (thử nghiệm) tìm các phiên trong 5 năm có trạng thái giống phiên gần nhất (RSI, MACD histogram, khối lượng đột biến, độ dốc EMA20, khoảng cách tới đỉnh 52 tuần) và cho biết giá thay đổi bao nhiêu phần trăm sau 5, 20, 60 phiên. Giống nhau về trạng thái không có nghĩa là giống nhau về kết quả.
+
+```ts
+import { vn } from 'vnstock-js'
+
+const s = await vn.stock('FPT').similar({ top: 10 })
+console.log(s.matches.map((m) => [m.time, m.similarity, m.ret20]), s.summary.ret20)
+```
+
+## Danh mục mã, lịch giao dịch, vàng, tỷ giá, tin tức
+
+```ts
+import { vn } from 'vnstock-js'
+
+const banks = await vn.search('ngân hàng', { limit: 5 })
+const hose = await vn.symbols({ exchange: 'HOSE' })
+const open = await vn.calendar.isTradingDay('2026-10-14')
+const next = await vn.calendar.next('2026-09-01')
+const gold = await vn.gold()           // đồng/lượng, BTMC rồi dự phòng GiaVang.net
+const usd = (await vn.fx()).find((r) => r.currencyCode === 'USD')
+const news = await vn.news({ date: '2026-10-14', query: 'lãi suất' })
+
+console.log(banks, hose.length, open, next, gold.items[0]?.sell, usd?.sell, news.length)
+```
 
 ## Chỉ báo kỹ thuật
 
 ```ts
-import { sma, ema, rsi, macd, bollinger, atr } from 'vnstock-js';
+import { vn } from 'vnstock-js'
+import { sma, rsi, atr, supportResistance, candlePatterns, turtleSignals, extremeZones, breakouts } from 'vnstock-js/indicators'
 
-const history = await stock.quote({ ticker: 'FPT', start: '2024-01-01' });
+const bars = await vn.stock('FPT').history('1y')
+const sma20 = sma(bars, { period: 20 })
+const rsi14 = rsi(bars)
+const atr14 = atr(bars, 14)
+const zones = supportResistance(bars)
+const candles = candlePatterns(bars)
+const turtle = turtleSignals(bars)
+const extremes = extremeZones(bars)
+const spikes = breakouts(bars)
 
-const sma20 = sma(history, { period: 20 });
-const ema12 = ema(history, { period: 12 });
-const rsi14 = rsi(history);
-const macdData = macd(history);                        // 12/26/9 default
-const bb = bollinger(history, { period: 20, stddev: 2 });
-const atr14 = atr(history, 14);
+console.log(sma20.at(-1), rsi14.at(-1), atr14.at(-1), zones, candles.at(-1), turtle.at(-1), extremes.at(-1), spikes)
 ```
 
-## AI context (v1.4+)
+`vnstock-js/indicators` không gọi mạng và chạy được trong trình duyệt. Có sẵn SMA, EMA, RSI, MACD, Bollinger, ATR, SuperTrend, Ichimoku, vùng hỗ trợ/kháng cự, vùng quá mua/quá bán, mẫu nến đảo chiều, tín hiệu Turtle, sức khỏe thị trường, z-score khối lượng, breakout và `patternReport` gộp tất cả. Mọi hàm nhận `Bar[]` và trả kết quả theo `time`.
+
+## Dùng trên trình duyệt
+
+VietCap chặn request từ trình duyệt, nên cần một proxy nhỏ trên server của bạn. Với Next.js (App Router), tạo `app/api/vnstock/[...path]/route.ts`:
 
 ```ts
-import vnstock from 'vnstock-js';
+import { nextHandler } from 'vnstock-js/proxy'
 
-// Structured JSON cho AI reasoning
-const ctx = await vnstock.stock.aiContext('VCB');
-console.log(ctx.trend);     // { direction: 'bullish', strength: 0.7, rationale: '...' }
-console.log(ctx.indicators);// RSI, MACD, SMA, EMA, Bollinger, ATR
-console.log(ctx.levels);    // { support: [...], resistance: [...] }
-
-// Plain-text format để dán vào GPT/Gemini bên ngoài
-const text = await vnstock.stock.toAIPrompt('VCB', { lang: 'vi' });
-
-// Tính như thể đang đứng ở cuối phiên 20/07, dùng khi viết báo cáo trễ ngày
-const past = await vnstock.stock.aiContext('VCB', { asOf: '2026-07-20' });
+export const { GET, POST } = nextHandler()
 ```
 
-## Thị trường (v1.5+)
+Phía client:
 
 ```ts
-import vnstock from 'vnstock-js';
+import { createClient } from 'vnstock-js'
 
-// Tổng quan một lời gọi: chỉ số, thanh khoản, độ rộng, khối ngoại
-const ov = await vnstock.market.overview({ exchange: 'HOSE' });
-console.log(ov.index.close);        // 1749.54 (đơn vị điểm)
-console.log(ov.liquidity.value);    // 8720.4 (tỷ VND)
-console.log(ov.breadth);            // { advancing: 130, declining: 180, ... }
-console.log(ov.foreign.netValue);   // -507.1 (tỷ VND)
-
-// Từng phần riêng
-const breadth = await vnstock.market.breadth({ exchange: 'ALL' });
-const flow = await vnstock.market.foreignFlow({ exchange: 'HOSE', top: 10 });
-const one = await vnstock.stock.foreignFlow('VCB');
-
-// Bối cảnh thị trường cho AI reasoning
-const ctx = await vnstock.market.aiContext();
-console.log(ctx.regime);      // 'trending_down'
-console.log(ctx.liquidity);   // { value, avg20, ratio, signal: 'below_average' }
+const vn = createClient({ proxy: '/api/vnstock' })
+const price = await vn.stock('FPT').price()
+console.log(price.price)
 ```
 
-Mọi trường tiền ở mức thị trường tính bằng **tỷ VND**, và output mang kèm `unit` để tự mô tả.
+Proxy chỉ chuyển tiếp tới hai host VietCap mà thư viện dùng, theo danh sách đường dẫn cố định. Body lớn hơn 64 KB bị trả 413 (đổi bằng `maxBodyBytes`), và phản hồi luôn kèm `nosniff` cùng CSP `sandbox` để nội dung từ upstream không chạy được như một trang trên domain của bạn. Có sẵn `workerHandler()` cho Cloudflare Workers, Deno, Bun và `expressHandler()` cho Express.
 
-**Giới hạn:** nguồn dữ liệu chỉ có khối ngoại của phiên hiện tại, không có lịch sử theo ngày. `market.aiContext({ asOf })` với ngày quá khứ sẽ trả `breadth: null` và `foreign: null`, kèm lý do trong `notes`.
-
-## Hàng hóa
+## Tùy chỉnh client
 
 ```ts
-// Giá vàng có dự phòng nguồn: thử BTMC trước, lỗi thì chuyển GiaVang.net
-const gold = await vnstock.commodity.goldPrice();
-console.log(gold.source);   // 'btmc' hoặc 'giavangnet'
-console.log(gold.data);
+import { createClient } from 'vnstock-js'
+import { fileStorage } from 'vnstock-js/node'
 
-// Ép nguồn cụ thể
-await vnstock.commodity.goldPrice({ source: 'giavangnet' });
+const client = createClient({
+  timeout: 10000,
+  retries: 2,
+  storage: fileStorage(),   // lưu danh mục mã và lịch nghỉ ở ~/.vnstock-js giữa các lần chạy
+  preload: true,            // tải sẵn danh mục mã và lịch nghỉ
+})
+console.log(await client.stock('VCB').price())
 ```
 
-## MCP server (v1.4+)
+Mặc định `vn` dùng bộ nhớ trong tiến trình. `memoryStorage()` có sẵn ở `vnstock-js`, `fileStorage()` ở `vnstock-js/node`.
 
-vnstock-js đi kèm MCP (Model Context Protocol) server expose 22 tools cho Claude:
+## MCP cho Claude, Cursor, VS Code
 
-- 8 data tools: `get_quote`, `get_history`, `search_symbols`, `list_symbols`, `top_movers`, `is_trade_day`, `get_trading_calendar`, `get_company_info`
-- 4 corporate tools: `get_dividends`, `get_corporate_events`, `get_financials`, `screen_stocks`
-- 3 AI tools: `get_ai_context` (structured technical analysis), `to_ai_prompt` (plain-text), `compare_symbols`
-- 3 market tools: `get_market_breadth`, `get_foreign_flow`, `get_market_context`
-- 2 commodity tools: `get_gold_price`, `get_exchange_rate`
-- 2 tools khác: `get_news`, `watchlist`
+```bash
+claude mcp add --scope user vnstock npx -y vnstock-js mcp
+```
 
-`get_ai_context`, `to_ai_prompt` và `get_market_context` nhận thêm `as_of` để tính theo một phiên trong quá khứ.
-
-### Claude Desktop
-
-Edit `claude_desktop_config.json`:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+Với Claude Desktop, thêm vào `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "vnstock": {
-      "command": "npx",
-      "args": ["-y", "vnstock-js", "mcp"]
-    }
+    "vnstock": { "command": "npx", "args": ["-y", "vnstock-js", "mcp"] }
   }
 }
 ```
 
-Reload Claude Desktop và hỏi: "giá VCB hôm nay", "phân tích kỹ thuật MBB", "so sánh VCB TCB MBB"...
+Server có 27 công cụ: giá, lịch sử, tìm mã, top tăng giảm, lịch giao dịch, thông tin công ty, cổ tức, sự kiện, báo cáo tài chính, sàng lọc, bối cảnh kỹ thuật cho AI, độ rộng, khối ngoại và lịch sử khối ngoại, bối cảnh thị trường, vàng, tỷ giá, tin tức, watchlist, pattern kỹ thuật, danh mục, backtest theo preset (`breakout`, `oversold_bounce`, `ema_cross`) và phiên tương tự. Dữ liệu trả về tính bằng đồng; phần tóm tắt hiển thị dạng dễ đọc như `125.8k`, `19.2 nghìn tỷ`.
 
-### Claude Code CLI
-
-User-scope (toàn cục, mọi project dùng được):
+## CLI
 
 ```bash
-claude mcp add --scope user vnstock npx -y vnstock-js mcp
-claude mcp list   # verify: "vnstock: ... - ✓ Connected"
+npx vnstock-js FPT                      # giá hiện tại
+npx vnstock-js history FPT --range 7d   # lịch sử 7 ngày
+npx vnstock-js market                   # tổng quan thị trường
+npx vnstock-js foreign --top 5          # khối ngoại
+npx vnstock-js search "ngân hàng"
+npx vnstock-js symbols --exchange HOSE
+npx vnstock-js compare FPT VCB HPG       # so sánh giá
+npx vnstock-js gold                      # giá vàng, đồng/lượng
+npx vnstock-js patterns FPT              # vùng hỗ trợ/kháng cự, mẫu nến, Turtle
+npx vnstock-js screen --group VN30 --where "pe<15,roe>0.15" --sort -roe
+npx vnstock-js backtest FPT VCB --preset breakout --tp 7 --sl 4 --hold 10
+npx vnstock-js similar FPT --top 5
+npx vnstock-js portfolio add FPT 100 120000 --broker DNSE
+npx vnstock-js portfolio                 # định giá danh mục đã lưu
+npx vnstock-js watchlist add bank VCB TCB
+npx vnstock-js watchlist quote bank
 ```
 
-Project-scope (commit `.mcp.json` chia sẻ team):
+Thêm `--json` để lấy dữ liệu dạng JSON cho script (`--csv` với các lệnh giá, lịch sử, tìm mã, thị trường, khối ngoại). Danh mục và watchlist lưu ở `~/.vnstock-js`.
 
-```bash
-claude mcp add --scope project vnstock npx -y vnstock-js mcp
-```
+## Nâng cấp từ v1
 
-Project-scope MCP cần approve trong session đầu: gõ `/mcp` trong Claude Code → approve `vnstock`.
+Bản 2.0.0 thay toàn bộ API. Thay đổi chính:
 
-### Cursor / VS Code
+- `import vnstock from 'vnstock-js'` và `await vnstock.init()` thành `import { vn } from 'vnstock-js'`, không cần khởi tạo.
+- `vnstock.stock.quote.history({ symbols, start, timeFrame })` thành `vn.stock('FPT').history('6mo')`.
+- `vnstock.stock.trading.priceBoard([...])` thành `vn.prices([...])`.
+- Giá trả về bằng đồng thay vì nghìn đồng; dòng tiền và thanh khoản bằng đồng thay vì tỷ đồng.
+- Nến có `time` thay vì `date`.
+- Chỉ báo chuyển sang `vnstock-js/indicators`.
+- Sàng lọc dùng `where` và `sort` thay vì `filters`, `sortBy`, `order`.
 
-Tương tự config schema, xem docs MCP của từng client.
-
-### Test queries
-
-Sau khi setup xong, gõ trong Claude:
-
-| Query | Tool gọi |
-|---|---|
-| `giá VCB hôm nay` | `get_quote` |
-| `phân tích kỹ thuật VCB` | `get_ai_context` |
-| `xuất context VCB sang text` | `to_ai_prompt` |
-| `so sánh VCB và TCB` | `compare_symbols` |
-| `top tăng giảm hôm nay` | `top_movers` |
-| `30/4/2026 có giao dịch không` | `is_trade_day` |
-| `tìm mã ngân hàng` | `search_symbols` |
-| `FPT 30 phiên qua` | `get_history` |
-
-## Easy-mode helpers (v1.4+)
-
-```ts
-import { quickQuote, recentHistory, compareSymbols, topMovers } from 'vnstock-js';
-
-const q = await quickQuote('VCB');           // { symbol, price, change, volume, ... }
-const last30 = await recentHistory('VCB', 30);
-const cmp = await compareSymbols(['VCB', 'TCB', 'MBB']);
-const movers = await topMovers();             // { gainers, losers }
-```
-
-## Watchlist (v1.4+)
-
-```ts
-import { watchlist } from 'vnstock-js';
-
-await watchlist.create('banks');
-await watchlist.add('banks', ['VCB', 'TCB', 'MBB']);
-const symbols = await watchlist.list('banks');
-// Persist tại ~/.vnstock-js/watchlist.json (Node)
-```
-
-## API nâng cao
-
-```ts
-import vnstock from 'vnstock-js';
-
-// Dữ liệu theo giờ
-const hourly = await vnstock.stock.quote.history({
-  symbols: ['FPT'],
-  start: '2024-06-01',
-  timeFrame: '1H',
-});
-
-// Niêm yết
-const vn30 = await vnstock.stock.listing.symbolsByGroup('VN30');
-const industries = await vnstock.stock.listing.industriesIcb();
-
-// Tài chính chi tiết
-const income = await vnstock.stock.financials.incomeStatement({
-  symbol: 'FPT',
-  period: 'year',
-});
-
-// Realtime WebSocket
-const socket = vnstock.realtime.connect({
-  onMessage: (data) => {
-    const parsed = vnstock.realtime.parseData(data);
-    console.log(parsed.symbol, parsed.matched.price);
-  },
-});
-vnstock.realtime.subscribe(socket, { symbols: ['FPT', 'VNM'] });
-
-// Tin tức tài chính (theo ngày, source, hoặc keyword)
-const today = await vnstock.news.byDate();                  // hôm nay
-const vietstock = await vnstock.news.bySource('Vietstock'); // filter source
-const vcbNews = await vnstock.news.search('VCB');           // search title+summary
-```
-
-## Định dạng output
-
-Tất cả dữ liệu được chuẩn hóa:
-
-- **Array of Objects**: sẵn sàng cho React, Vue, table, chart
-- **camelCase**: tên field tiếng Anh nhất quán
-- **Giá chia 1000**: đơn vị nghìn VND (25.5 = 25,500 VND)
-- **Ngày ISO**: "2024-01-15"
-- **Phần trăm dạng decimal**: 0.15 = 15%
+Bảng đối chiếu từng lời gọi và cách đổi đơn vị nằm trong [MIGRATION.md](MIGRATION.md).
 
 ## Nguồn dữ liệu
 
-- **Cổ phiếu / Công ty / Tài chính / Niêm yết**: [VietCap](https://trading.vietcap.com.vn) REST API (từ v1.3.3, trước đó dùng GraphQL).
+- **Cổ phiếu, chỉ số, công ty, tài chính, danh mục**: [VietCap](https://trading.vietcap.com.vn).
 - **Realtime**: [SSI](https://iboard.ssi.com.vn) WebSocket.
-- **Vàng / Tỷ giá**: BTMC, SJC, GiaVang.net, Vietcombank.
-- **Tin tức**: [ttqteo/news-crawler](https://github.com/ttqteo/news-crawler) daily JSON aggregator.
+- **Vàng, tỷ giá**: BTMC, GiaVang.net, Vietcombank.
+- **Tin tức**: [ttqteo/news-crawler](https://github.com/ttqteo/news-crawler).
 
-Không cần xác thực.
-
-## Tài liệu
-
-Chi tiết và ví dụ: [vnstock-js-docs.vercel.app](https://vnstock-js-docs.vercel.app/)
-
-Thay đổi qua từng phiên bản: [Lịch sử phiên bản](https://vnstock-js-docs.vercel.app/docs/getting-started/changelog). Bản đầy đủ kèm ghi chú nâng cấp nằm ở [CHANGELOG.md](CHANGELOG.md).
+Dữ liệu chỉ phục vụ tham khảo, không phải khuyến nghị đầu tư.
 
 ## Lấy cảm hứng từ
 
@@ -423,21 +357,14 @@ Thay đổi qua từng phiên bản: [Lịch sử phiên bản](https://vnstock-
 
 ## Đóng góp
 
-Rất hoan nghênh đóng góp. Bắt đầu nhanh:
-
 ```bash
 git clone https://github.com/ttqteo/vnstock-js.git
 cd vnstock-js
 npm install
-npm run test:unit
+npm test
 ```
 
-Đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết cấu trúc dự án, quy ước code và quy
-trình gửi PR. Dự án tuân theo [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
-
-Chưa biết bắt đầu từ đâu? Xem các issue gắn nhãn
-[good first issue](https://github.com/ttqteo/vnstock-js/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22),
-hoặc thêm một chỉ báo kỹ thuật mới (CONTRIBUTING.md có sẵn ví dụ đầy đủ).
+Đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết cấu trúc dự án và quy trình gửi PR. Dự án tuân theo [Quy tắc ứng xử](CODE_OF_CONDUCT.md).
 
 ## Giấy phép
 

@@ -4,7 +4,6 @@ import { TransformConfig } from "../../src/pipeline/types";
 describe("applyTransform", () => {
   const config: TransformConfig = {
     fieldMap: { o: "open", h: "high", l: "low", c: "close", v: "volume", t: "date" },
-    priceFields: ["open", "high", "low", "close"],
     dateFields: ["date"],
     percentFields: [],
   };
@@ -17,18 +16,23 @@ describe("applyTransform", () => {
     expect(result).not.toHaveProperty("o");
   });
 
-  it("divides price fields by 1000", () => {
+  it("keeps prices in dong as the source sends them", () => {
     const raw = { o: 25500, h: 26000, l: 25000, c: 25800, v: 1000000, t: 1705276800 };
     const result = applyTransform(raw, config);
-    expect(result.open).toBe(25.5);
-    expect(result.high).toBe(26.0);
-    expect(result.close).toBe(25.8);
+    expect(result.open).toBe(25500);
+    expect(result.close).toBe(25800);
   });
 
   it("converts timestamp to ISO date string", () => {
     const raw = { o: 25500, h: 26000, l: 25000, c: 25800, v: 1000000, t: 1705276800 };
     const result = applyTransform(raw, config);
     expect(result.date).toBe("2024-01-15");
+  });
+
+  it("reads timestamps as ICT dates, accepts milliseconds and keeps ISO strings", () => {
+    expect(applyTransform({ t: Date.parse("2024-01-14T20:00:00Z") / 1000 }, config).date).toBe("2024-01-15");
+    expect(applyTransform({ t: Date.parse("2024-01-14T20:00:00Z") }, config).date).toBe("2024-01-15");
+    expect(applyTransform({ t: "2024-01-15T10:00:00" }, config).date).toBe("2024-01-15");
   });
 
   it("keeps non-price non-date fields as-is", () => {
@@ -40,7 +44,6 @@ describe("applyTransform", () => {
   it("converts percent fields to decimal", () => {
     const pctConfig: TransformConfig = {
       fieldMap: { percentPriceChange: "priceChangePercent" },
-      priceFields: [],
       dateFields: [],
       percentFields: ["priceChangePercent"],
     };

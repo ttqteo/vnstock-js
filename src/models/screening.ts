@@ -4,22 +4,6 @@ export interface ScreenFilter {
   value: number | string;
 }
 
-export interface ScreenOptions {
-  /** HOSE, HNX or UPCOM. One of exchange or group is required. */
-  exchange?: string;
-  /** A listing group such as VN30 or HNX30. Takes precedence over exchange. */
-  group?: string;
-  filters?: ScreenFilter[];
-  sortBy?: string;
-  order?: "asc" | "desc";
-  limit?: number;
-  /**
-   * Parallel ratio requests. Kept low on purpose: the upstream answers 429 when
-   * pushed, and ratios are one request per symbol.
-   */
-  concurrency?: number;
-}
-
 export interface ScreenResult {
   symbol: string;
   companyName: string;
@@ -27,14 +11,14 @@ export interface ScreenResult {
   industry: string;
   industryEn: string;
   exchange: string;
-  /** Price in nghin VND, matching the rest of the library. */
+  /** Price in dong. */
   price: number;
   priceChange: number;
   changePercent: number;
   volume: number;
-  /** Turnover for the session, ty VND. */
+  /** Turnover for the session, in dong. */
   value: number;
-  /** Market capitalisation, ty VND. */
+  /** Market capitalisation, in dong. */
   marketCap: number;
   pe: number | null;
   pb: number | null;

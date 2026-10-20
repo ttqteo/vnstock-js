@@ -1,8 +1,45 @@
 {
   "name": "vnstock-js",
-  "version": "1.5.1",
+  "version": "2.0.0",
   "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./indicators": {
+      "types": "./dist/indicators.d.ts",
+      "import": "./dist/indicators.mjs",
+      "require": "./dist/indicators.js"
+    },
+    "./proxy": {
+      "types": "./dist/proxy.d.ts",
+      "import": "./dist/proxy.mjs",
+      "require": "./dist/proxy.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.mjs",
+      "require": "./dist/node.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "typesVersions": {
+    "*": {
+      "indicators": [
+        "dist/indicators.d.ts"
+      ],
+      "proxy": [
+        "dist/proxy.d.ts"
+      ],
+      "node": [
+        "dist/node.d.ts"
+      ]
+    }
+  },
   "bin": {
     "vnstock": "bin/vnstock"
   },
@@ -10,13 +47,15 @@
     "dist/**/*",
     "bin/**/*",
     "README.md",
-    "CHANGELOG.md"
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "MIGRATION.md"
   ],
   "scripts": {
-    "prepare": "husky",
+    "prepare": "husky && npm run build",
     "clean": "rimraf dist",
-    "build": "npm run clean && tsc",
-    "dev": "tsc --watch",
+    "build": "npm run clean && tsup",
+    "dev": "tsup --watch",
     "test": "jest",
     "test:unit": "jest",
     "test:integration": "cross-env INTEGRATION=1 jest --runInBand",
@@ -26,8 +65,11 @@
     "lint:fix": "eslint \"src/**/*.ts\" \"__tests__/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\" \"__tests__/**/*.ts\"",
     "typecheck": "tsc --noEmit -p jest.tsconfig.json",
+    "check-docs": "ts-node scripts/check-docs.ts",
     "update-symbols": "ts-node scripts/update-symbols.ts",
-    "update-ratios": "ts-node scripts/update-ratios.ts"
+    "update-ratios": "ts-node scripts/update-ratios.ts",
+    "record-foreign": "ts-node scripts/record-foreign.ts",
+    "rollup-foreign": "ts-node scripts/rollup-foreign.ts"
   },
   "keywords": [
     "vnstock",
@@ -83,15 +125,14 @@
     "rimraf": "^5.0.10",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
+    "tsup": "^9.0.0",
     "typescript": "^5.6.2"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "axios": "^1.8.4",
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "cli-table3": "^0.6.5",
     "commander": "^12.1.0",
-    "date-fns": "^4.1.0",
     "picocolors": "^1.1.1",
-    "ws": "^8.18.2"
+    "ws": "^8.22.0"
   }
 }

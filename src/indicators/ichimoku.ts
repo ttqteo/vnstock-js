@@ -1,4 +1,4 @@
-import { QuoteHistory } from "../models/normalized";
+import { Bar } from "../types";
 
 export interface IchimokuOptions {
   tenkan?: number;
@@ -8,7 +8,7 @@ export interface IchimokuOptions {
 }
 
 export interface IchimokuResult {
-  date: string;
+  time: string;
   tenkanSen: number | null;
   kijunSen: number | null;
   senkouSpanA: number | null;
@@ -26,7 +26,7 @@ export interface IchimokuFutureBar {
   cloudBottom: number;
 }
 
-function donchian(data: QuoteHistory[], end: number, period: number): number | null {
+function donchian(data: Bar[], end: number, period: number): number | null {
   if (end + 1 < period) return null;
   var hi = -Infinity;
   var lo = Infinity;
@@ -37,10 +37,12 @@ function donchian(data: QuoteHistory[], end: number, period: number): number | n
   return (hi + lo) / 2;
 }
 
-export function ichimoku(
-  data: QuoteHistory[],
-  options: IchimokuOptions = {}
-): IchimokuResult[] {
+/**
+ * Ichimoku cloud lines aligned to each bar; defaults 9, 26, 52 with 26 displacement.
+ * @example
+ * const { tenkanSen, kijunSen, cloudTop, cloudBottom } = ichimoku(bars).at(-1)!
+ */
+export function ichimoku(data: Bar[], options: IchimokuOptions = {}): IchimokuResult[] {
   var tenkanP = options.tenkan == null ? 9 : options.tenkan;
   var kijunP = options.kijun == null ? 26 : options.kijun;
   var senkouP = options.senkou == null ? 52 : options.senkou;
@@ -87,7 +89,7 @@ export function ichimoku(
     }
 
     results[k] = {
-      date: data[k].date,
+      time: data[k].time,
       tenkanSen: tenkanArr[k],
       kijunSen: kijunArr[k],
       senkouSpanA: spanA,
@@ -101,10 +103,12 @@ export function ichimoku(
   return results;
 }
 
-export function ichimokuFutureCloud(
-  data: QuoteHistory[],
-  options: IchimokuOptions = {}
-): IchimokuFutureBar[] {
+/**
+ * The cloud projected past the last bar, one entry per future offset.
+ * @example
+ * ichimokuFutureCloud(bars).map((c) => [c.offset, c.cloudBottom, c.cloudTop])
+ */
+export function ichimokuFutureCloud(data: Bar[], options: IchimokuOptions = {}): IchimokuFutureBar[] {
   var tenkanP = options.tenkan == null ? 9 : options.tenkan;
   var kijunP = options.kijun == null ? 26 : options.kijun;
   var senkouP = options.senkou == null ? 52 : options.senkou;

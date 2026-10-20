@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import { Vnstock } from "../src/runtime";
+import { createTransport } from "../src/transport";
+import { VciAdapter } from "../src/adapters/vci";
 
 interface SymbolEntry {
   symbol: string;
@@ -16,16 +17,16 @@ interface SymbolEntry {
 }
 
 async function main() {
-  const v = new Vnstock();
+  const source = new VciAdapter({ transport: createTransport() });
 
   console.log("Fetching symbolsByIndustries...");
-  const industries = await v.stock.listing.symbolsByIndustries();
+  const industries = await source.fetchSymbolsByIndustries();
 
   console.log("Fetching symbolsByExchange...");
-  const exchanges = await v.stock.listing.symbolsByExchange();
+  const exchanges = await source.fetchSymbolsByExchange();
 
   console.log("Fetching symbolsByGroup('VN30')...");
-  const vn30List = await v.stock.listing.symbolsByGroup("VN30");
+  const vn30List = await source.fetchSymbolsByGroup("VN30");
 
   const vn30Set = new Set(vn30List.map((s) => s.symbol));
 
@@ -72,9 +73,7 @@ async function main() {
   }
 
   // Sort alphabetically by symbol
-  const result = Array.from(symbolMap.values()).sort((a, b) =>
-    a.symbol.localeCompare(b.symbol)
-  );
+  const result = Array.from(symbolMap.values()).sort((a, b) => a.symbol.localeCompare(b.symbol));
 
   const outDir = path.resolve(__dirname, "..", "data");
   if (!fs.existsSync(outDir)) {
@@ -89,5 +88,5 @@ async function main() {
 
 main().catch((err) => {
   console.error("Error:", err);
-  process.exit(1);
+  process.exitCode = 1;
 });

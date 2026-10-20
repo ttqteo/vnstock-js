@@ -1,12 +1,12 @@
 import { superTrend } from "../../src/indicators/supertrend";
-import { QuoteHistory } from "../../src/models/normalized";
+import { Bar } from "../../src/types";
 
-function bar(date: string, open: number, high: number, low: number, close: number): QuoteHistory {
-  return { date, open, high, low, close, volume: 0 };
+function bar(time: string, open: number, high: number, low: number, close: number): Bar {
+  return { time, open, high, low, close, volume: 0, value: null };
 }
 
 describe("superTrend", () => {
-  const linearRamp: QuoteHistory[] = [];
+  const linearRamp: Bar[] = [];
   for (let i = 0; i < 30; i++) {
     const base = 100 + i;
     linearRamp.push(bar(`2024-01-${String(i + 1).padStart(2, "0")}`, base, base + 1, base - 1, base));
@@ -54,10 +54,10 @@ describe("superTrend", () => {
     }
   });
 
-  it("preserves dates", () => {
+  it("preserves time", () => {
     const r = superTrend(linearRamp);
-    expect(r[0].date).toBe("2024-01-01");
-    expect(r[29].date).toBe("2024-01-30");
+    expect(r[0].time).toBe("2024-01-01");
+    expect(r[29].time).toBe("2024-01-30");
   });
 
   it("uses default period=10 multiplier=3", () => {
@@ -68,7 +68,7 @@ describe("superTrend", () => {
 
   it("detects direction flip when close crosses upward through superTrend", () => {
     // 15 flat bars → 10 explosive up bars
-    const data: QuoteHistory[] = [];
+    const data: Bar[] = [];
     for (let i = 0; i < 15; i++) {
       data.push(bar(`2024-01-${String(i + 1).padStart(2, "0")}`, 100, 101, 99, 100));
     }
@@ -83,7 +83,7 @@ describe("superTrend", () => {
   });
 
   it("detects direction flip when close crosses downward through superTrend", () => {
-    const data: QuoteHistory[] = [];
+    const data: Bar[] = [];
     for (let i = 0; i < 15; i++) {
       data.push(bar(`2024-01-${String(i + 1).padStart(2, "0")}`, 100, 101, 99, 100));
     }

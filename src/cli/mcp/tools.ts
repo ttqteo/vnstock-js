@@ -12,7 +12,7 @@ export const tools: ToolSchema[] = [
   {
     name: "get_quote",
     description:
-      "Lấy giá cổ phiếu Việt Nam hiện tại (snapshot). Trả về giá khớp, % thay đổi, khối lượng, giá trần/sàn/tham chiếu. " +
+      "Lấy giá cổ phiếu Việt Nam hiện tại (snapshot). Trả về giá khớp, % thay đổi, khối lượng, giá trần/sàn/tham chiếu, tất cả tính bằng đồng. " +
       "Dùng khi user hỏi 'giá VCB hôm nay', 'FPT bao nhiêu', 'cổ phiếu X tăng hay giảm'. " +
       "EN: Get current Vietnam stock quote. Returns matched price, change%, volume, ceiling/floor/reference prices.",
     inputSchema: {
@@ -57,8 +57,7 @@ export const tools: ToolSchema[] = [
   {
     name: "list_symbols",
     description:
-      "Liệt kê mã cổ phiếu theo sàn. Dùng khi user hỏi 'có bao nhiêu mã trên HOSE', 'liệt kê mã HNX'. " +
-      "EN: List Vietnam stock symbols by exchange.",
+      "Liệt kê mã cổ phiếu theo sàn. Dùng khi user hỏi 'có bao nhiêu mã trên HOSE', 'liệt kê mã HNX'. " + "EN: List Vietnam stock symbols by exchange.",
     inputSchema: {
       type: "object",
       properties: {
@@ -69,9 +68,7 @@ export const tools: ToolSchema[] = [
   },
   {
     name: "top_movers",
-    description:
-      "Lấy mã tăng mạnh và giảm mạnh hôm nay. Trả về cả gainers và losers. " +
-      "EN: Get today's top gainers and losers on Vietnam market.",
+    description: "Lấy mã tăng mạnh và giảm mạnh hôm nay. Trả về cả gainers và losers. " + "EN: Get today's top gainers and losers on Vietnam market.",
     inputSchema: {
       type: "object",
       properties: {
@@ -93,9 +90,7 @@ export const tools: ToolSchema[] = [
   },
   {
     name: "get_trading_calendar",
-    description:
-      "Lấy danh sách ngày nghỉ lễ TTCK VN trong năm. " +
-      "EN: Get Vietnam stock market holiday schedule for a year.",
+    description: "Lấy danh sách ngày nghỉ lễ TTCK VN trong năm. " + "EN: Get Vietnam stock market holiday schedule for a year.",
     inputSchema: {
       type: "object",
       properties: {
@@ -106,9 +101,7 @@ export const tools: ToolSchema[] = [
   },
   {
     name: "get_company_info",
-    description:
-      "Lấy thông tin công ty: tên đầy đủ, sàn niêm yết, ngành. " +
-      "EN: Get Vietnam company profile: name, exchange, industry.",
+    description: "Lấy thông tin công ty: tên đầy đủ, sàn niêm yết, ngành. " + "EN: Get Vietnam company profile: name, exchange, industry.",
     inputSchema: {
       type: "object",
       properties: {
@@ -162,8 +155,7 @@ export const tools: ToolSchema[] = [
         lookback: { type: "number", description: "Số phiên lịch sử (mặc định 200)" },
         as_of: {
           type: "string",
-          description:
-            "YYYY-MM-DD. Tính chỉ báo như thể đang đứng ở cuối phiên đó, dùng khi viết báo cáo trễ ngày. Mặc định: phiên gần nhất",
+          description: "YYYY-MM-DD. Tính chỉ báo như thể đang đứng ở cuối phiên đó, dùng khi viết báo cáo trễ ngày. Mặc định: phiên gần nhất",
         },
       },
       required: ["symbol"],
@@ -226,7 +218,7 @@ export const tools: ToolSchema[] = [
   {
     name: "get_foreign_flow",
     description:
-      "Giao dịch khối ngoại. Không truyền symbol thì trả mức thị trường: tổng mua/bán/ròng theo tỷ VND, " +
+      "Giao dịch khối ngoại. Không truyền symbol thì trả mức thị trường: tổng mua/bán/ròng tính bằng đồng, " +
       "kèm top mã mua ròng và bán ròng. Truyền symbol thì trả riêng mã đó. " +
       "Dùng khi user hỏi 'khối ngoại mua bán gì', 'nước ngoài bán ròng bao nhiêu', 'khối ngoại với VCB'. " +
       "LƯU Ý: chỉ có phiên hiện tại, nguồn dữ liệu không cung cấp lịch sử khối ngoại theo ngày. " +
@@ -255,8 +247,7 @@ export const tools: ToolSchema[] = [
         index: { type: "string", description: "VNINDEX (mặc định), VN30, HNXIndex..." },
         as_of: {
           type: "string",
-          description:
-            "YYYY-MM-DD. Lưu ý: với ngày quá khứ thì độ rộng và khối ngoại trả null, vì nguồn chỉ có phiên hiện tại",
+          description: "YYYY-MM-DD. Lưu ý: với ngày quá khứ thì độ rộng và khối ngoại trả null, vì nguồn chỉ có phiên hiện tại",
         },
       },
     },
@@ -289,8 +280,7 @@ export const tools: ToolSchema[] = [
         symbol: { type: "string", description: "Mã cổ phiếu" },
         report: {
           type: "string",
-          description:
-            "balance_sheet (mặc định), income_statement, hoặc cash_flow",
+          description: "balance_sheet (mặc định), income_statement, cash_flow, hoặc ratios. Số liệu tính bằng đồng",
         },
         period: { type: "string", description: "quarter (mặc định) hoặc year" },
       },
@@ -310,10 +300,16 @@ export const tools: ToolSchema[] = [
       properties: {
         group: { type: "string", description: "VN30, HNX30, VN100... Ưu tiên hơn exchange" },
         exchange: { type: "string", description: "HOSE, HNX, UPCOM" },
+        where: {
+          type: "object",
+          description:
+            'Điều kiện theo field: { "pe": { "lt": 15 }, "roe": { "gt": 0.15 } }. Toán tử: lt, lte, gt, gte, eq. ROE, ROA, biên lợi nhuận là phân số (0.15 = 15%); giá, giá trị, vốn hóa tính bằng đồng.',
+        },
+        sort: { type: "string", description: 'Trường sắp xếp, dấu "-" ở đầu là giảm dần. Ví dụ "-roe"' },
         filters: {
           type: "array",
           description:
-            'Mảng điều kiện { field, operator, value }. field rẻ (từ bảng giá): price, volume, value, changePercent. field đắt (phải gọi thêm): pe, pb, ps, roe, roa, roic, marketCap, dividendYield, debtToEquity, grossMargin, currentRatio. operator: <, >, <=, >=, =. Ví dụ: [{"field":"pe","operator":"<","value":15}]',
+            'Cách cũ, vẫn nhận: mảng điều kiện { field, operator, value }. field rẻ (từ bảng giá): price, volume, value, changePercent. field đắt (phải gọi thêm): pe, pb, ps, roe, roa, roic, marketCap, dividendYield, debtToEquity, grossMargin, currentRatio. operator: <, >, <=, >=, =. Ví dụ: [{"field":"pe","operator":"<","value":15}]',
           items: {
             type: "object",
             properties: {
@@ -324,8 +320,8 @@ export const tools: ToolSchema[] = [
             required: ["field", "operator", "value"],
           },
         },
-        sort_by: { type: "string", description: "Trường để sắp xếp, ví dụ roe" },
-        order: { type: "string", description: "desc (mặc định) hoặc asc" },
+        sort_by: { type: "string", description: "Cách cũ của sort, ví dụ roe" },
+        order: { type: "string", description: "Cách cũ: desc (mặc định) hoặc asc" },
         limit: { type: "number", description: "Số kết quả (mặc định 20)" },
       },
     },
@@ -379,6 +375,99 @@ export const tools: ToolSchema[] = [
         },
       },
       required: ["action"],
+    },
+  },
+  {
+    name: "find_patterns",
+    description:
+      "Pattern kỹ thuật trên nến ngày 1 năm của một mã: vùng hỗ trợ/kháng cự, vùng quá mua/quá bán, mẫu nến gần đây, tín hiệu Turtle, breakout có khối lượng. " +
+      "Dùng khi user hỏi 'FPT có vùng hỗ trợ nào', 'VCB có tín hiệu gì không'. " +
+      "EN: Support/resistance zones, extremes, candle patterns, Turtle state and breakouts of one stock.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu, ví dụ FPT" },
+        recent: { type: "number", description: "Số phiên gần nhất để lọc mẫu nến và breakout (mặc định 10)" },
+      },
+      required: ["symbol"],
+    },
+  },
+  {
+    name: "get_foreign_history",
+    description:
+      "Lịch sử mua bán ròng của khối ngoại theo từng phiên, tính bằng đồng, cho một mã hoặc cả sàn. Dữ liệu chỉ có từ khi bắt đầu ghi (năm 2026). " +
+      "Dùng khi user hỏi 'khối ngoại bán ròng FPT bao nhiêu tháng này'. " +
+      "EN: Recorded per-session foreign net flow for a symbol or an exchange, in dong.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu. Bỏ trống là cả sàn" },
+        exchange: { type: "string", description: "HOSE (mặc định), HNX, UPCOM, ALL; dùng khi không có symbol" },
+        range: { type: "string", description: "1d, 5d, 1mo (mặc định), 3mo, 6mo, ytd, 1y, 2y, 5y, max" },
+      },
+    },
+  },
+  {
+    name: "portfolio_summary",
+    description:
+      "Định giá danh mục theo giá hiện tại: từng vị thế, theo môi giới, theo ngành, tổng NAV và lãi lỗ, tính bằng đồng. " +
+      "Không truyền positions thì đọc danh mục đã lưu ở ~/.vnstock-js/portfolio.json. cost là giá vốn mỗi cổ phiếu bằng đồng (120000, không phải 120). " +
+      "EN: Value holdings at live prices; reads the saved portfolio when no positions are given.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        positions: {
+          type: "array",
+          description: "Vị thế: { symbol, quantity, cost, broker? }",
+          items: {
+            type: "object",
+            properties: {
+              symbol: { type: "string" },
+              quantity: { type: "number" },
+              cost: { type: "number", description: "Giá vốn mỗi cổ phiếu, đồng" },
+              broker: { type: "string" },
+            },
+            required: ["symbol", "quantity", "cost"],
+          },
+        },
+        cash: { description: "Tiền mặt bằng đồng: một số, hoặc { broker: số }" },
+        save: { type: "boolean", description: "Lưu positions và cash vào ~/.vnstock-js/portfolio.json" },
+      },
+    },
+  },
+  {
+    name: "backtest_signal",
+    description:
+      "Backtest kiểu event study một tín hiệu có sẵn trên nến ngày: vào lệnh giá mở cửa phiên sau, thoát khi chạm chốt lời, cắt lỗ hoặc hết số phiên giữ. " +
+      "Preset: breakout (đóng cửa vượt đỉnh 20 phiên), oversold_bounce (RSI 14 cắt lên 30), ema_cross (EMA20 cắt lên EMA50). tp, sl tính bằng phần trăm. " +
+      "EN: Event-study backtest of a preset signal over one or more symbols; tp/sl/ret in percent.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbols: { type: "array", items: { type: "string" }, description: "Danh sách mã, ví dụ [FPT, VCB]" },
+        symbol: { type: "string", description: "Một mã, thay cho symbols" },
+        preset: { type: "string", description: "breakout, oversold_bounce, ema_cross" },
+        tp: { type: "number", description: "Chốt lời, phần trăm (mặc định 7)" },
+        sl: { type: "number", description: "Cắt lỗ, phần trăm (mặc định 4)" },
+        hold: { type: "number", description: "Số phiên giữ tối đa (mặc định 10)" },
+        range: { type: "string", description: "Khoảng dữ liệu: 1y, 2y (mặc định), 5y, max" },
+        overlap: { type: "boolean", description: "Đếm cả tín hiệu khi lệnh trước của cùng mã còn mở" },
+      },
+      required: ["preset"],
+    },
+  },
+  {
+    name: "find_similar_setups",
+    description:
+      "Tìm các phiên trong 5 năm của một mã có trạng thái kỹ thuật giống phiên gần nhất (RSI, MACD, khối lượng, độ dốc EMA, khoảng cách tới đỉnh 52 tuần) và giá thay đổi bao nhiêu sau 5, 20, 60 phiên. Thử nghiệm. " +
+      "EN: Past sessions with a similar technical setup and the percent change afterwards; experimental.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        symbol: { type: "string", description: "Mã cổ phiếu, ví dụ FPT" },
+        top: { type: "number", description: "Số phiên trả về, 1 đến 50 (mặc định 10)" },
+      },
+      required: ["symbol"],
     },
   },
 ];

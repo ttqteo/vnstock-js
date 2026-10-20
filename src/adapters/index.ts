@@ -1,2 +1,2 @@
 export { VciAdapter } from "./vci";
-export type { StockDataAdapter, QuoteHistoryParams, FinancialParams, FinancialResult } from "./types";
+export type { StockDataAdapter, BarsParams, FinancialParams, FinancialResult } from "./types";

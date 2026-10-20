@@ -19,9 +19,7 @@ export async function tolerateUpstream<T>(fn: () => Promise<T>): Promise<T | nul
     return await fn();
   } catch (e: any) {
     const flaky =
-      e instanceof NetworkError ||
-      e instanceof RateLimitError ||
-      (e && (e.code === "ECONNABORTED" || e.code === "ETIMEDOUT" || e.code === "ECONNRESET"));
+      e instanceof NetworkError || e instanceof RateLimitError || (e && (e.code === "ECONNABORTED" || e.code === "ETIMEDOUT" || e.code === "ECONNRESET"));
     if (!flaky) throw e;
     console.warn(`[integration] bỏ qua vì upstream không phản hồi được: ${e.message}`);
     return null;

@@ -1,13 +1,14 @@
-import {
-  QuoteHistory, PriceBoardItem, TopStock, ListedSymbol,
-  IndustryInfo, IndustryClassification,
-} from "../models/normalized";
+import { ListedSymbol, IndustryInfo, IndustryClassification } from "../models/normalized";
+import { Bar, Quote } from "../types";
 
-export interface QuoteHistoryParams {
+export interface BarsParams {
   symbols: string[];
-  start: string;
-  end?: string;
-  timeFrame: string;
+  /** Inclusive first ICT date, YYYY-MM-DD. */
+  from: string;
+  /** Inclusive last ICT date, YYYY-MM-DD. */
+  to: string;
+  frame: "ONE_MINUTE" | "ONE_HOUR" | "ONE_DAY";
+  /** Bars to ask for; when set the caller owns the window and nothing is trimmed. */
   countBack?: number;
 }
 
@@ -24,9 +25,10 @@ export interface FinancialResult {
 
 export interface StockDataAdapter {
   readonly name: string;
-  fetchQuoteHistory(params: QuoteHistoryParams): Promise<QuoteHistory[]>;
-  fetchPriceBoard(symbols: string[]): Promise<PriceBoardItem[]>;
-  fetchTopStocks(timeFrame: string, type: "gainers" | "losers"): Promise<TopStock[]>;
+  /** Bars keyed by symbol, prices in dong (indices in points), `time` in ICT. */
+  fetchBars(params: BarsParams): Promise<Record<string, Bar[]>>;
+  /** Price-board rows in dong. */
+  fetchQuotes(symbols: string[]): Promise<Quote[]>;
   fetchAllSymbols(): Promise<{ symbol: string; companyName: string }[]>;
   fetchSymbolsByExchange(): Promise<ListedSymbol[]>;
   fetchSymbolsByIndustries(): Promise<IndustryInfo[]>;

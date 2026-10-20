@@ -23,6 +23,33 @@ jest.mock("ws", () => {
   };
 });
 
+// Node >= 22 has a global WebSocket, which the client prefers; hide it so these tests drive the ws mock.
+const globalWebSocket = (globalThis as any).WebSocket;
+beforeAll(() => {
+  delete (globalThis as any).WebSocket;
+});
+afterAll(() => {
+  if (globalWebSocket !== undefined) (globalThis as any).WebSocket = globalWebSocket;
+});
+
+describe("socket selection", () => {
+  it("prefers the global WebSocket over the ws package", () => {
+    const urls: string[] = [];
+    (globalThis as any).WebSocket = function FakeGlobal(this: any, url: string) {
+      urls.push(url);
+      this.close = jest.fn();
+    };
+    try {
+      const client = create({ url: "wss://example.test/rt" } as any);
+      client.connect();
+      expect(urls).toEqual(["wss://example.test/rt"]);
+      client.disconnect();
+    } finally {
+      delete (globalThis as any).WebSocket;
+    }
+  });
+});
+
 function openSocket() {
   mockInstance.readyState = 1;
   if (mockInstance.onopen) mockInstance.onopen();
@@ -55,6 +82,16 @@ describe("parseData (fixture-based)", () => {
       expect(q.bidPrices.length).toBe(3);
       expect(q.askPrices.length).toBe(3);
     }
+  });
+
+  it("keeps prices in dong as the stream sends them", () => {
+    const raw =
+      "MAIN|S#VCB|59300|197000|59200|244200|59100|139800|||||||||||||||59400|155900|59500|116800|59600|118800|||||||||||||||59300|1000|59600|hose|59300|59400|100|1000000|50|500000|0|0|1000|1000000||||60500|58100|59300||||0|s|N||||0|0|VSDVCBX||59600|||||||||||||||||||||59";
+    const q = parseData(raw);
+    expect(q.bidPrices[0]).toEqual({ price: 59300, volume: 197000 });
+    expect(q.askPrices[0]).toEqual({ price: 59400, volume: 155900 });
+    expect(q.matched.price).toBe(parseFloat(raw.split("|")[42]));
+    expect(q.matched.price).toBeGreaterThan(1000);
   });
 
   it("throws ParseError on malformed input that lacks expected fields", () => {
@@ -96,7 +133,9 @@ describe("RealtimeClient message routing", () => {
     client.connect();
     openSocket();
 
-    receiveMessage('{"result":"complete","type":"unsub","topic":"stockRealtimeBySymbolsAndBoards","variables":{"symbols":["VCB"],"boardIds":["MAIN"]},"component":"priceTableEquities"}');
+    receiveMessage(
+      '{"result":"complete","type":"unsub","topic":"stockRealtimeBySymbolsAndBoards","variables":{"symbols":["VCB"],"boardIds":["MAIN"]},"component":"priceTableEquities"}'
+    );
 
     expect(onQuote).not.toHaveBeenCalled();
     expect(onError).not.toHaveBeenCalled();

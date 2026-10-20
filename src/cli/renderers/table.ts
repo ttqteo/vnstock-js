@@ -22,12 +22,8 @@ export function renderTable(opts: TableOptions): string {
   return table.toString();
 }
 
-export function renderGrid(
-  items: string[],
-  colWidth: number = 5,
-  width?: number
-): string {
-  var effectiveWidth = width !== undefined ? width : (process.stdout.columns || 80);
+export function renderGrid(items: string[], colWidth: number = 5, width?: number): string {
+  var effectiveWidth = width !== undefined ? width : process.stdout.columns || 80;
   var cols = Math.max(1, Math.floor(effectiveWidth / (colWidth + 2)));
   var lines: string[] = [];
   for (var i = 0; i < items.length; i += cols) {

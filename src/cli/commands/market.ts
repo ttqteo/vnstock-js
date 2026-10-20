@@ -1,10 +1,10 @@
-import vnstock from "../../";
+import type { Client } from "../../client";
+import type { Exchange } from "../../types";
 import { renderJson } from "../renderers/json";
 import { renderCsv } from "../renderers/csv";
 import { compactNumber } from "../format/number";
+import { money } from "../format/money";
 import { priceColor, bold, dim } from "../format/color";
-
-export const meta = { requiresData: false };
 
 export interface MarketOpts {
   exchange: string;
@@ -18,28 +18,25 @@ export interface MarketOpts {
 
 const EXCHANGES = ["HOSE", "HNX", "UPCOM", "ALL"];
 
-export function normalizeExchange(raw: string | undefined): string {
-  var up = String(raw || "HOSE").toUpperCase().trim();
+export function normalizeExchange(raw: string | undefined): Exchange | "ALL" {
+  var up = String(raw || "HOSE")
+    .toUpperCase()
+    .trim();
   if (up === "HSX") up = "HOSE";
   if (EXCHANGES.indexOf(up) === -1) {
     throw new Error("Invalid exchange '" + raw + "'. Use one of: " + EXCHANGES.join(", "));
   }
-  return up;
+  return up as Exchange | "ALL";
 }
 
-/** Ty VND reads better as "12.3k ty" once past a few thousand. */
-export function formatTy(value: number): string {
-  var abs = Math.abs(value);
-  if (abs >= 1000) return (value / 1000).toFixed(2) + "k tỷ";
-  return value.toFixed(1) + " tỷ";
+/** Signed money for flows: "+1.2 tỷ", "-507.1 tỷ". */
+export function signedMoney(dong: number): string {
+  return (dong >= 0 ? "+" : "") + money(dong);
 }
 
-export async function handleMarket(opts: MarketOpts): Promise<string> {
+export async function handleMarket(client: Client, opts: MarketOpts): Promise<string> {
   var exchange = normalizeExchange(opts.exchange);
-  var overview = await vnstock.market.overview({
-    exchange: exchange as any,
-    index: opts.index,
-  });
+  var overview = await client.market({ exchange: exchange, index: opts.index });
 
   if (opts.json) return renderJson(overview);
   if (opts.csv) {
@@ -49,11 +46,11 @@ export async function handleMarket(opts: MarketOpts): Promise<string> {
         index: overview.index.symbol,
         close: overview.index.close,
         changePercent: overview.index.changePercent,
-        liquidityTyVND: overview.liquidity.value,
+        liquidityVND: overview.liquidity.value,
         advancing: overview.breadth.advancing,
         declining: overview.breadth.declining,
         unchanged: overview.breadth.unchanged,
-        foreignNetTyVND: overview.foreign.netValue,
+        foreignNetVND: overview.foreign.netValue,
       },
     ]);
   }
@@ -72,10 +69,8 @@ export async function handleMarket(opts: MarketOpts): Promise<string> {
 
   var liq = overview.liquidity;
   var liqDelta =
-    liq.changePercent === null
-      ? ""
-      : "  " + priceColor(liq.changePercent, (liq.changePercent >= 0 ? "+" : "") + liq.changePercent.toFixed(1) + "%", opts);
-  var line2 = dim("Thanh khoản ", opts) + formatTy(liq.value) + liqDelta;
+    liq.changePercent === null ? "" : "  " + priceColor(liq.changePercent, (liq.changePercent >= 0 ? "+" : "") + liq.changePercent.toFixed(1) + "%", opts);
+  var line2 = dim("Thanh khoản ", opts) + money(liq.value) + liqDelta;
 
   var b = overview.breadth;
   var line3 =
@@ -89,9 +84,7 @@ export async function handleMarket(opts: MarketOpts): Promise<string> {
 
   var f = overview.foreign;
   var line4 =
-    dim("Khối ngoại ", opts) +
-    priceColor(f.netValue, (f.netValue >= 0 ? "+" : "") + formatTy(f.netValue), opts) +
-    dim("  mua " + formatTy(f.buyValue) + " · bán " + formatTy(f.sellValue), opts);
+    dim("Khối ngoại ", opts) + priceColor(f.netValue, signedMoney(f.netValue), opts) + dim("  mua " + money(f.buyValue) + " · bán " + money(f.sellValue), opts);
 
   var out = [line1, line2, line3, line4];
 
@@ -106,5 +99,5 @@ export async function handleMarket(opts: MarketOpts): Promise<string> {
 }
 
 function fmtFlow(f: { symbol: string; netValue: number }): string {
-  return f.symbol + " " + (f.netValue >= 0 ? "+" : "") + f.netValue.toFixed(0);
+  return f.symbol + " " + signedMoney(f.netValue);
 }
